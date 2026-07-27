@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
+import { relative, sep } from "node:path";
 import fg from "fast-glob";
 import { extractChecks, extractContrastSkips } from "./parser/extractClasses.js";
 import { checkContrast, checkContrastValueSkips, type ContrastViolation } from "./rules/checkContrast.js";
@@ -55,9 +56,14 @@ async function main(): Promise<void> {
   const violations: AnyViolation[] = [];
   const skips: Skip[] = [];
 
-  for (const file of files) {
+  for (const absPath of files) {
+    // Display/report path is project-root-relative (e.g. "/src/App.tsx"),
+    // not the full absolute path — reading still uses the absolute path,
+    // which is unambiguous regardless of process.cwd() quirks.
+    const file = "/" + relative(process.cwd(), absPath).split(sep).join("/");
+
     try {
-      const code = readFileSync(file, "utf8");
+      const code = readFileSync(absPath, "utf8");
       const contrastChecks = extractChecks(code, file);
 
       violations.push(
