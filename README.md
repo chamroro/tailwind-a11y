@@ -28,6 +28,10 @@ npm run build --workspaces           # builds tailwind-a11y first, then the plug
 npm test --workspaces --if-present
 ```
 
+On a fresh clone, run `npm install` once more after the first `npm run build --workspaces`
+— the `tailwind-a11y` CLI's `node_modules/.bin` symlink is only created for a target
+(`dist/cli.js`) that already exists at install time, so the very first install predates it.
+
 **Version lockstep**: `eslint-plugin-tailwind-a11y` depends on `tailwind-a11y` via a
 plain semver range (`^0.1.0`), resolved to the local workspace as long as that range is
 satisfied by `packages/tailwind-a11y`'s actual `version`. Bumping the engine's version
