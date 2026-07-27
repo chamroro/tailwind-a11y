@@ -12,6 +12,16 @@ describe("checkFocusIndicators", () => {
     ]);
   });
 
+  it("prints the message users see in the CLI/ESLint output", () => {
+    const [v] = checkFocusIndicators([
+      { file: "SaveButton.tsx", line: 6, tagName: "button", focusClasses: ["focus:outline-none"] },
+    ]);
+    // Same wording as cli.ts's formatViolation (focus-indicator case).
+    console.log(
+      `${v.line}: <${v.tagName}> removes the focus outline (${v.removalClass}) with no visible replacement (focus:ring-*/border-*/shadow-*/bg-*/outline-*)`
+    );
+  });
+
   it("passes when a real replacement ring is present", () => {
     const violations = checkFocusIndicators([
       { file: "f.tsx", line: 1, tagName: "button", focusClasses: ["focus:outline-none", "focus:ring-2"] },

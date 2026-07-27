@@ -32,4 +32,14 @@ describe("checkTouchTargets", () => {
     expect(violations).toHaveLength(1);
     expect(violations[0].type).toBe("touch-target");
   });
+
+  it("prints the message users see in the CLI/ESLint output", () => {
+    const [v] = checkTouchTargets([
+      { file: "IconButton.tsx", line: 2, tagName: "button", widthClass: "w-4", heightClass: "h-4", widthPx: 16, heightPx: 16 },
+    ]);
+    // Same wording as cli.ts's formatViolation (touch-target case).
+    console.log(
+      `${v.line}: <${v.tagName}> is ${v.widthPx}×${v.heightPx}px (${v.widthClass} ${v.heightClass}) — WCAG 2.5.8 requires >= 24×24px`
+    );
+  });
 });

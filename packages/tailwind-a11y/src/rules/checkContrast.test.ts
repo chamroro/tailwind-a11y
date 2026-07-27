@@ -12,6 +12,17 @@ describe("checkContrast", () => {
     expect(violations[0].ratio).toBeLessThan(4.5);
   });
 
+  it("prints the message users see in the CLI/ESLint output", () => {
+    const [v] = checkContrast([
+      { file: "Card.tsx", line: 3, textColorClass: "text-gray-400", bgColorClass: "bg-white", bgSource: "self" },
+    ]);
+    // Same wording as cli.ts's formatViolation (contrast case) and
+    // eslint-plugin-tailwind-a11y's contrast rule message template.
+    console.log(
+      `${v.line}: ${v.textClass} on ${v.bgClass} — ratio ${v.ratio.toFixed(2)}, needs ${v.required} (${v.level})`
+    );
+  });
+
   it("passes a known compliant pair", () => {
     const violations = checkContrast([
       { file: "f.tsx", line: 1, textColorClass: "text-gray-900", bgColorClass: "bg-white", bgSource: "self" },
