@@ -1,6 +1,6 @@
 {
   "name": "tailwind-a11y",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Static analysis CLI that catches WCAG accessibility violations — color contrast, touch target size, and focus indicator removal — in Tailwind CSS class combinations before they ship.",
   "type": "module",
   "bin": {
@@ -14,7 +14,9 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "engines": {
     "node": ">=18"
   },
@@ -25,7 +27,17 @@
     "test:watch": "vitest",
     "prepublishOnly": "npm run build && npm test"
   },
-  "keywords": ["tailwindcss", "accessibility", "a11y", "wcag", "wcag22", "contrast", "touch-target", "focus-visible", "lint"],
+  "keywords": [
+    "tailwindcss",
+    "accessibility",
+    "a11y",
+    "wcag",
+    "wcag22",
+    "contrast",
+    "touch-target",
+    "focus-visible",
+    "lint"
+  ],
   "author": "chamroro",
   "license": "MIT",
   "repository": {
