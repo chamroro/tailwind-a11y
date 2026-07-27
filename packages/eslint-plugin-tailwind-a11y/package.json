@@ -1,0 +1,52 @@
+{
+  "name": "eslint-plugin-tailwind-a11y",
+  "version": "0.1.0",
+  "description": "ESLint rules that catch WCAG accessibility violations — color contrast, touch target size, and focus indicator removal — in Tailwind CSS class combinations.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": ["dist"],
+  "engines": {
+    "node": "^20.19.0 || ^22.13.0 || >=24"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "node -e \"if(require('./package.json').dependencies['tailwind-a11y'].startsWith('file:'))throw new Error('Refusing to publish with a file: dependency on tailwind-a11y')\" && npm run build && npm test"
+  },
+  "keywords": [
+    "eslint",
+    "eslintplugin",
+    "eslint-plugin",
+    "tailwindcss",
+    "accessibility",
+    "a11y",
+    "wcag",
+    "wcag22",
+    "contrast",
+    "touch-target",
+    "focus-visible"
+  ],
+  "author": "chamroro",
+  "license": "MIT",
+  "dependencies": {
+    "tailwind-a11y": "file:../tailwind-contrast-guard"
+  },
+  "peerDependencies": {
+    "eslint": "^9.0.0 || ^10.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "eslint": "^10.8.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.1.0"
+  }
+}
