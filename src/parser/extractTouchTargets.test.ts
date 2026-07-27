@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractTouchTargetChecks } from "./extractTouchTargets.js";
+import { extractTouchTargetChecks, extractTouchTargetSkips } from "./extractTouchTargets.js";
 
 describe("extractTouchTargetChecks", () => {
   it("catches a 16x16 button", () => {
@@ -60,5 +60,45 @@ describe("extractTouchTargetChecks", () => {
   it("ignores non-interactive elements", () => {
     const code = `const C = () => <div className="w-4 h-4">x</div>;`;
     expect(extractTouchTargetChecks(code, "fake.tsx")).toEqual([]);
+  });
+});
+
+describe("extractTouchTargetSkips", () => {
+  it("flags a width with no height", () => {
+    const code = `const C = () => <button className="w-4">x</button>;`;
+    const skips = extractTouchTargetSkips(code, "fake.tsx");
+    expect(skips).toHaveLength(1);
+    expect(skips[0].reason).toContain("w-4");
+    expect(skips[0].reason).toContain("height");
+  });
+
+  it("flags a height with no width", () => {
+    const code = `const C = () => <button className="h-4">x</button>;`;
+    const skips = extractTouchTargetSkips(code, "fake.tsx");
+    expect(skips).toHaveLength(1);
+    expect(skips[0].reason).toContain("h-4");
+    expect(skips[0].reason).toContain("width");
+  });
+
+  it("flags an arbitrary value not in the spacing scale", () => {
+    const code = `const C = () => <button className="w-[3rem] h-4">x</button>;`;
+    const skips = extractTouchTargetSkips(code, "fake.tsx");
+    expect(skips).toHaveLength(1);
+    expect(skips[0].reason).toContain("w-[3rem]");
+  });
+
+  it("does not flag interactive elements with no size classes at all", () => {
+    const code = `const C = () => <button className="px-4 py-2">x</button>;`;
+    expect(extractTouchTargetSkips(code, "fake.tsx")).toEqual([]);
+  });
+
+  it("does not flag a case extractTouchTargetChecks already resolves", () => {
+    const code = `const C = () => <button className="w-4 h-4">x</button>;`;
+    expect(extractTouchTargetSkips(code, "fake.tsx")).toEqual([]);
+  });
+
+  it("does not flag non-interactive elements", () => {
+    const code = `const C = () => <div className="w-4">x</div>;`;
+    expect(extractTouchTargetSkips(code, "fake.tsx")).toEqual([]);
   });
 });

@@ -13,7 +13,7 @@ export interface ContrastViolation {
   level: "AA";
 }
 
-function resolveColorValue(utilityClass: string): string | null {
+export function resolveColorValue(utilityClass: string): string | null {
   const match = /^(?:text|bg)-(.+)$/.exec(utilityClass);
   if (!match) return null;
   const token = match[1];
@@ -60,4 +60,34 @@ export function checkContrast(checks: ContrastCheck[]): ContrastViolation[] {
   }
 
   return violations;
+}
+
+export interface ContrastValueSkip {
+  file: string;
+  line: number;
+  reason: string;
+}
+
+// A candidate that extractChecks *did* find a background for, but whose
+// text or bg utility didn't resolve to a known value (custom theme color,
+// non-hex arbitrary value, opacity shorthand) — surfaced separately from
+// extractContrastSkips' component-boundary case, since this one already has
+// a full text/bg pair and only failed at value resolution.
+export function checkContrastValueSkips(checks: ContrastCheck[]): ContrastValueSkip[] {
+  const skips: ContrastValueSkip[] = [];
+
+  for (const check of checks) {
+    const textHex = resolveColorValue(check.textColorClass);
+    const bgHex = resolveColorValue(check.bgColorClass);
+    if (textHex && bgHex) continue;
+
+    const unresolved = !textHex ? check.textColorClass : check.bgColorClass;
+    skips.push({
+      file: check.file,
+      line: check.line,
+      reason: `${unresolved} is not a recognized color (custom theme color or unsupported arbitrary value) — skipped`,
+    });
+  }
+
+  return skips;
 }

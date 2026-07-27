@@ -1,14 +1,20 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
 import fg from "fast-glob";
-import { extractChecks } from "./parser/extractClasses.js";
-import { checkContrast, type ContrastViolation } from "./rules/checkContrast.js";
-import { extractTouchTargetChecks } from "./parser/extractTouchTargets.js";
+import { extractChecks, extractContrastSkips } from "./parser/extractClasses.js";
+import { checkContrast, checkContrastValueSkips, type ContrastViolation } from "./rules/checkContrast.js";
+import { extractTouchTargetChecks, extractTouchTargetSkips } from "./parser/extractTouchTargets.js";
 import { checkTouchTargets, type TouchTargetViolation } from "./rules/checkTouchTarget.js";
 import { extractFocusIndicatorChecks } from "./parser/extractFocusIndicators.js";
 import { checkFocusIndicators, type FocusIndicatorViolation } from "./rules/checkFocusIndicator.js";
 
 type AnyViolation = ContrastViolation | TouchTargetViolation | FocusIndicatorViolation;
+
+interface Skip {
+  file: string;
+  line: number;
+  reason: string;
+}
 
 function formatViolation(v: AnyViolation): string {
   switch (v.type) {
@@ -21,57 +27,87 @@ function formatViolation(v: AnyViolation): string {
   }
 }
 
+function groupByFile<T extends { file: string }>(items: T[]): Map<string, T[]> {
+  const byFile = new Map<string, T[]>();
+  for (const item of items) {
+    const existing = byFile.get(item.file);
+    if (existing) {
+      existing.push(item);
+    } else {
+      byFile.set(item.file, [item]);
+    }
+  }
+  return byFile;
+}
+
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
-  const patterns = args.length > 0 ? args : ["**/*.{jsx,tsx}"];
+  const verbose = args.includes("--verbose") || args.includes("-v");
+  const patterns = args.filter((a) => a !== "--verbose" && a !== "-v");
+  const globPatterns = patterns.length > 0 ? patterns : ["**/*.{jsx,tsx}"];
 
-  const files = await fg(patterns, {
+  const files = await fg(globPatterns, {
     cwd: process.cwd(),
     absolute: true,
     ignore: ["**/node_modules/**", "**/dist/**", "**/.git/**", "**/build/**"],
   });
 
-  const violations: AnyViolation[] = files.flatMap((file) => {
+  const violations: AnyViolation[] = [];
+  const skips: Skip[] = [];
+
+  for (const file of files) {
     try {
       const code = readFileSync(file, "utf8");
-      return [
-        ...checkContrast(extractChecks(code, file)),
+      const contrastChecks = extractChecks(code, file);
+
+      violations.push(
+        ...checkContrast(contrastChecks),
         ...checkTouchTargets(extractTouchTargetChecks(code, file)),
-        ...checkFocusIndicators(extractFocusIndicatorChecks(code, file)),
-      ];
+        ...checkFocusIndicators(extractFocusIndicatorChecks(code, file))
+      );
+
+      if (verbose) {
+        skips.push(
+          ...extractContrastSkips(code, file),
+          ...checkContrastValueSkips(contrastChecks),
+          ...extractTouchTargetSkips(code, file)
+        );
+      }
     } catch (err) {
       // Consistent with the parser's own skip-on-unparsable-file behavior:
       // one unreadable file (permissions, deleted between glob and read)
       // shouldn't abort the whole scan.
       console.warn(`tailwind-a11y: skipping unreadable file ${file}: ${(err as Error).message}`);
-      return [];
     }
-  });
+  }
 
   if (violations.length === 0) {
     console.log("No accessibility issues found.");
-    return;
+  } else {
+    const byFile = groupByFile(violations);
+    for (const [file, fileViolations] of byFile) {
+      console.log(file);
+      for (const v of fileViolations) {
+        console.log(`  ${formatViolation(v)}`);
+      }
+    }
+    console.log(`\n${violations.length} issue(s) in ${byFile.size} file(s)`);
   }
 
-  const byFile = new Map<string, AnyViolation[]>();
-  for (const violation of violations) {
-    const existing = byFile.get(violation.file);
-    if (existing) {
-      existing.push(violation);
-    } else {
-      byFile.set(violation.file, [violation]);
+  if (verbose && skips.length > 0) {
+    console.log(`\n--- Skipped (${skips.length}) — not checked, not a pass ---`);
+    const byFile = groupByFile(skips);
+    for (const [file, fileSkips] of byFile) {
+      console.log(file);
+      for (const s of fileSkips) {
+        console.log(`  ${s.line}: ${s.reason}`);
+      }
     }
   }
 
-  for (const [file, fileViolations] of byFile) {
-    console.log(file);
-    for (const v of fileViolations) {
-      console.log(`  ${formatViolation(v)}`);
-    }
+  if (violations.length > 0) {
+    process.exitCode = 1;
   }
-
-  console.log(`\n${violations.length} issue(s) in ${byFile.size} file(s)`);
-  process.exitCode = 1;
 }
 
 main();

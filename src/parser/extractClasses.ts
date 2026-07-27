@@ -22,7 +22,7 @@ const COLOR_TOKEN = /^\[(#[0-9a-fA-F]{3,8})\]$|^[a-z]+-\d{2,3}(\/\d{1,3})?$|^(wh
 // negative, the worst failure mode for a linter).
 const NON_COLOR_SCALE_NAMES = new Set(["opacity"]);
 
-function lastColorToken(className: string, prefix: "text" | "bg"): string | null {
+export function lastColorToken(className: string, prefix: "text" | "bg"): string | null {
   let found: string | null = null;
   for (const raw of className.split(/\s+/).filter(Boolean)) {
     const base = raw.slice(raw.lastIndexOf(":") + 1); // strip hover:/dark:/md: variants
@@ -72,4 +72,65 @@ export function extractChecks(code: string, filePath: string): ContrastCheck[] {
   });
 
   return checks;
+}
+
+export interface ContrastSkip {
+  file: string;
+  line: number;
+  reason: string;
+}
+
+// Independent pass (not merged into extractChecks) purely to surface why a
+// text color candidate produced no check — most usefully, the component-
+// boundary case: <Card><p className="text-gray-400">...</Card> where Card
+// sets its background internally, in a file this tool never opens. This is
+// a real, common miss (see CLAUDE.md's v1 scope), so it's made visible
+// rather than silently invisible, without attempting to actually resolve it.
+export function extractContrastSkips(code: string, filePath: string): ContrastSkip[] {
+  const ast = parseJSX(code, filePath);
+  if (!ast) return [];
+
+  const skips: ContrastSkip[] = [];
+
+  traverse(ast, {
+    JSXElement(path) {
+      const className = getStaticClassName(path.node.openingElement.attributes);
+      if (!className) return;
+
+      const textClass = lastColorToken(className, "text");
+      if (!textClass) return;
+
+      const ownBg = lastColorToken(className, "bg");
+      if (ownBg) return; // extractChecks already covers this case
+
+      const line = path.node.openingElement.loc?.start.line ?? 0;
+      const parentNode = path.parentPath?.node;
+
+      if (parentNode && t.isJSXElement(parentNode)) {
+        const parentClassName = getStaticClassName(parentNode.openingElement.attributes);
+        const parentBg = parentClassName ? lastColorToken(parentClassName, "bg") : null;
+        if (parentBg) return; // extractChecks already covers this case
+
+        const parentTag = t.isJSXIdentifier(parentNode.openingElement.name)
+          ? parentNode.openingElement.name.name
+          : null;
+        if (parentTag && /^[A-Z]/.test(parentTag)) {
+          skips.push({
+            file: filePath,
+            line,
+            reason: `${textClass} — background may be set inside <${parentTag}>, which this tool doesn't inspect across component boundaries`,
+          });
+          return;
+        }
+      }
+
+      skips.push({
+        file: filePath,
+        line,
+        reason: `${textClass} — no background utility found on this element or its immediate parent`,
+      });
+    },
+  });
+
+  return skips;
 }

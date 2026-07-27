@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkContrast } from "./checkContrast.js";
+import { checkContrast, checkContrastValueSkips } from "./checkContrast.js";
 import { extractChecks } from "../parser/extractClasses.js";
 
 describe("checkContrast", () => {
@@ -58,5 +58,30 @@ describe("checkContrast", () => {
     const violations = checkContrast(extractChecks(code, "fake.tsx"));
     expect(violations).toHaveLength(1);
     expect(violations[0]).toMatchObject({ textClass: "text-gray-400", bgClass: "bg-white" });
+  });
+});
+
+describe("checkContrastValueSkips", () => {
+  it("reports a skip for an unrecognized custom color", () => {
+    const skips = checkContrastValueSkips([
+      { file: "f.tsx", line: 1, textColorClass: "text-brand-500", bgColorClass: "bg-white", bgSource: "self" },
+    ]);
+    expect(skips).toHaveLength(1);
+    expect(skips[0].reason).toContain("text-brand-500");
+  });
+
+  it("reports a skip for opacity-modifier shorthand", () => {
+    const skips = checkContrastValueSkips([
+      { file: "f.tsx", line: 1, textColorClass: "text-gray-400", bgColorClass: "bg-white/50", bgSource: "self" },
+    ]);
+    expect(skips).toHaveLength(1);
+    expect(skips[0].reason).toContain("bg-white/50");
+  });
+
+  it("does not report a skip for a fully resolvable pair", () => {
+    const skips = checkContrastValueSkips([
+      { file: "f.tsx", line: 1, textColorClass: "text-gray-400", bgColorClass: "bg-white", bgSource: "self" },
+    ]);
+    expect(skips).toEqual([]);
   });
 });
