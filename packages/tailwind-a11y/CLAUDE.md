@@ -1,9 +1,12 @@
 # tailwind-a11y
 
 (Renamed from `tailwind-contrast-guard` once a second and third check were
-added — the GitHub repo itself keeps its original name, only npm package
-metadata changed. Not yet published to npm, so this was a free pre-launch
-rename with no back-compat concerns.)
+added. Later, the GitHub repo itself was also renamed to `tailwind-a11y` and
+restructured as an npm workspaces monorepo — this package now lives at
+`packages/tailwind-a11y/` alongside `packages/eslint-plugin-tailwind-a11y/`.
+See the monorepo root `CLAUDE.md` for workspace-level conventions. Not yet
+published to npm, so all of this was free pre-launch churn with no
+back-compat concerns.)
 
 ## What this is
 

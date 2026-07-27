@@ -20,7 +20,7 @@
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prepublishOnly": "node -e \"if(require('./package.json').dependencies['tailwind-a11y'].startsWith('file:'))throw new Error('Refusing to publish with a file: dependency on tailwind-a11y')\" && npm run build && npm test"
+    "prepublishOnly": "npm run build && npm test"
   },
   "keywords": [
     "eslint",
@@ -37,8 +37,17 @@
   ],
   "author": "chamroro",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chamroro/tailwind-a11y.git",
+    "directory": "packages/eslint-plugin-tailwind-a11y"
+  },
+  "bugs": {
+    "url": "https://github.com/chamroro/tailwind-a11y/issues"
+  },
+  "homepage": "https://github.com/chamroro/tailwind-a11y/tree/main/packages/eslint-plugin-tailwind-a11y#readme",
   "dependencies": {
-    "tailwind-a11y": "file:../tailwind-contrast-guard"
+    "tailwind-a11y": "^0.1.0"
   },
   "peerDependencies": {
     "eslint": "^9.0.0 || ^10.0.0"

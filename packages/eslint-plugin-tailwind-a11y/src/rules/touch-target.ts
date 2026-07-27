@@ -8,7 +8,7 @@ const rule: Rule.RuleModule = {
       description:
         "Enforce WCAG 2.5.8 AA minimum 24x24px touch targets on interactive elements sized with Tailwind w-*/h-* classes",
       recommended: true,
-      url: "https://github.com/chamroro/eslint-plugin-tailwind-a11y#touch-target",
+      url: "https://github.com/chamroro/tailwind-a11y/tree/main/packages/eslint-plugin-tailwind-a11y#touch-target",
     },
     schema: [],
     messages: {

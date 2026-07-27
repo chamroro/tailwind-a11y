@@ -7,7 +7,7 @@ const rule: Rule.RuleModule = {
     docs: {
       description: "Enforce WCAG 2.4.7 AA visible focus indicators — flag focus:outline-none with no visible replacement",
       recommended: true,
-      url: "https://github.com/chamroro/eslint-plugin-tailwind-a11y#focus-indicator",
+      url: "https://github.com/chamroro/tailwind-a11y/tree/main/packages/eslint-plugin-tailwind-a11y#focus-indicator",
     },
     schema: [],
     messages: {

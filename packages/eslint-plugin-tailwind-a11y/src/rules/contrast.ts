@@ -7,7 +7,7 @@ const rule: Rule.RuleModule = {
     docs: {
       description: "Enforce WCAG 1.4.3 AA color contrast between Tailwind text-* and bg-* classes",
       recommended: true,
-      url: "https://github.com/chamroro/eslint-plugin-tailwind-a11y#contrast",
+      url: "https://github.com/chamroro/tailwind-a11y/tree/main/packages/eslint-plugin-tailwind-a11y#contrast",
     },
     schema: [],
     messages: {

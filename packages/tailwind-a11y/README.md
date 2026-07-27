@@ -6,8 +6,9 @@ can be caught **before rendering**, in CI, instead of at a Lighthouse audit or Q
 after the fact. Three [WCAG](https://www.w3.org/WAI/WCAG21/quickref/) checks ship on top
 of that engine today: color contrast, touch target size, and focus indicator removal.
 
-> Renamed from `tailwind-contrast-guard` once these three checks landed — the GitHub
-> repo keeps its original name, only the npm package was renamed.
+> Renamed from `tailwind-contrast-guard` once these three checks landed. This package now
+> lives in the [`tailwind-a11y` monorepo](https://github.com/chamroro/tailwind-a11y)
+> alongside its [ESLint plugin](https://github.com/chamroro/tailwind-a11y/tree/main/packages/eslint-plugin-tailwind-a11y).
 
 ## The actual problem this solves
 

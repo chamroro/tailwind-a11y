@@ -1,0 +1,22 @@
+{
+  "name": "tailwind-a11y-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Monorepo for tailwind-a11y (WCAG static-analysis CLI for Tailwind class combinations) and its ESLint adapter.",
+  "author": "chamroro",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chamroro/tailwind-a11y.git"
+  },
+  "workspaces": [
+    "packages/tailwind-a11y",
+    "packages/eslint-plugin-tailwind-a11y"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "clean": "rm -rf packages/*/dist",
+    "check:link": "test -L node_modules/tailwind-a11y || { echo 'ERROR: node_modules/tailwind-a11y is not a workspace symlink -- the semver range in eslint-plugin-tailwind-a11y no longer matches the local version'; exit 1; }"
+  }
+}

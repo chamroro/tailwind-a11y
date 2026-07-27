@@ -5,7 +5,7 @@ violations in Tailwind CSS class combinations — color contrast, touch target s
 focus indicator removal — as part of your normal `eslint` run, instead of a separate CLI
 you have to remember to invoke.
 
-This plugin is a thin ESLint adapter over the [`tailwind-a11y`](https://github.com/chamroro/tailwind-contrast-guard)
+This plugin is a thin ESLint adapter over the [`tailwind-a11y`](https://github.com/chamroro/tailwind-a11y/tree/main/packages/tailwind-a11y)
 engine, which does the actual work: resolving Tailwind utility classes back into real
 computed values (colors, sizes) via AST analysis. Every rule here calls straight into
 that engine and reports its violations — there's no separate implementation to drift out
@@ -58,7 +58,7 @@ export default [
 | `tailwind-a11y/focus-indicator` | 2.4.7 (AA) | `focus:outline-none` with no visible replacement style |
 
 Each rule's exact scope and known limitations are documented in the
-[engine's README](https://github.com/chamroro/tailwind-contrast-guard#what-it-deliberately-doesnt-catch-v1-scope) —
+[engine's README](https://github.com/chamroro/tailwind-a11y/tree/main/packages/tailwind-a11y#what-it-deliberately-doesnt-catch-v1-scope) —
 this plugin doesn't change what's checked, only how it's surfaced.
 
 ## `.tsx` files and parsers
@@ -74,22 +74,23 @@ this covered; nothing extra to add for this plugin specifically.
 ## Relationship to the `tailwind-a11y` CLI
 
 Same checks, same engine, two ways to run them: `eslint-plugin-tailwind-a11y` for
-inline, per-file feedback during normal linting; [`tailwind-a11y`](https://github.com/chamroro/tailwind-contrast-guard)
+inline, per-file feedback during normal linting; [`tailwind-a11y`](https://github.com/chamroro/tailwind-a11y/tree/main/packages/tailwind-a11y)
 (the CLI) for a one-shot scan, e.g. in a CI step that doesn't otherwise run ESLint. Use
 either, or both — they'll never disagree, since the plugin doesn't reimplement anything.
 
 ## Development
 
+This package lives in the [`tailwind-a11y` monorepo](https://github.com/chamroro/tailwind-a11y)
+(npm workspaces) alongside the engine it depends on:
+
 ```bash
-npm install
-npm run build   # tsc -> dist/
-npm test        # vitest + ESLint RuleTester
+npm install                              # from the monorepo root
+npm run build --workspaces               # or: npm run build -w tailwind-a11y -w eslint-plugin-tailwind-a11y
+npm test --workspaces --if-present
 ```
 
-This package depends on `tailwind-a11y` via a local `file:` path during development
-(see `package.json`) — after changing the engine, rebuild it
-(`npm run build` in the `tailwind-a11y` repo) before running this package's tests, since
-the dependency resolves through its `dist/`, not its `src/`.
+After changing the engine (`packages/tailwind-a11y`), rebuild it before running this
+package's tests — the workspace dependency resolves through its `dist/`, not its `src/`.
 
 ## License
 

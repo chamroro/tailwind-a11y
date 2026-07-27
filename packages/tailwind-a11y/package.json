@@ -30,12 +30,13 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/chamroro/tailwind-contrast-guard.git"
+    "url": "git+https://github.com/chamroro/tailwind-a11y.git",
+    "directory": "packages/tailwind-a11y"
   },
   "bugs": {
-    "url": "https://github.com/chamroro/tailwind-contrast-guard/issues"
+    "url": "https://github.com/chamroro/tailwind-a11y/issues"
   },
-  "homepage": "https://github.com/chamroro/tailwind-contrast-guard#readme",
+  "homepage": "https://github.com/chamroro/tailwind-a11y/tree/main/packages/tailwind-a11y#readme",
   "dependencies": {
     "@babel/parser": "^7.25.0",
     "@babel/traverse": "^7.25.0",
