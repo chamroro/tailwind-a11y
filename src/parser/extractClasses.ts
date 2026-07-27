@@ -1,18 +1,5 @@
-import { parse } from "@babel/parser";
-import _traverse from "@babel/traverse";
-import type { NodePath } from "@babel/traverse";
 import * as t from "@babel/types";
-
-// @types/babel__traverse's default-export type doesn't line up with how
-// NodeNext resolves the CJS default import here (it types as the whole
-// module namespace, not the callable) — and at runtime the callable
-// sometimes ends up on `.default` instead of the import itself. Define the
-// one signature we actually use and resolve+cast to it directly rather than
-// fighting the upstream type declarations.
-type TraverseFn = (ast: t.File, visitor: { JSXElement?: (path: NodePath<t.JSXElement>) => void }) => void;
-const traverse = (
-  typeof _traverse === "function" ? _traverse : (_traverse as any).default
-) as unknown as TraverseFn;
+import { getStaticClassName, parseJSX, traverse } from "./babelInterop.js";
 
 export interface ContrastCheck {
   file: string;
@@ -35,15 +22,6 @@ const COLOR_TOKEN = /^\[(#[0-9a-fA-F]{3,8})\]$|^[a-z]+-\d{2,3}(\/\d{1,3})?$|^(wh
 // negative, the worst failure mode for a linter).
 const NON_COLOR_SCALE_NAMES = new Set(["opacity"]);
 
-function getStaticClassName(attributes: t.JSXOpeningElement["attributes"]): string | null {
-  const attr = attributes.find(
-    (a): a is t.JSXAttribute => t.isJSXAttribute(a) && a.name.name === "className"
-  );
-  if (!attr || !attr.value) return null;
-  if (t.isStringLiteral(attr.value)) return attr.value.value;
-  return null; // JSXExpressionContainer (ternary, template literal, clsx()...) — skip silently
-}
-
 function lastColorToken(className: string, prefix: "text" | "bg"): string | null {
   let found: string | null = null;
   for (const raw of className.split(/\s+/).filter(Boolean)) {
@@ -59,13 +37,8 @@ function lastColorToken(className: string, prefix: "text" | "bg"): string | null
 }
 
 export function extractChecks(code: string, filePath: string): ContrastCheck[] {
-  let ast;
-  try {
-    ast = parse(code, { sourceType: "module", plugins: ["jsx", "typescript"] });
-  } catch {
-    console.warn(`tailwind-contrast-guard: skipping unparsable file ${filePath}`);
-    return [];
-  }
+  const ast = parseJSX(code, filePath);
+  if (!ast) return [];
 
   const checks: ContrastCheck[] = [];
 

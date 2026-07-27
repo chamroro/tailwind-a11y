@@ -2,7 +2,8 @@ import { contrastRatio, hexToRgb, meetsWCAG, requiredRatio } from "../contrast/l
 import { defaultPalette, semanticColors } from "../theme/defaultPalette.js";
 import type { ContrastCheck } from "../parser/extractClasses.js";
 
-export interface Violation {
+export interface ContrastViolation {
+  type: "contrast";
   file: string;
   line: number;
   textClass: string;
@@ -29,8 +30,8 @@ function resolveColorValue(utilityClass: string): string | null {
   return defaultPalette[scale]?.[shade] ?? null; // unknown/custom color — skip
 }
 
-export function checkContrast(checks: ContrastCheck[]): Violation[] {
-  const violations: Violation[] = [];
+export function checkContrast(checks: ContrastCheck[]): ContrastViolation[] {
+  const violations: ContrastViolation[] = [];
 
   for (const check of checks) {
     const textHex = resolveColorValue(check.textColorClass);
@@ -46,6 +47,7 @@ export function checkContrast(checks: ContrastCheck[]): Violation[] {
 
     if (!meetsWCAG(ratio, "AA", false)) {
       violations.push({
+        type: "contrast",
         file: check.file,
         line: check.line,
         textClass: check.textColorClass,

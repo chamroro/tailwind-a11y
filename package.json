@@ -1,21 +1,41 @@
 {
-  "name": "tailwind-contrast-guard",
+  "name": "tailwind-a11y",
   "version": "0.1.0",
-  "description": "Static analysis tool that catches WCAG contrast violations in Tailwind CSS class combinations (same-element and direct-parent) before they ship.",
+  "description": "Static analysis CLI that catches WCAG accessibility violations — color contrast, touch target size, and focus indicator removal — in Tailwind CSS class combinations before they ship.",
   "type": "module",
   "bin": {
-    "tw-contrast-guard": "./dist/cli.js"
+    "tailwind-a11y": "./dist/cli.js"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsx src/cli.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build && npm test"
   },
-  "keywords": ["tailwindcss", "accessibility", "a11y", "wcag", "contrast", "lint"],
+  "keywords": ["tailwindcss", "accessibility", "a11y", "wcag", "wcag22", "contrast", "touch-target", "focus-visible", "lint"],
+  "author": "chamroro",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chamroro/tailwind-contrast-guard.git"
+  },
+  "bugs": {
+    "url": "https://github.com/chamroro/tailwind-contrast-guard/issues"
+  },
+  "homepage": "https://github.com/chamroro/tailwind-contrast-guard#readme",
   "dependencies": {
     "@babel/parser": "^7.25.0",
     "@babel/traverse": "^7.25.0",
