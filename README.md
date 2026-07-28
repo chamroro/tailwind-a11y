@@ -52,6 +52,22 @@ then the plugin, only once the engine is live on the registry. The VS Code exten
 publishes separately, to the Marketplace rather than npm (`npm run package -w
 vscode-tailwind-a11y`, then `vsce publish` — see that package's README).
 
+**Automated publishing**: `.github/workflows/publish.yml` runs on every push to `main`
+(i.e. whenever a PR merges) and publishes only the package(s) whose `package.json`
+`version` field actually changed in that push — bump a version, merge, and that package
+ships on its own; unrelated commits don't touch the registry. Requires two repo secrets
+before it can run for real:
+
+- `NPM_TOKEN` — an npm **Automation** access token (npmjs.com → Access Tokens → Generate
+  New Token → Automation). Regular tokens prompt for a 2FA one-time password, which CI
+  can't answer; Automation tokens are the sanctioned bypass. Scope it to just these two
+  packages if you want to limit blast radius from a leaked token.
+- `VSCE_PAT` — the same Azure DevOps personal access token used for manual `vsce publish`
+  (Marketplace → Manage scope, "All accessible organizations").
+
+Until both secrets exist, the workflow will fail at the publish step for whichever
+package triggered it — build/test still run either way.
+
 ## License
 
 MIT

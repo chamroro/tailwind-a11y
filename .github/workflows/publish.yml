@@ -1,0 +1,99 @@
+name: Publish packages
+
+# Fires when a PR merges into main (a merge produces a push to main).
+# Each package only gets built/tested/published if ITS OWN package.json
+# "version" field actually changed in this push -- otherwise npm/vsce would
+# just fail on "version already exists" for every unrelated commit.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/tailwind-a11y/package.json"
+      - "packages/eslint-plugin-tailwind-a11y/package.json"
+      - "packages/vscode-tailwind-a11y/package.json"
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      engine: ${{ steps.diff.outputs.engine }}
+      eslint: ${{ steps.diff.outputs.eslint }}
+      vscode: ${{ steps.diff.outputs.vscode }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - id: diff
+        run: |
+          version_changed() {
+            git diff --unified=0 HEAD^ HEAD -- "$1" | grep -q '^[+-].*"version":'
+          }
+          version_changed packages/tailwind-a11y/package.json && echo "engine=true" >> "$GITHUB_OUTPUT" || echo "engine=false" >> "$GITHUB_OUTPUT"
+          version_changed packages/eslint-plugin-tailwind-a11y/package.json && echo "eslint=true" >> "$GITHUB_OUTPUT" || echo "eslint=false" >> "$GITHUB_OUTPUT"
+          version_changed packages/vscode-tailwind-a11y/package.json && echo "vscode=true" >> "$GITHUB_OUTPUT" || echo "vscode=false" >> "$GITHUB_OUTPUT"
+
+  publish-engine:
+    needs: detect
+    if: needs.detect.outputs.engine == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - run: npm install
+      - run: npm run build -w tailwind-a11y
+      - run: npm test -w tailwind-a11y
+      - run: npm publish -w tailwind-a11y
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # eslint-plugin and vscode both depend on the engine's *published* version
+  # (per CLAUDE.md: "Publish order: engine, then plugin, always"), so both
+  # wait on publish-engine -- but only actually skip if it failed, not if it
+  # was correctly skipped for not having changed.
+  publish-eslint:
+    needs: [detect, publish-engine]
+    if: |
+      always() &&
+      needs.detect.outputs.eslint == 'true' &&
+      (needs.publish-engine.result == 'success' || needs.publish-engine.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - run: npm install
+      - run: npm run build -w tailwind-a11y
+      - run: npm run build -w eslint-plugin-tailwind-a11y
+      - run: npm test -w eslint-plugin-tailwind-a11y
+      - run: npm publish -w eslint-plugin-tailwind-a11y
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-vscode:
+    needs: [detect, publish-engine]
+    if: |
+      always() &&
+      needs.detect.outputs.vscode == 'true' &&
+      (needs.publish-engine.result == 'success' || needs.publish-engine.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm run build -w tailwind-a11y
+      - run: npm run build -w vscode-tailwind-a11y
+      - run: npm run test -w vscode-tailwind-a11y
+      - run: npm run publish:vsix -w vscode-tailwind-a11y
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}

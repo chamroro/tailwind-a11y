@@ -42,6 +42,12 @@ fourth check) should follow the same pattern.
   `tailwind-a11y` itself) to the monorepo root, so an unbundled build produces a
   `.vsix` with broken `../..` paths or missing deps. A raw `tsc` build here is broken,
   not just non-optimal.
+- **`.github/workflows/publish.yml` auto-publishes on push to `main`, gated per-package
+  by whether that package's `version` field actually changed in the push.** A version
+  bump landing via a merged PR is what triggers a real publish — don't bump a version
+  casually in an unrelated PR. Needs `NPM_TOKEN` (npm Automation token, not a regular
+  one — regular tokens require a 2FA OTP that CI can't provide) and `VSCE_PAT` repo
+  secrets to actually publish anything.
 
 ## Working conventions (inherited from the engine package, apply repo-wide)
 
