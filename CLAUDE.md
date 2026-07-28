@@ -45,9 +45,10 @@ fourth check) should follow the same pattern.
 - **`.github/workflows/publish.yml` auto-publishes on push to `main`, gated per-package
   by whether that package's `version` field actually changed in the push.** A version
   bump landing via a merged PR is what triggers a real publish — don't bump a version
-  casually in an unrelated PR. Needs `NPM_TOKEN` (npm Automation token, not a regular
-  one — regular tokens require a 2FA OTP that CI can't provide) and `VSCE_PAT` repo
-  secrets to actually publish anything.
+  casually in an unrelated PR. Every publish job targets the `release` GitHub
+  Environment (required reviewer approval gate before the actual publish step runs) and
+  needs `NPM_TOKEN` (npm Automation token, not a regular one — regular tokens require a
+  2FA OTP that CI can't provide) and `VSCE_PAT` set as secrets on that environment.
 
 ## Working conventions (inherited from the engine package, apply repo-wide)
 
