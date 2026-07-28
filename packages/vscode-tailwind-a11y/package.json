@@ -1,9 +1,10 @@
 {
   "name": "vscode-tailwind-a11y",
   "displayName": "Tailwind a11y",
-  "description": "Inline WCAG diagnostics for Tailwind class combinations — color contrast, touch target size, and focus indicator removal.",
-  "version": "0.1.0",
+  "description": "Static accessibility analysis for Tailwind CSS projects 🩵",
+  "version": "0.1.2",
   "private": true,
+  "icon": "icon.png",
   "publisher": "HaeunKim",
   "license": "MIT",
   "author": "chamroro",
