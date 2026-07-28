@@ -49,6 +49,15 @@ fourth check) should follow the same pattern.
   Environment (required reviewer approval gate before the actual publish step runs) and
   needs `NPM_TOKEN` (npm Automation token, not a regular one — regular tokens require a
   2FA OTP that CI can't provide) and `VSCE_PAT` set as secrets on that environment.
+  One-time setup: repo Settings → Environments → New environment named `release` →
+  enable Required reviewers → add the two secrets there (not the repo-level secrets
+  page). `NPM_TOKEN` comes from npmjs.com → Access Tokens → Generate New Token →
+  Automation; `VSCE_PAT` is the same Azure DevOps PAT used for manual `vsce publish`
+  (Marketplace → Manage scope, "All accessible organizations").
+- **On a fresh clone, `npm install` runs twice**: once before the first
+  `npm run build --workspaces` (to get the toolchain), once after (so the
+  `tailwind-a11y` CLI's `node_modules/.bin` symlink gets created — it's only linked for
+  a `dist/cli.js` that already exists at install time).
 
 ## Working conventions (inherited from the engine package, apply repo-wide)
 
