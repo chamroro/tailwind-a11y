@@ -48,7 +48,7 @@
     "publish:vsix": "vsce publish --no-dependencies"
   },
   "dependencies": {
-    "tailwind-a11y": "^0.1.2"
+    "tailwind-a11y": "^0.2.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
