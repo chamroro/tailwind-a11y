@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
 import { relative, sep } from "node:path";
+import { createRequire } from "node:module";
 import fg from "fast-glob";
 import { extractChecks, extractContrastSkips } from "./parser/extractClasses.js";
 import { checkContrast, checkContrastValueSkips, type ContrastViolation } from "./rules/checkContrast.js";
@@ -8,6 +9,11 @@ import { extractTouchTargetChecks, extractTouchTargetSkips } from "./parser/extr
 import { checkTouchTargets, type TouchTargetViolation } from "./rules/checkTouchTarget.js";
 import { extractFocusIndicatorChecks } from "./parser/extractFocusIndicators.js";
 import { checkFocusIndicators, type FocusIndicatorViolation } from "./rules/checkFocusIndicator.js";
+import { parseArgs, getHelpText } from "./cliArgs.js";
+
+// ../package.json resolves correctly from both src/ (dev) and dist/ (published).
+const require = createRequire(import.meta.url);
+const { version: packageVersion } = require("../package.json") as { version: string };
 
 type AnyViolation = ContrastViolation | TouchTargetViolation | FocusIndicatorViolation;
 
@@ -44,9 +50,17 @@ function groupByFile<T extends { file: string }>(items: T[]): Map<string, T[]> {
 }
 
 async function main(): Promise<void> {
-  const args = process.argv.slice(2);
-  const verbose = args.includes("--verbose") || args.includes("-v");
-  const patterns = args.filter((a) => a !== "--verbose" && a !== "-v");
+  const { help, version, verbose, patterns } = parseArgs(process.argv.slice(2));
+
+  if (help) {
+    console.log(getHelpText());
+    return;
+  }
+  if (version) {
+    console.log(packageVersion);
+    return;
+  }
+
   const globPatterns = patterns.length > 0 ? patterns : ["**/*.{jsx,tsx}"];
 
   const files = await fg(globPatterns, {
