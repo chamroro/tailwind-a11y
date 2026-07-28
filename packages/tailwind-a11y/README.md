@@ -25,6 +25,8 @@ npm install --save-dev tailwind-a11y
 npx tailwind-a11y                    # scans **/*.{jsx,tsx}
 npx tailwind-a11y "src/**/*.tsx"     # custom glob
 npx tailwind-a11y --verbose          # also reports what couldn't be checked, and why
+npx tailwind-a11y --version          # print the installed version
+npx tailwind-a11y --help             # usage and all options
 ```
 
 ```
