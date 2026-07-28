@@ -1,6 +1,6 @@
 # tailwind-a11y (monorepo root)
 
-npm workspaces monorepo with two packages. Per-package conventions, scope boundaries,
+npm workspaces monorepo with three packages. Per-package conventions, scope boundaries,
 and architecture live in each package's own `CLAUDE.md` — this file covers only
 monorepo-level rules.
 
@@ -8,7 +8,12 @@ monorepo-level rules.
 packages/
   tailwind-a11y/                  the engine + CLI — see packages/tailwind-a11y/CLAUDE.md
   eslint-plugin-tailwind-a11y/    thin ESLint adapter over the engine
+  vscode-tailwind-a11y/           thin VS Code adapter over the engine (live diagnostics)
 ```
+
+All three adapters call the engine's `extract*`/`check*` functions directly —
+none of them reimplement detection logic. Adding a fourth adapter (or a
+fourth check) should follow the same pattern.
 
 ## Rules specific to the monorepo layout
 
@@ -31,6 +36,12 @@ packages/
 - **Root `package.json` name is `tailwind-a11y-monorepo`, not `tailwind-a11y`** —
   deliberately different from the `packages/tailwind-a11y` package name to avoid a
   workspace name collision. Root is `"private": true` and never published.
+- **`vscode-tailwind-a11y` must bundle its dependencies (esbuild) and package with
+  `vsce package --no-dependencies`.** `vsce`'s dependency collector only looks inside
+  the extension's own directory; npm workspaces hoists everything (including
+  `tailwind-a11y` itself) to the monorepo root, so an unbundled build produces a
+  `.vsix` with broken `../..` paths or missing deps. A raw `tsc` build here is broken,
+  not just non-optimal.
 
 ## Working conventions (inherited from the engine package, apply repo-wide)
 

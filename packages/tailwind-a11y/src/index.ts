@@ -1,5 +1,5 @@
 export { extractChecks, extractContrastSkips, type ContrastCheck, type ContrastSkip } from "./parser/extractClasses.js";
-export { checkContrast, checkContrastValueSkips, type ContrastViolation, type ContrastValueSkip } from "./rules/checkContrast.js";
+export { checkContrast, checkContrastValueSkips, suggestContrastFix, type ContrastViolation, type ContrastValueSkip, type ContrastFix } from "./rules/checkContrast.js";
 export { extractTouchTargetChecks, extractTouchTargetSkips, type TouchTargetCheck, type TouchTargetSkip } from "./parser/extractTouchTargets.js";
 export { checkTouchTargets, type TouchTargetViolation } from "./rules/checkTouchTarget.js";
 export { extractFocusIndicatorChecks, type FocusIndicatorCheck } from "./parser/extractFocusIndicators.js";

@@ -11,15 +11,17 @@ the fact.
 |---|---|
 | [`tailwind-a11y`](./packages/tailwind-a11y) | The engine + CLI. `npx tailwind-a11y` scans your project. |
 | [`eslint-plugin-tailwind-a11y`](./packages/eslint-plugin-tailwind-a11y) | The same checks as ESLint rules, for inline feedback during normal linting. |
+| [`vscode-tailwind-a11y`](./packages/vscode-tailwind-a11y) | The same checks as live editor diagnostics, as you type in `.jsx`/`.tsx` files. |
 
-Both ship the same three checks — color contrast (WCAG 1.4.3), touch target size
+All three ship the same three checks — color contrast (WCAG 1.4.3), touch target size
 (WCAG 2.5.8), and focus indicator removal (WCAG 2.4.7) — and will never disagree with
-each other, since the plugin is a thin adapter over the engine, not a separate
-implementation. See each package's own README for install/usage and exact scope.
+each other, since the ESLint plugin and VS Code extension are thin adapters over the
+engine, not separate implementations. See each package's own README for install/usage
+and exact scope.
 
 ## Development
 
-npm workspaces, two packages, no extra tooling (no Turborepo/Nx/Changesets — not
+npm workspaces, three packages, no extra tooling (no Turborepo/Nx/Changesets — not
 warranted at this size):
 
 ```bash
@@ -46,7 +48,9 @@ so build/test scripts run engine-before-plugin; a glob would resolve alphabetica
 build the plugin first.
 
 **Publishing**: engine first, always (`npm publish -w tailwind-a11y --access public`),
-then the plugin, only once the engine is live on the registry.
+then the plugin, only once the engine is live on the registry. The VS Code extension
+publishes separately, to the Marketplace rather than npm (`npm run package -w
+vscode-tailwind-a11y`, then `vsce publish` — see that package's README).
 
 ## License
 

@@ -53,7 +53,7 @@ export default [
 
 | Rule | WCAG | Catches |
 |---|---|---|
-| `tailwind-a11y/contrast` | 1.4.3 (AA) | `text-*`/`bg-*` pairs below the 4.5:1 contrast ratio, same-element or direct-parent |
+| `tailwind-a11y/contrast` | 1.4.3 (AA) | `text-*`/`bg-*` pairs below the 4.5:1 contrast ratio, same-element or direct-parent — reports the nearest passing shade in the same color scale when one exists |
 | `tailwind-a11y/touch-target` | 2.5.8 (AA) | Interactive elements sized under 24×24px via `w-*`/`h-*` |
 | `tailwind-a11y/focus-indicator` | 2.4.7 (AA) | `focus:outline-none` with no visible replacement style |
 
@@ -71,12 +71,14 @@ rule at all — if your config doesn't already set a TypeScript-aware
 parse them before this plugin ever runs. If you already lint `.tsx` files today, you have
 this covered; nothing extra to add for this plugin specifically.
 
-## Relationship to the `tailwind-a11y` CLI
+## Relationship to the `tailwind-a11y` CLI and VS Code extension
 
-Same checks, same engine, two ways to run them: `eslint-plugin-tailwind-a11y` for
+Same checks, same engine, three ways to see them: `eslint-plugin-tailwind-a11y` for
 inline, per-file feedback during normal linting; [`tailwind-a11y`](https://github.com/chamroro/tailwind-a11y/tree/main/packages/tailwind-a11y)
-(the CLI) for a one-shot scan, e.g. in a CI step that doesn't otherwise run ESLint. Use
-either, or both — they'll never disagree, since the plugin doesn't reimplement anything.
+(the CLI) for a one-shot scan, e.g. in a CI step that doesn't otherwise run ESLint; and
+the [VS Code extension](https://github.com/chamroro/tailwind-a11y/tree/main/packages/vscode-tailwind-a11y)
+for live squiggly-underline feedback as you type. Use any combination — they'll never
+disagree, since none of them reimplement detection logic.
 
 ## Development
 

@@ -8,7 +8,9 @@ of that engine today: color contrast, touch target size, and focus indicator rem
 
 > Renamed from `tailwind-contrast-guard` once these three checks landed. This package now
 > lives in the [`tailwind-a11y` monorepo](https://github.com/chamroro/tailwind-a11y)
-> alongside its [ESLint plugin](https://github.com/chamroro/tailwind-a11y/tree/main/packages/eslint-plugin-tailwind-a11y).
+> alongside its [ESLint plugin](https://github.com/chamroro/tailwind-a11y/tree/main/packages/eslint-plugin-tailwind-a11y)
+> and [VS Code extension](https://github.com/chamroro/tailwind-a11y/tree/main/packages/vscode-tailwind-a11y) —
+> same engine, three ways to see the results.
 
 ## The actual problem this solves
 
@@ -71,7 +73,7 @@ Example output:
 
 ```
 src/components/Card.tsx
-  3: text-gray-400 on bg-white — ratio 2.54, needs 4.5 (AA)
+  3: text-gray-400 on bg-white — ratio 2.54, needs 4.5 (AA); try text-gray-500 (4.83)
 src/components/IconButton.tsx
   5: <button> is 16×16px (w-4 h-4) — WCAG 2.5.8 requires >= 24×24px
   12: <button> removes the focus outline (focus:outline-none) with no visible replacement
@@ -121,7 +123,6 @@ no answer:
 - **`min-w-*`/`min-h-*` sizing**, and WCAG 2.5.8's inline-text-link exception — touch target
   checks require explicit `w-*`+`h-*`, no fallback/exception heuristics in v1
 - Frameworks other than React/JSX (Vue, Svelte, Blade, …)
-- Editor/LSP integration — this is a CLI/CI tool, not a VS Code extension (yet)
 
 See [CLAUDE.md](./CLAUDE.md) for the full rationale behind these boundaries.
 

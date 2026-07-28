@@ -43,8 +43,10 @@ Tailwind-class-level sizing or focus-style analysis).
 - **Static `className` string literals only.** Ternaries, `clsx`/`cva`
   composition, and computed class names are not resolved. Skip them silently
   rather than guessing.
-- **CLI + CI first.** No editor/LSP integration in v1. A VS Code extension is
-  a plausible v2, not part of this build.
+- **CLI + CI first, editor integration lives in a separate adapter.**
+  `packages/vscode-tailwind-a11y` now exists as a third adapter over this
+  engine (alongside the ESLint plugin) — it does not change this package's
+  own scope, it just reuses `extractChecks`/`checkContrast` etc. directly.
 - **Default Tailwind palette only.** Color resolution uses a hardcoded
   snapshot of Tailwind's default color scale (see `src/theme/defaultPalette.ts`).
   Custom theme extension (reading a user's `tailwind.config`) is deferred.
@@ -78,7 +80,10 @@ src/
   parser/extractClasses.ts        — text-*/bg-* pairs per element (contrast)
   parser/extractTouchTargets.ts   — w-*/h-* pairs on interactive elements
   parser/extractFocusIndicators.ts— focus:/focus-visible: classes on interactive elements
-  rules/checkContrast.ts          — contrast violations (WCAG 1.4.3, AA)
+  rules/checkContrast.ts          — contrast violations (WCAG 1.4.3, AA);
+                                     also suggestContrastFix() — nearest
+                                     passing shade in the same color scale
+                                     (text side only, bg held fixed)
   rules/checkTouchTarget.ts       — touch target violations (WCAG 2.5.8, AA)
   rules/checkFocusIndicator.ts    — focus indicator violations (WCAG 2.4.7, AA)
   cli.ts                         — fast-glob scan, run all three checkers,

@@ -1,0 +1,60 @@
+{
+  "name": "vscode-tailwind-a11y",
+  "displayName": "Tailwind a11y",
+  "description": "Inline WCAG diagnostics for Tailwind class combinations — color contrast, touch target size, and focus indicator removal.",
+  "version": "0.1.0",
+  "private": true,
+  "publisher": "chamroro",
+  "license": "MIT",
+  "author": "chamroro",
+  "categories": [
+    "Linters",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "tailwindcss",
+    "accessibility",
+    "a11y",
+    "wcag",
+    "contrast"
+  ],
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onLanguage:javascriptreact",
+    "onLanguage:typescriptreact"
+  ],
+  "contributes": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chamroro/tailwind-a11y.git",
+    "directory": "packages/vscode-tailwind-a11y"
+  },
+  "homepage": "https://github.com/chamroro/tailwind-a11y/tree/main/packages/vscode-tailwind-a11y#readme",
+  "bugs": {
+    "url": "https://github.com/chamroro/tailwind-a11y/issues"
+  },
+  "scripts": {
+    "build": "node esbuild.mjs --production",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "vscode:prepublish": "npm run build",
+    "package": "vsce package --no-dependencies",
+    "publish:vsix": "vsce publish --no-dependencies"
+  },
+  "dependencies": {
+    "tailwind-a11y": "^0.1.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "1.90.0",
+    "@vscode/vsce": "^3.9.0",
+    "esbuild": "^0.28.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.1.0"
+  }
+}

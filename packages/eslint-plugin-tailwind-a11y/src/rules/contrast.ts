@@ -12,6 +12,12 @@ const rule: Rule.RuleModule = {
     schema: [],
     messages: {
       contrast: "{{textClass}} on {{bgClass}} — ratio {{ratio}}, needs {{required}} ({{level}})",
+      // Separate messageId rather than an optional {{suggestion}} placeholder
+      // in the base template — ESLint's interpolate() renders literal
+      // "undefined" if the data key is present-but-undefined, and RuleTester
+      // hard-fails on an unsubstituted {{placeholder}} if the key is omitted.
+      contrastWithSuggestion:
+        "{{textClass}} on {{bgClass}} — ratio {{ratio}}, needs {{required}} ({{level}}); try {{suggestion}} ({{suggestedRatio}})",
     },
   },
 
@@ -24,16 +30,21 @@ const rule: Rule.RuleModule = {
         const violations = checkContrast(extractChecks(context.sourceCode.getText(), context.filename));
 
         for (const v of violations) {
+          const data: Record<string, string | number> = {
+            textClass: v.textClass,
+            bgClass: v.bgClass,
+            ratio: v.ratio.toFixed(2),
+            required: v.required,
+            level: v.level,
+          };
+          if (v.suggestion) {
+            data.suggestion = v.suggestion;
+            data.suggestedRatio = v.suggestedRatio!.toFixed(2);
+          }
           context.report({
             loc: { line: v.line, column: 0 },
-            messageId: "contrast",
-            data: {
-              textClass: v.textClass,
-              bgClass: v.bgClass,
-              ratio: v.ratio.toFixed(2),
-              required: v.required,
-              level: v.level,
-            },
+            messageId: v.suggestion ? "contrastWithSuggestion" : "contrast",
+            data,
           });
         }
       },

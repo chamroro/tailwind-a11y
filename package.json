@@ -2,7 +2,7 @@
   "name": "tailwind-a11y-monorepo",
   "version": "0.0.0",
   "private": true,
-  "description": "Monorepo for tailwind-a11y (WCAG static-analysis CLI for Tailwind class combinations) and its ESLint adapter.",
+  "description": "Monorepo for tailwind-a11y (WCAG static-analysis CLI for Tailwind class combinations) and its ESLint + VS Code adapters.",
   "author": "chamroro",
   "license": "MIT",
   "repository": {
@@ -11,7 +11,8 @@
   },
   "workspaces": [
     "packages/tailwind-a11y",
-    "packages/eslint-plugin-tailwind-a11y"
+    "packages/eslint-plugin-tailwind-a11y",
+    "packages/vscode-tailwind-a11y"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",

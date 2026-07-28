@@ -11,6 +11,8 @@ export interface ContrastViolation {
   ratio: number;
   required: number;
   level: "AA";
+  suggestion?: string;
+  suggestedRatio?: number;
 }
 
 export function resolveColorValue(utilityClass: string): string | null {
@@ -46,6 +48,7 @@ export function checkContrast(checks: ContrastCheck[]): ContrastViolation[] {
     const required = requiredRatio("AA", false); // v1: large-text detection deferred
 
     if (!meetsWCAG(ratio, "AA", false)) {
+      const fix = suggestContrastFix(check.textColorClass, check.bgColorClass, required);
       violations.push({
         type: "contrast",
         file: check.file,
@@ -55,11 +58,55 @@ export function checkContrast(checks: ContrastCheck[]): ContrastViolation[] {
         ratio,
         required,
         level: "AA",
+        ...(fix && { suggestion: fix.textClass, suggestedRatio: fix.ratio }),
       });
     }
   }
 
   return violations;
+}
+
+export interface ContrastFix {
+  textClass: string;
+  ratio: number;
+}
+
+const TEXT_SCALE_SHADE_RE = /^text-([a-z]+)-(\d+)$/;
+
+// Only the text shade moves — bg stays fixed, since text color is the more
+// commonly adjustable side in practice. Candidates come from the palette's
+// actual keys (not an assumed 50..950 enumeration), sorted nearest-first by
+// numeric distance from the original shade; ties favor the higher/darker
+// shade, since real failures here are overwhelmingly light-on-light and
+// darker is the fix a human reaches for. The original shade can never win:
+// it's in this same candidate list at distance 0, and this recomputes the
+// identical unrounded ratio comparison that just failed.
+export function suggestContrastFix(textClass: string, bgClass: string, required: number): ContrastFix | null {
+  const match = TEXT_SCALE_SHADE_RE.exec(textClass);
+  if (!match) return null; // text-white, text-[#eee], text-gray-400/50 — no suggestion
+
+  const [, scale, shade] = match;
+  const shades = defaultPalette[scale];
+  if (!shades?.[shade]) return null; // custom scale, or a decoy like text-opacity-50
+
+  const bgHex = resolveColorValue(bgClass);
+  const bgRgb = bgHex ? hexToRgb(bgHex) : null;
+  if (!bgRgb) return null;
+
+  const original = Number(shade);
+  const candidates = Object.keys(shades)
+    .filter((s) => /^\d+$/.test(s))
+    .map(Number)
+    .sort((a, b) => Math.abs(a - original) - Math.abs(b - original) || b - a);
+
+  for (const candidate of candidates) {
+    const rgb = hexToRgb(shades[String(candidate)]);
+    if (!rgb) continue;
+    const ratio = contrastRatio(rgb, bgRgb);
+    if (ratio >= required) return { textClass: `text-${scale}-${candidate}`, ratio };
+  }
+
+  return null;
 }
 
 export interface ContrastValueSkip {

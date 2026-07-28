@@ -42,7 +42,7 @@ ruleTester.run("contrast", rule, {
       ].join("\n"),
       errors: [
         {
-          message: "text-gray-400 on bg-white — ratio 2.54, needs 4.5 (AA)",
+          message: "text-gray-400 on bg-white — ratio 2.54, needs 4.5 (AA); try text-gray-500 (4.83)",
           line: 4,
           column: 1,
         },
