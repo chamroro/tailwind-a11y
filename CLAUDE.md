@@ -42,6 +42,14 @@ fourth check) should follow the same pattern.
   `tailwind-a11y` itself) to the monorepo root, so an unbundled build produces a
   `.vsix` with broken `../..` paths or missing deps. A raw `tsc` build here is broken,
   not just non-optimal.
+- **A fix to the engine's detection logic requires bumping `vscode-tailwind-a11y`'s own
+  version too, even when its source didn't change.** `eslint-plugin-tailwind-a11y`
+  resolves `tailwind-a11y` dynamically from `node_modules` at each consumer's install,
+  so a new engine patch reaches it automatically without a plugin republish. But because
+  `vscode-tailwind-a11y` bundles the engine into a static `.vsix` at build time, there is
+  no dependency resolution happening on the end user's machine — a bug fix to the engine
+  is frozen out of every Marketplace install until the extension itself is rebuilt and
+  republished with a bumped version.
 - **`.github/workflows/publish.yml` auto-publishes on push to `main`, gated per-package
   by whether that package's `version` field actually changed in the push.** A version
   bump landing via a merged PR is what triggers a real publish — don't bump a version

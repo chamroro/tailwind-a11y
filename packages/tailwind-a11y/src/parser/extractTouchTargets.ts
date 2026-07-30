@@ -1,4 +1,5 @@
 import * as t from "@babel/types";
+import type { NodePath } from "@babel/traverse";
 import { getStaticClassName, parseJSX, traverse } from "./babelInterop.js";
 import { isInteractiveElement } from "./isInteractiveElement.js";
 import { spacingScale } from "../theme/spacingScale.js";
@@ -32,6 +33,31 @@ function lastSizeToken(tokens: string[], prefix: "w" | "h"): SizeToken | null {
   return found;
 }
 
+function isMeaningfulText(node: t.Node | undefined): boolean {
+  // Pure JSX-formatting whitespace (indentation/newlines between elements)
+  // doesn't count as text.
+  return !!node && t.isJSXText(node) && node.value.trim().length > 0;
+}
+
+// WCAG 2.5.8's "Inline" exception: a target inside a sentence or block of
+// text is exempt from the minimum size, since its size is constrained by
+// surrounding text flow rather than a deliberate layout choice. Checked via
+// the element's *immediate* siblings only (not "any text anywhere in the
+// parent") — a parent-wide check would exempt every sibling in something
+// like `<p>Choose: <button/><button/></p>` just because the first button
+// happens to sit next to text, even though the second one doesn't. That's
+// the same "shape, not meaning" failure mode as the bg-opacity-50/ring-0
+// false negatives documented in CLAUDE.md, just at the sibling level instead
+// of the token level.
+function isInlineInText(path: NodePath<t.JSXElement>): boolean {
+  const parentNode = path.parentPath?.node;
+  if (!parentNode || (!t.isJSXElement(parentNode) && !t.isJSXFragment(parentNode))) return false;
+  const siblings = parentNode.children;
+  const index = siblings.indexOf(path.node);
+  if (index === -1) return false;
+  return isMeaningfulText(siblings[index - 1]) || isMeaningfulText(siblings[index + 1]);
+}
+
 export function extractTouchTargetChecks(code: string, filePath: string): TouchTargetCheck[] {
   const ast = parseJSX(code, filePath);
   if (!ast) return [];
@@ -54,6 +80,8 @@ export function extractTouchTargetChecks(code: string, filePath: string): TouchT
       const widthPx = spacingScale[width.value];
       const heightPx = spacingScale[height.value];
       if (widthPx === undefined || heightPx === undefined) return; // arbitrary/keyword/fraction — skip
+
+      if (isInlineInText(path)) return; // WCAG 2.5.8 inline exception — exempt, not a violation
 
       checks.push({
         file: filePath,

@@ -55,8 +55,16 @@ Tailwind-class-level sizing or focus-style analysis).
 - **Touch target: no `min-w-*`/`min-h-*` fallback.** A minimum-width utility
   only guarantees a floor, not the actual rendered size — using it would
   mean guessing, so elements without explicit `w-*`+`h-*` are skipped
-  entirely rather than approximated. No inline-text-link exception either
-  (WCAG 2.5.8 exempts links within a text block) — v1 simplicity.
+  entirely rather than approximated. The WCAG 2.5.8 "Inline" exception
+  (targets inside a sentence/text block are exempt) *is* implemented — see
+  `isInlineInText()` in `parser/extractTouchTargets.ts`. It only recognizes
+  a literal `JSXText` sibling immediately before/after the target — text
+  delivered via `{"..."}` or a conditionally-rendered wrapper isn't detected,
+  so those inline links are still (conservatively) flagged. Under-exempting
+  is the safe direction here; the reverse — over-exempting based on text
+  anywhere in the parent rather than adjacent to the target — was caught in
+  review as the same shape-not-meaning failure class noted below, just at
+  the sibling level instead of the token level.
 - **Focus indicator: `focus:` and `focus-visible:` are merged** for the
   removal-vs-replacement comparison, since the standard accessible pattern
   (`focus:outline-none focus-visible:ring-2`) spans both variants.
