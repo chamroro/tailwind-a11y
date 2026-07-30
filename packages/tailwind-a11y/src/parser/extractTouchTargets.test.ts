@@ -61,6 +61,36 @@ describe("extractTouchTargetChecks", () => {
     const code = `const C = () => <div className="w-4 h-4">x</div>;`;
     expect(extractTouchTargetChecks(code, "fake.tsx")).toEqual([]);
   });
+
+  it("does not flag a link inline within a sentence (WCAG 2.5.8 inline exception)", () => {
+    const code = `const C = () => <p>Click <a href="#" className="w-4 h-4">here</a> to continue.</p>;`;
+    expect(extractTouchTargetChecks(code, "fake.tsx")).toEqual([]);
+  });
+
+  it("still flags a target whose only text siblings are JSX formatting whitespace (regression)", () => {
+    const code = `
+      const C = () => (
+        <div>
+          <a href="#" className="w-4 h-4">x</a>
+        </div>
+      );
+    `;
+    expect(extractTouchTargetChecks(code, "fake.tsx")).toHaveLength(1);
+  });
+
+  it("still flags a target whose parent has no text at all", () => {
+    const code = `const C = () => <div className="flex"><a href="#" className="w-4 h-4">x</a></div>;`;
+    expect(extractTouchTargetChecks(code, "fake.tsx")).toHaveLength(1);
+  });
+
+  it("does not let one sibling's adjacent text blanket-exempt a sibling that isn't itself adjacent to it (regression)", () => {
+    // Only the first button sits next to "Choose: "; the second sits between
+    // two buttons and should still be flagged. A parent-wide "does this
+    // element's parent contain text anywhere" check would wrongly exempt
+    // both.
+    const code = `const C = () => <p>Choose: <button className="w-4 h-4">A</button><button className="w-4 h-4">B</button></p>;`;
+    expect(extractTouchTargetChecks(code, "fake.tsx")).toHaveLength(1);
+  });
 });
 
 describe("extractTouchTargetSkips", () => {
