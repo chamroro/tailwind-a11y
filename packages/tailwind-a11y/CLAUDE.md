@@ -89,6 +89,34 @@ Tailwind-class-level sizing or focus-style analysis).
 - **Focus indicator: `focus:` and `focus-visible:` are merged** for the
   removal-vs-replacement comparison, since the standard accessible pattern
   (`focus:outline-none focus-visible:ring-2`) spans both variants.
+- **Contrast: opacity modifiers (`text-gray-400/50`) are resolved on the
+  *text* side only**, composited against the already-resolved (fully opaque)
+  background — see `resolveTextColorWithOpacity()`/`applyAlpha()` in
+  `rules/checkContrast.ts`/`contrast/luminance.ts`. Deliberate cuts:
+  - The *background* side (`bg-white/50` as the actual background) stays
+    unresolvable. Compositing it correctly requires knowing what's rendered
+    behind it (grandparent-or-beyond) — the same ancestor-walk this file
+    already scopes out for plain (non-opacity) backgrounds.
+  - `scale-shade/NN` (`text-gray-400/50`), semantic-word/NN (`text-white/50`,
+    `text-black/50`), and arbitrary-hex/NN (`text-[#eee]/50`) all resolve —
+    `COLOR_TOKEN` in `extractClasses.ts` extracts all three shapes with the
+    opacity suffix intact. (`text-white/NN`/`text-black/NN` specifically was
+    a real gap caught in review: the extraction regex initially only kept the
+    suffix on the scale-shade shape, silently dropping the semantic/arbitrary
+    cases with no `--verbose` trace at all — arguably the *more* common real
+    idiom than named-scale opacity, so leaving it out would have undercut
+    this feature's whole point.)
+  - Only a plain 0–100 integer percentage. An arbitrary bracket alpha
+    (`/[0.15]`) falls through unresolved.
+  - An out-of-range percentage (`/150`) is **clamped** to 0–100, not rejected
+    — real browsers clamp out-of-range CSS alpha the same way, so this
+    matches actual rendering rather than guessing. Rejecting it instead would
+    hide a real violation behind what's essentially a typo — the "shape looks
+    safe but isn't" failure class noted below.
+  - Exactly 0% (`/0`) is treated as unresolvable, like `text-transparent`
+    (`semanticColors.transparent` is already `null`) — not flagged as an
+    unconditional violation, since fully-invisible text isn't a contrast
+    problem in the same sense a merely-faint one is.
 
 These boundaries exist because the cross-component, dynamic-class, and
 whole-DOM-layout cases require whole-program or runtime analysis — a
@@ -114,9 +142,11 @@ src/
   parser/extractTouchTargets.ts   — w-*/h-* pairs on interactive elements
   parser/extractFocusIndicators.ts— focus:/focus-visible: classes on interactive elements
   rules/checkContrast.ts          — contrast violations (WCAG 1.4.3, AA);
-                                     also suggestContrastFix() — nearest
-                                     passing shade in the same color scale
-                                     (text side only, bg held fixed)
+                                     resolves a text-side opacity modifier
+                                     against the resolved (opaque) bg; also
+                                     suggestContrastFix() — nearest passing
+                                     shade in the same color scale (text side
+                                     only, bg and any opacity held fixed)
   rules/checkTouchTarget.ts       — touch target violations (WCAG 2.5.8, AA)
   rules/checkFocusIndicator.ts    — focus indicator violations (WCAG 2.4.7, AA)
   cli.ts                         — fast-glob scan, run all three checkers,

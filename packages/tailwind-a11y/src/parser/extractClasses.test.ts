@@ -79,4 +79,20 @@ describe("extractChecks", () => {
       { file: "fake.tsx", line: 1, textColorClass: "text-gray-400", bgColorClass: "bg-white", bgSource: "self" },
     ]);
   });
+
+  it("extracts a semantic color with an opacity modifier (text-white/NN, the most common real idiom)", () => {
+    const code = `const C = () => <p className="text-white/40 bg-gray-800">x</p>;`;
+    const checks = extractChecks(code, "fake.tsx");
+    expect(checks).toEqual([
+      { file: "fake.tsx", line: 1, textColorClass: "text-white/40", bgColorClass: "bg-gray-800", bgSource: "self" },
+    ]);
+  });
+
+  it("extracts an arbitrary hex color with an opacity modifier", () => {
+    const code = `const C = () => <p className="text-[#eeeeee]/40 bg-gray-800">x</p>;`;
+    const checks = extractChecks(code, "fake.tsx");
+    expect(checks).toEqual([
+      { file: "fake.tsx", line: 1, textColorClass: "text-[#eeeeee]/40", bgColorClass: "bg-gray-800", bgSource: "self" },
+    ]);
+  });
 });

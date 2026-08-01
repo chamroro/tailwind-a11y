@@ -89,6 +89,89 @@ describe("checkContrast", () => {
   });
 });
 
+describe("checkContrast with a text-side opacity modifier", () => {
+  it("flags a previously-invisible violation: dark text at low opacity reads as light", () => {
+    // text-gray-900 alone passes easily against white; at 30% opacity it
+    // composites to a light gray that fails -- this was silently skipped
+    // entirely before opacity support existed.
+    const violations = checkContrast([
+      { file: "f.tsx", line: 1, textColorClass: "text-gray-900/30", bgColorClass: "bg-white", bgSource: "self" },
+    ]);
+    expect(violations).toHaveLength(1);
+    expect(violations[0].ratio).toBeCloseTo(1.94, 2);
+  });
+
+  it("/100 produces the same computed result as no modifier at all", () => {
+    const [plain] = checkContrast([
+      { file: "f.tsx", line: 1, textColorClass: "text-gray-400", bgColorClass: "bg-white", bgSource: "self" },
+    ]);
+    const [withModifier] = checkContrast([
+      { file: "f.tsx", line: 1, textColorClass: "text-gray-400/100", bgColorClass: "bg-white", bgSource: "self" },
+    ]);
+    expect(withModifier.ratio).toBe(plain.ratio);
+    expect(withModifier.suggestion).toBe(plain.suggestion);
+    expect(withModifier.suggestedRatio).toBe(plain.suggestedRatio);
+  });
+
+  it("clamps an out-of-range percentage to 100 instead of skipping it (matches real browser clamping)", () => {
+    const [over100] = checkContrast([
+      { file: "f.tsx", line: 1, textColorClass: "text-gray-400/150", bgColorClass: "bg-white", bgSource: "self" },
+    ]);
+    const [at100] = checkContrast([
+      { file: "f.tsx", line: 1, textColorClass: "text-gray-400/100", bgColorClass: "bg-white", bgSource: "self" },
+    ]);
+    expect(over100.ratio).toBe(at100.ratio);
+  });
+
+  it("treats exactly 0% opacity as unresolvable, like text-transparent -- not an unconditional violation", () => {
+    const violations = checkContrast([
+      { file: "f.tsx", line: 1, textColorClass: "text-gray-400/0", bgColorClass: "bg-white", bgSource: "self" },
+    ]);
+    expect(violations).toEqual([]);
+  });
+
+  it("still skips when the background itself has an opacity modifier (unknown backdrop, out of scope)", () => {
+    const violations = checkContrast([
+      { file: "f.tsx", line: 1, textColorClass: "text-gray-400/50", bgColorClass: "bg-white/50", bgSource: "self" },
+    ]);
+    expect(violations).toEqual([]);
+  });
+
+  it("fails safe on a shape the extractor could never produce (double opacity suffix)", () => {
+    const violations = checkContrast([
+      { file: "f.tsx", line: 1, textColorClass: "text-gray-400/50/50", bgColorClass: "bg-white", bgSource: "self" },
+    ]);
+    expect(violations).toEqual([]);
+  });
+
+  it("composes end-to-end with extractChecks through the full pipeline", () => {
+    const code = `
+      const C = () => (
+        <div className="bg-white">
+          <p className="text-gray-900/30">low contrast once you account for opacity</p>
+        </div>
+      );
+    `;
+    const violations = checkContrast(extractChecks(code, "fake.tsx"));
+    expect(violations).toHaveLength(1);
+    expect(violations[0]).toMatchObject({ textClass: "text-gray-900/30", bgClass: "bg-white" });
+    expect(violations[0].ratio).toBeCloseTo(1.94, 2);
+  });
+
+  it("resolves a semantic color with opacity (text-white/NN) end-to-end -- the most common real idiom", () => {
+    // Caught in independent review: the extraction regex originally only let
+    // scale-shade/NN tokens (text-gray-400/50) through with the opacity
+    // suffix intact -- text-white/NN and text-black/NN, arguably the more
+    // common real pattern, were silently dropped before ever reaching this
+    // opacity logic. Fixed in extractClasses.ts's COLOR_TOKEN regex.
+    const code = `const C = () => <p className="text-white/40 bg-gray-800">dim text on dark background</p>;`;
+    const violations = checkContrast(extractChecks(code, "fake.tsx"));
+    expect(violations).toHaveLength(1);
+    expect(violations[0]).toMatchObject({ textClass: "text-white/40", bgClass: "bg-gray-800" });
+    expect(violations[0].ratio).toBeCloseTo(3.63, 2);
+  });
+});
+
 describe("checkContrast with a custom palette", () => {
   const customPalette = mergePalette(defaultPalette, { brand: { "500": "#9ca3af" } }); // same hex as gray-400
 
@@ -140,6 +223,23 @@ describe("checkContrastValueSkips", () => {
     );
     expect(skips).toEqual([]);
   });
+
+  it("reports a distinct reason for exactly 0% opacity (not a generic 'unrecognized color')", () => {
+    const skips = checkContrastValueSkips([
+      { file: "f.tsx", line: 1, textColorClass: "text-gray-400/0", bgColorClass: "bg-white", bgSource: "self" },
+    ]);
+    expect(skips).toHaveLength(1);
+    expect(skips[0].reason).toContain("text-gray-400/0");
+    expect(skips[0].reason).toContain("fully transparent");
+  });
+
+  it("attributes a both-sides-unresolvable case to bg first (deliberate resolution order, not a random tie)", () => {
+    const skips = checkContrastValueSkips([
+      { file: "f.tsx", line: 1, textColorClass: "text-brand-500", bgColorClass: "bg-brand-50", bgSource: "self" },
+    ]);
+    expect(skips).toHaveLength(1);
+    expect(skips[0].reason).toContain("bg-brand-50");
+  });
 });
 
 describe("suggestContrastFix", () => {
@@ -168,8 +268,25 @@ describe("suggestContrastFix", () => {
     expect(suggestContrastFix("text-brand-500", "bg-white", 4.5)).toBeNull();
   });
 
-  it("returns null for opacity-modifier shorthand on the text class", () => {
+  it("returns null at 50% opacity on white -- no gray shade (not even black) reaches 4.5:1 at that alpha", () => {
+    // This still returns null, but for a different reason than before opacity
+    // support existed: it's now a computed result (every candidate shade was
+    // actually tried and failed at 50% alpha), not a regex short-circuit.
     expect(suggestContrastFix("text-gray-400/50", "bg-white", 4.5)).toBeNull();
+  });
+
+  it("finds a fix at an opacity where one is reachable, and preserves the opacity in the suggestion", () => {
+    const fix = suggestContrastFix("text-gray-400/80", "bg-white", 4.5);
+    expect(fix?.textClass).toBe("text-gray-600/80");
+    expect(fix?.ratio).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("returns null for exactly 0% opacity -- no shade change fixes total transparency", () => {
+    expect(suggestContrastFix("text-gray-400/0", "bg-white", 4.5)).toBeNull();
+  });
+
+  it("fails safe on a shape the extractor could never produce (double opacity suffix)", () => {
+    expect(suggestContrastFix("text-gray-400/50/50", "bg-white", 4.5)).toBeNull();
   });
 
   it("returns null for the opacity decoy token (same shape as a color, isn't one)", () => {
