@@ -12,8 +12,14 @@ export interface ContrastCheck {
 // Positive shape filter for "does this look like a color utility", not a
 // blocklist — Tailwind heavily overloads the text-*/bg-* prefix (text-lg,
 // bg-cover, bg-gradient-to-r, ...) and an exclude-list would be fragile
-// across versions.
-const COLOR_TOKEN = /^\[(#[0-9a-fA-F]{3,8})\]$|^[a-z]+-\d{2,3}(\/\d{1,3})?$|^(white|black|transparent|current|inherit)$/;
+// across versions. Every alternative allows an optional trailing opacity
+// modifier (/NN) so text-white/40, text-[#eee]/40, and text-gray-400/40 are
+// all extracted with the suffix intact -- text-white/black-with-opacity is
+// an extremely common real idiom, more so than the named-scale case, and
+// dropping it here would make the contrast checker's opacity support (see
+// rules/checkContrast.ts) silently inapplicable to the most common case.
+const COLOR_TOKEN =
+  /^\[(#[0-9a-fA-F]{3,8})\](\/\d{1,3})?$|^[a-z]+-\d{2,3}(\/\d{1,3})?$|^(white|black|transparent|current|inherit)(\/\d{1,3})?$/;
 
 // opacity-{N} (e.g. bg-opacity-50, text-opacity-50) matches the same
 // "word-number" shape as a color token but isn't one — without this

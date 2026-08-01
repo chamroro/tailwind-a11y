@@ -1,4 +1,5 @@
-import { contrastRatio, hexToRgb, meetsWCAG, requiredRatio } from "../contrast/luminance.js";
+import { applyAlpha, contrastRatio, hexToRgb, meetsWCAG, requiredRatio } from "../contrast/luminance.js";
+import type { RGB } from "../contrast/luminance.js";
 import { defaultPalette, semanticColors } from "../theme/defaultPalette.js";
 import type { Palette } from "../theme/defaultPalette.js";
 import type { ContrastCheck } from "../parser/extractClasses.js";
@@ -33,17 +34,49 @@ export function resolveColorValue(utilityClass: string, palette: Palette = defau
   return palette[scale]?.[shade] ?? null; // unknown/custom color — skip
 }
 
+// Splits a trailing Tailwind opacity modifier off a color utility class
+// (e.g. "text-gray-400/50" -> { base: "text-gray-400", alpha: 0.5 }). No
+// modifier -> alpha 1. Out-of-range (>100) is clamped rather than rejected --
+// real browsers clamp out-of-range CSS alpha to the nearest valid bound, so
+// "/150" genuinely renders identically to "/100"; silently skipping it
+// instead would hide a real violation behind what's essentially a typo. A
+// non-digit or malformed suffix falls through as { base: <the whole original
+// string>, alpha: 1 } -- base still contains the "/", so resolveColorValue's
+// existing guard rejects it downstream; this never needs to return null.
+function splitOpacityModifier(utilityClass: string): { base: string; alpha: number } {
+  const match = /^(.+)\/(\d{1,3})$/.exec(utilityClass);
+  if (!match) return { base: utilityClass, alpha: 1 };
+  const pct = Math.min(100, Math.max(0, Number(match[2])));
+  return { base: match[1], alpha: pct / 100 };
+}
+
+// Resolves a text-* class (with or without an opacity modifier) to the
+// effective color it actually renders as, composited against the already-
+// resolved (fully opaque) background. Only the text side supports opacity --
+// see resolveColorValue's own unconditional "/" rejection for why the
+// background side doesn't: compositing a semi-transparent background
+// correctly requires knowing what's rendered *behind* it, which is out of
+// scope the same way walking further up the ancestor chain is.
+function resolveTextColorWithOpacity(utilityClass: string, bgRgb: RGB, palette: Palette): RGB | null {
+  const { base, alpha } = splitOpacityModifier(utilityClass);
+  if (alpha === 0) return null; // fully transparent -- equivalent to text-transparent, nothing to check
+  const hex = resolveColorValue(base, palette);
+  const rgb = hex ? hexToRgb(hex) : null;
+  if (!rgb) return null;
+  return alpha < 1 ? applyAlpha(rgb, alpha, bgRgb) : rgb;
+}
+
 export function checkContrast(checks: ContrastCheck[], palette: Palette = defaultPalette): ContrastViolation[] {
   const violations: ContrastViolation[] = [];
 
   for (const check of checks) {
-    const textHex = resolveColorValue(check.textColorClass, palette);
     const bgHex = resolveColorValue(check.bgColorClass, palette);
-    if (!textHex || !bgHex) continue;
-
-    const textRgb = hexToRgb(textHex);
+    if (!bgHex) continue;
     const bgRgb = hexToRgb(bgHex);
-    if (!textRgb || !bgRgb) continue;
+    if (!bgRgb) continue;
+
+    const textRgb = resolveTextColorWithOpacity(check.textColorClass, bgRgb, palette);
+    if (!textRgb) continue;
 
     const ratio = contrastRatio(textRgb, bgRgb);
     const required = requiredRatio("AA", false); // v1: large-text detection deferred
@@ -74,22 +107,26 @@ export interface ContrastFix {
 
 const TEXT_SCALE_SHADE_RE = /^text-([a-z]+)-(\d+)$/;
 
-// Only the text shade moves — bg stays fixed, since text color is the more
-// commonly adjustable side in practice. Candidates come from the palette's
-// actual keys (not an assumed 50..950 enumeration), sorted nearest-first by
-// numeric distance from the original shade; ties favor the higher/darker
-// shade, since real failures here are overwhelmingly light-on-light and
-// darker is the fix a human reaches for. The original shade can never win:
-// it's in this same candidate list at distance 0, and this recomputes the
-// identical unrounded ratio comparison that just failed.
+// Only the text shade moves — bg and any opacity modifier on the text class
+// stay fixed, since text color is the more commonly adjustable side in
+// practice. Candidates come from the palette's actual keys (not an assumed
+// 50..950 enumeration), sorted nearest-first by numeric distance from the
+// original shade; ties favor the higher/darker shade, since real failures
+// here are overwhelmingly light-on-light and darker is the fix a human
+// reaches for. The original shade can never win: it's in this same
+// candidate list at distance 0, and this recomputes the identical unrounded
+// ratio comparison that just failed.
 export function suggestContrastFix(
   textClass: string,
   bgClass: string,
   required: number,
   palette: Palette = defaultPalette
 ): ContrastFix | null {
-  const match = TEXT_SCALE_SHADE_RE.exec(textClass);
-  if (!match) return null; // text-white, text-[#eee], text-gray-400/50 — no suggestion
+  const { base, alpha } = splitOpacityModifier(textClass);
+  if (alpha === 0) return null; // no shade change fixes total transparency
+
+  const match = TEXT_SCALE_SHADE_RE.exec(base);
+  if (!match) return null; // text-white, text-[#eee] — no suggestion
 
   const [, scale, shade] = match;
   const shades = palette[scale];
@@ -105,11 +142,17 @@ export function suggestContrastFix(
     .map(Number)
     .sort((a, b) => Math.abs(a - original) - Math.abs(b - original) || b - a);
 
+  // Only the shade searches candidates -- the original opacity is held
+  // fixed, exactly like bg is already held fixed.
   for (const candidate of candidates) {
     const rgb = hexToRgb(shades[String(candidate)]);
     if (!rgb) continue;
-    const ratio = contrastRatio(rgb, bgRgb);
-    if (ratio >= required) return { textClass: `text-${scale}-${candidate}`, ratio };
+    const effectiveRgb = alpha < 1 ? applyAlpha(rgb, alpha, bgRgb) : rgb;
+    const ratio = contrastRatio(effectiveRgb, bgRgb);
+    if (ratio >= required) {
+      const suggestedClass = alpha < 1 ? `text-${scale}-${candidate}/${Math.round(alpha * 100)}` : `text-${scale}-${candidate}`;
+      return { textClass: suggestedClass, ratio };
+    }
   }
 
   return null;
@@ -123,9 +166,17 @@ export interface ContrastValueSkip {
 
 // A candidate that extractChecks *did* find a background for, but whose
 // text or bg utility didn't resolve to a known value (custom theme color,
-// non-hex arbitrary value, opacity shorthand) — surfaced separately from
-// extractContrastSkips' component-boundary case, since this one already has
-// a full text/bg pair and only failed at value resolution.
+// non-hex arbitrary value, background-side opacity shorthand) — surfaced
+// separately from extractContrastSkips' component-boundary case, since this
+// one already has a full text/bg pair and only failed at value resolution.
+//
+// Resolves bg first, same order as checkContrast, so a bg-side failure and a
+// text-side failure are attributed to the correct class -- since text
+// resolution now depends on a known bg to composite against, resolving both
+// independently (as before) would make every bg failure also look like a
+// text failure. This does mean that when *both* sides are unresolvable for
+// unrelated reasons, bg is now named first (previously text always was) --
+// a deliberate, tested change, not an accidental side effect of reordering.
 export function checkContrastValueSkips(
   checks: ContrastCheck[],
   palette: Palette = defaultPalette
@@ -133,16 +184,35 @@ export function checkContrastValueSkips(
   const skips: ContrastValueSkip[] = [];
 
   for (const check of checks) {
-    const textHex = resolveColorValue(check.textColorClass, palette);
     const bgHex = resolveColorValue(check.bgColorClass, palette);
-    if (textHex && bgHex) continue;
+    const bgRgb = bgHex ? hexToRgb(bgHex) : null;
+    if (!bgRgb) {
+      skips.push({
+        file: check.file,
+        line: check.line,
+        reason: `${check.bgColorClass} is not a recognized color (custom theme color or unsupported arbitrary value) — skipped`,
+      });
+      continue;
+    }
 
-    const unresolved = !textHex ? check.textColorClass : check.bgColorClass;
-    skips.push({
-      file: check.file,
-      line: check.line,
-      reason: `${unresolved} is not a recognized color (custom theme color or unsupported arbitrary value) — skipped`,
-    });
+    const { alpha } = splitOpacityModifier(check.textColorClass);
+    if (alpha === 0) {
+      skips.push({
+        file: check.file,
+        line: check.line,
+        reason: `${check.textColorClass} is fully transparent (opacity 0) — nothing rendered to check`,
+      });
+      continue;
+    }
+
+    const textRgb = resolveTextColorWithOpacity(check.textColorClass, bgRgb, palette);
+    if (!textRgb) {
+      skips.push({
+        file: check.file,
+        line: check.line,
+        reason: `${check.textColorClass} is not a recognized color (custom theme color or unsupported arbitrary value) — skipped`,
+      });
+    }
   }
 
   return skips;

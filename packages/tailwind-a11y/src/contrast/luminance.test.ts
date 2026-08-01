@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { contrastRatio, hexToRgb, meetsWCAG, relativeLuminance, requiredRatio } from "./luminance.js";
+import { applyAlpha, contrastRatio, hexToRgb, meetsWCAG, relativeLuminance, requiredRatio } from "./luminance.js";
 
 describe("hexToRgb", () => {
   it("parses 6-digit hex with #", () => {
@@ -43,6 +43,29 @@ describe("contrastRatio", () => {
   it("matches the classic #767676-on-white borderline-AA example", () => {
     const ratio = contrastRatio(hexToRgb("#767676")!, hexToRgb("#ffffff")!);
     expect(ratio).toBeCloseTo(4.54, 1);
+  });
+});
+
+describe("applyAlpha", () => {
+  const black = { r: 0, g: 0, b: 0 };
+  const white = { r: 255, g: 255, b: 255 };
+
+  it("alpha 0 returns the background unchanged", () => {
+    expect(applyAlpha(black, 0, white)).toEqual(white);
+  });
+
+  it("alpha 1 returns the foreground unchanged", () => {
+    expect(applyAlpha(black, 1, white)).toEqual(black);
+  });
+
+  it("alpha 0.5 is the midpoint", () => {
+    expect(applyAlpha(black, 0.5, white)).toEqual({ r: 128, g: 128, b: 128 });
+  });
+
+  it("blends each channel independently (catches an r/g/b copy-paste bug)", () => {
+    const fg = { r: 200, g: 100, b: 0 };
+    const bg = { r: 0, g: 100, b: 200 };
+    expect(applyAlpha(fg, 0.5, bg)).toEqual({ r: 100, g: 100, b: 100 });
   });
 });
 

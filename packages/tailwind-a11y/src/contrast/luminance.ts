@@ -25,6 +25,18 @@ export function hexToRgb(hex: string): RGB | null {
   };
 }
 
+// Standard "src-over" compositing of a foreground at `alpha` opacity over an
+// opaque background, in gamma-encoded sRGB space (0-255 channels) -- matches
+// how browsers actually composite CSS opacity, no linear-light conversion
+// needed for a simple two-layer blend.
+export function applyAlpha(fg: RGB, alpha: number, bg: RGB): RGB {
+  return {
+    r: Math.round(alpha * fg.r + (1 - alpha) * bg.r),
+    g: Math.round(alpha * fg.g + (1 - alpha) * bg.g),
+    b: Math.round(alpha * fg.b + (1 - alpha) * bg.b),
+  };
+}
+
 function channelLuminance(channel: number): number {
   const c = channel / 255;
   return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;

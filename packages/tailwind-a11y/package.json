@@ -1,6 +1,6 @@
 {
   "name": "tailwind-a11y",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Static analysis CLI that catches WCAG accessibility violations — color contrast, touch target size, and focus indicator removal — in Tailwind CSS class combinations before they ship.",
   "type": "module",
   "bin": {
