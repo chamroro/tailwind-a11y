@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { extractTouchTargetChecks, extractTouchTargetSkips } from "./extractTouchTargets.js";
+import { spacingScale } from "../theme/spacingScale.js";
+import { mergeSpacing } from "../theme/loadCustomTheme.js";
 
 describe("extractTouchTargetChecks", () => {
   it("catches a 16x16 button", () => {
@@ -93,6 +95,23 @@ describe("extractTouchTargetChecks", () => {
   });
 });
 
+describe("extractTouchTargetChecks with a custom spacing scale", () => {
+  const customSpacing = mergeSpacing(spacingScale, { "18": 72 }); // 4.5rem
+
+  it("resolves a custom spacing token that a default-scale-only call would skip", () => {
+    const code = `const C = () => <button className="w-18 h-18">x</button>;`;
+    const checks = extractTouchTargetChecks(code, "fake.tsx", customSpacing);
+    expect(checks).toEqual([
+      { file: "fake.tsx", line: 1, tagName: "button", widthClass: "w-18", heightClass: "h-18", widthPx: 72, heightPx: 72 },
+    ]);
+  });
+
+  it("still skips the same token when no custom spacing is passed", () => {
+    const code = `const C = () => <button className="w-18 h-18">x</button>;`;
+    expect(extractTouchTargetChecks(code, "fake.tsx")).toEqual([]);
+  });
+});
+
 describe("extractTouchTargetSkips", () => {
   it("flags a width with no height", () => {
     const code = `const C = () => <button className="w-4">x</button>;`;
@@ -130,5 +149,11 @@ describe("extractTouchTargetSkips", () => {
   it("does not flag non-interactive elements", () => {
     const code = `const C = () => <div className="w-4">x</div>;`;
     expect(extractTouchTargetSkips(code, "fake.tsx")).toEqual([]);
+  });
+
+  it("does not report a skip once a custom spacing scale resolves the token", () => {
+    const code = `const C = () => <button className="w-18 h-18">x</button>;`;
+    const customSpacing = mergeSpacing(spacingScale, { "18": 72 });
+    expect(extractTouchTargetSkips(code, "fake.tsx", customSpacing)).toEqual([]);
   });
 });

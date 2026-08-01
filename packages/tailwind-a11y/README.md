@@ -22,12 +22,18 @@ npm install --save-dev tailwind-a11y
 ## Usage
 
 ```bash
-npx tailwind-a11y                    # scans **/*.{jsx,tsx}
-npx tailwind-a11y "src/**/*.tsx"     # custom glob
-npx tailwind-a11y --verbose          # also reports what couldn't be checked, and why
-npx tailwind-a11y --version          # print the installed version
-npx tailwind-a11y --help             # usage and all options
+npx tailwind-a11y                              # scans **/*.{jsx,tsx}
+npx tailwind-a11y "src/**/*.tsx"               # custom glob
+npx tailwind-a11y --verbose                    # also reports what couldn't be checked, and why
+npx tailwind-a11y --config ./tw.config.cjs     # use a specific tailwind.config instead of auto-detecting
+npx tailwind-a11y --version                    # print the installed version
+npx tailwind-a11y --help                       # usage and all options
 ```
+
+Custom `theme.extend.colors`/`theme.extend.spacing` in a `tailwind.config.js`/`.cjs`
+found in the current directory (or passed via `--config`) are read automatically, so
+colors and spacing outside Tailwind's defaults resolve too — not just the built-in
+palette.
 
 ```
 src/components/Card.tsx
@@ -54,7 +60,9 @@ When a case can't be resolved with confidence, it's skipped rather than guessed:
 
 - Ancestors beyond the immediate parent, or backgrounds set inside a separate component
 - Dynamic or computed `className` (ternaries, `clsx()`, template literals)
-- Custom theme colors/spacing not in Tailwind's default scales
+- A full `theme.colors`/`theme.spacing` replacement, `.mjs`/`.ts` configs, or
+  Tailwind v4's CSS-based `@theme` config (only `theme.extend` in a `.js`/`.cjs`
+  config is read — see [CLAUDE.md](./CLAUDE.md))
 - Color + opacity shorthand (`bg-white/50`)
 - Frameworks other than React/JSX
 

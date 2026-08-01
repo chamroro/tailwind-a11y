@@ -1,5 +1,6 @@
 import type { Rule } from "eslint";
 import { extractTouchTargetChecks, checkTouchTargets } from "tailwind-a11y";
+import { resolveThemeForContext } from "../theme.js";
 
 const rule: Rule.RuleModule = {
   meta: {
@@ -20,7 +21,10 @@ const rule: Rule.RuleModule = {
   create(context) {
     return {
       Program() {
-        const violations = checkTouchTargets(extractTouchTargetChecks(context.sourceCode.getText(), context.filename));
+        const { spacing } = resolveThemeForContext(context);
+        const violations = checkTouchTargets(
+          extractTouchTargetChecks(context.sourceCode.getText(), context.filename, spacing)
+        );
 
         for (const v of violations) {
           context.report({

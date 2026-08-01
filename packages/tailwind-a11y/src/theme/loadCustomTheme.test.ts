@@ -1,0 +1,218 @@
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  findTailwindConfig,
+  loadCustomTheme,
+  mergePalette,
+  mergeSpacing,
+  resolveTheme,
+} from "./loadCustomTheme.js";
+import { defaultPalette } from "./defaultPalette.js";
+import { spacingScale } from "./spacingScale.js";
+
+let dir: string;
+
+beforeEach(() => {
+  dir = mkdtempSync(join(tmpdir(), "tailwind-a11y-"));
+});
+
+afterEach(() => {
+  rmSync(dir, { recursive: true, force: true });
+});
+
+describe("findTailwindConfig", () => {
+  it("finds tailwind.config.js", () => {
+    writeFileSync(join(dir, "tailwind.config.js"), "module.exports = {};");
+    expect(findTailwindConfig(dir)).toBe(join(dir, "tailwind.config.js"));
+  });
+
+  it("finds tailwind.config.cjs when .js is absent", () => {
+    writeFileSync(join(dir, "tailwind.config.cjs"), "module.exports = {};");
+    expect(findTailwindConfig(dir)).toBe(join(dir, "tailwind.config.cjs"));
+  });
+
+  it("prefers .js over .cjs when both are present", () => {
+    writeFileSync(join(dir, "tailwind.config.js"), "module.exports = {};");
+    writeFileSync(join(dir, "tailwind.config.cjs"), "module.exports = {};");
+    expect(findTailwindConfig(dir)).toBe(join(dir, "tailwind.config.js"));
+  });
+
+  it("returns null when neither exists", () => {
+    expect(findTailwindConfig(dir)).toBeNull();
+  });
+});
+
+describe("loadCustomTheme", () => {
+  it("extracts theme.extend.colors and theme.extend.spacing", () => {
+    const configPath = join(dir, "tailwind.config.js");
+    writeFileSync(
+      configPath,
+      `module.exports = { theme: { extend: {
+        colors: { brand: { 500: "#3490dc" } },
+        spacing: { "18": "4.5rem" },
+      } } };`
+    );
+    expect(loadCustomTheme(configPath)).toEqual({
+      colors: { brand: { "500": "#3490dc" } },
+      spacing: { "18": 72 },
+    });
+  });
+
+  it("returns {} for a config with no theme.extend", () => {
+    const configPath = join(dir, "tailwind.config.js");
+    writeFileSync(configPath, "module.exports = {};");
+    expect(loadCustomTheme(configPath)).toEqual({});
+  });
+
+  it("returns null for a missing file", () => {
+    expect(loadCustomTheme(join(dir, "nope.js"))).toBeNull();
+  });
+
+  it("returns null for a config that throws on load", () => {
+    const configPath = join(dir, "tailwind.config.js");
+    writeFileSync(configPath, "throw new Error('boom');");
+    expect(loadCustomTheme(configPath)).toBeNull();
+  });
+
+  it('returns null for a CJS config in a "type": "module" project (ERR_REQUIRE_ESM)', () => {
+    writeFileSync(join(dir, "package.json"), JSON.stringify({ type: "module" }));
+    const configPath = join(dir, "tailwind.config.js");
+    writeFileSync(configPath, "module.exports = { theme: { extend: {} } };");
+    expect(loadCustomTheme(configPath)).toBeNull();
+  });
+
+  it("skips a flat string color value (no class syntax would ever resolve it)", () => {
+    const configPath = join(dir, "tailwind.config.js");
+    writeFileSync(configPath, `module.exports = { theme: { extend: { colors: { brand: "#3490dc" } } } };`);
+    expect(loadCustomTheme(configPath)).toEqual({});
+  });
+
+  it("skips a DEFAULT key within a color scale but keeps the real shades", () => {
+    const configPath = join(dir, "tailwind.config.js");
+    writeFileSync(
+      configPath,
+      `module.exports = { theme: { extend: { colors: { brand: { DEFAULT: "#3490dc", 500: "#3490dc" } } } } };`
+    );
+    expect(loadCustomTheme(configPath)).toEqual({ colors: { brand: { "500": "#3490dc" } } });
+  });
+
+  it("skips a non-hex color value", () => {
+    const configPath = join(dir, "tailwind.config.js");
+    writeFileSync(
+      configPath,
+      `module.exports = { theme: { extend: { colors: { brand: { 500: "rgb(52 144 220)" } } } } };`
+    );
+    expect(loadCustomTheme(configPath)).toEqual({});
+  });
+
+  it("skips a non-rem/px spacing value", () => {
+    const configPath = join(dir, "tailwind.config.js");
+    writeFileSync(configPath, `module.exports = { theme: { extend: { spacing: { "18": "50%" } } } };`);
+    expect(loadCustomTheme(configPath)).toEqual({});
+  });
+
+  it("reflects an edit to the same path (require cache is busted)", () => {
+    const configPath = join(dir, "tailwind.config.js");
+    writeFileSync(
+      configPath,
+      `module.exports = { theme: { extend: { colors: { brand: { 500: "#111111" } } } } };`
+    );
+    expect(loadCustomTheme(configPath)).toEqual({ colors: { brand: { "500": "#111111" } } });
+
+    writeFileSync(
+      configPath,
+      `module.exports = { theme: { extend: { colors: { brand: { 500: "#222222" } } } } };`
+    );
+    expect(loadCustomTheme(configPath)).toEqual({ colors: { brand: { "500": "#222222" } } });
+  });
+
+  it("reflects an edit to a file the config itself requires (regression: nested require-cache busting)", () => {
+    const configPath = join(dir, "tailwind.config.js");
+    const colorsPath = join(dir, "colors.js");
+    writeFileSync(colorsPath, `module.exports = { brand: { 500: "#111111" } };`);
+    writeFileSync(
+      configPath,
+      `module.exports = { theme: { extend: { colors: require("./colors.js") } } };`
+    );
+    expect(loadCustomTheme(configPath)).toEqual({ colors: { brand: { "500": "#111111" } } });
+
+    writeFileSync(colorsPath, `module.exports = { brand: { 500: "#222222" } };`);
+    expect(loadCustomTheme(configPath)).toEqual({ colors: { brand: { "500": "#222222" } } });
+  });
+});
+
+describe("mergePalette", () => {
+  it("returns base unchanged when extend is undefined", () => {
+    expect(mergePalette(defaultPalette)).toBe(defaultPalette);
+  });
+
+  it("adds a new scale wholesale", () => {
+    const merged = mergePalette(defaultPalette, { brand: { "500": "#3490dc" } });
+    expect(merged.brand).toEqual({ "500": "#3490dc" });
+    expect(merged.gray).toBe(defaultPalette.gray);
+  });
+
+  it("extends an existing scale without dropping its other shades", () => {
+    const merged = mergePalette(defaultPalette, { gray: { "1000": "#000000" } });
+    expect(merged.gray["1000"]).toBe("#000000");
+    expect(merged.gray["400"]).toBe(defaultPalette.gray["400"]);
+  });
+});
+
+describe("mergeSpacing", () => {
+  it("returns base unchanged when extend is undefined", () => {
+    expect(mergeSpacing(spacingScale)).toBe(spacingScale);
+  });
+
+  it("adds new tokens alongside the defaults", () => {
+    const merged = mergeSpacing(spacingScale, { "18": 72 });
+    expect(merged["18"]).toBe(72);
+    expect(merged["4"]).toBe(spacingScale["4"]);
+  });
+});
+
+describe("resolveTheme", () => {
+  it("returns the untouched defaults when rootDir is null", () => {
+    expect(resolveTheme({ rootDir: null })).toEqual({ palette: defaultPalette, spacing: spacingScale });
+  });
+
+  it("returns the untouched defaults when no config is found in rootDir", () => {
+    expect(resolveTheme({ rootDir: dir })).toEqual({ palette: defaultPalette, spacing: spacingScale });
+  });
+
+  it("auto-detects and merges a config found in rootDir", () => {
+    writeFileSync(
+      join(dir, "tailwind.config.js"),
+      `module.exports = { theme: { extend: { colors: { brand: { 500: "#3490dc" } } } } };`
+    );
+    const result = resolveTheme({ rootDir: dir });
+    expect(result.palette.brand).toEqual({ "500": "#3490dc" });
+    expect(result.configError).toBeUndefined();
+  });
+
+  it("uses an explicit configPath over auto-detection", () => {
+    writeFileSync(join(dir, "tailwind.config.js"), `module.exports = {};`);
+    const explicitPath = join(dir, "custom.config.js");
+    writeFileSync(
+      explicitPath,
+      `module.exports = { theme: { extend: { colors: { brand: { 500: "#abcdef" } } } } };`
+    );
+    const result = resolveTheme({ rootDir: dir, configPath: explicitPath });
+    expect(result.palette.brand).toEqual({ "500": "#abcdef" });
+  });
+
+  it("sets configError when an explicit configPath fails to load, and still returns defaults", () => {
+    const explicitPath = join(dir, "does-not-exist.js");
+    const result = resolveTheme({ rootDir: dir, configPath: explicitPath });
+    expect(result.palette).toBe(defaultPalette);
+    expect(result.spacing).toBe(spacingScale);
+    expect(result.configError).toContain(explicitPath);
+  });
+
+  it("stays silent (no configError) when auto-detection finds a broken config", () => {
+    writeFileSync(join(dir, "tailwind.config.js"), "throw new Error('boom');");
+    expect(resolveTheme({ rootDir: dir }).configError).toBeUndefined();
+  });
+});

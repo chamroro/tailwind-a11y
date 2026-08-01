@@ -1,5 +1,6 @@
 import type { Rule } from "eslint";
 import { extractChecks, checkContrast } from "tailwind-a11y";
+import { resolveThemeForContext } from "../theme.js";
 
 const rule: Rule.RuleModule = {
   meta: {
@@ -27,7 +28,8 @@ const rule: Rule.RuleModule = {
       // parse of the raw source, so this never participates in ESLint's
       // own AST traversal.
       Program() {
-        const violations = checkContrast(extractChecks(context.sourceCode.getText(), context.filename));
+        const { palette } = resolveThemeForContext(context);
+        const violations = checkContrast(extractChecks(context.sourceCode.getText(), context.filename), palette);
 
         for (const v of violations) {
           const data: Record<string, string | number> = {

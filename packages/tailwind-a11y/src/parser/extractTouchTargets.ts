@@ -58,7 +58,11 @@ function isInlineInText(path: NodePath<t.JSXElement>): boolean {
   return isMeaningfulText(siblings[index - 1]) || isMeaningfulText(siblings[index + 1]);
 }
 
-export function extractTouchTargetChecks(code: string, filePath: string): TouchTargetCheck[] {
+export function extractTouchTargetChecks(
+  code: string,
+  filePath: string,
+  spacing: Record<string, number> = spacingScale
+): TouchTargetCheck[] {
   const ast = parseJSX(code, filePath);
   if (!ast) return [];
 
@@ -77,8 +81,8 @@ export function extractTouchTargetChecks(code: string, filePath: string): TouchT
       const height = lastSizeToken(tokens, "h");
       if (!width || !height) return; // either dimension missing/dynamic — skip, don't guess
 
-      const widthPx = spacingScale[width.value];
-      const heightPx = spacingScale[height.value];
+      const widthPx = spacing[width.value];
+      const heightPx = spacing[height.value];
       if (widthPx === undefined || heightPx === undefined) return; // arbitrary/keyword/fraction — skip
 
       if (isInlineInText(path)) return; // WCAG 2.5.8 inline exception — exempt, not a violation
@@ -110,7 +114,11 @@ export interface TouchTargetSkip {
 // fraction). Elements with neither w-* nor h-* at all aren't reported —
 // that's the overwhelming majority of interactive elements and would be
 // pure noise, not a meaningful skip.
-export function extractTouchTargetSkips(code: string, filePath: string): TouchTargetSkip[] {
+export function extractTouchTargetSkips(
+  code: string,
+  filePath: string,
+  spacing: Record<string, number> = spacingScale
+): TouchTargetSkip[] {
   const ast = parseJSX(code, filePath);
   if (!ast) return [];
 
@@ -138,11 +146,11 @@ export function extractTouchTargetSkips(code: string, filePath: string): TouchTa
         return;
       }
 
-      const widthPx = spacingScale[width.value];
-      const heightPx = spacingScale[height.value];
+      const widthPx = spacing[width.value];
+      const heightPx = spacing[height.value];
       if (widthPx === undefined || heightPx === undefined) {
         const bad = widthPx === undefined ? width.raw : height.raw;
-        skips.push({ file: filePath, line, reason: `${bad} is not in the default spacing scale (arbitrary, keyword, or fraction value) — skipped` });
+        skips.push({ file: filePath, line, reason: `${bad} is not in the resolved spacing scale (arbitrary, keyword, or fraction value) — skipped` });
       }
     },
   });

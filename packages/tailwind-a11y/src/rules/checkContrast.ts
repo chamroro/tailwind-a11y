@@ -1,5 +1,6 @@
 import { contrastRatio, hexToRgb, meetsWCAG, requiredRatio } from "../contrast/luminance.js";
 import { defaultPalette, semanticColors } from "../theme/defaultPalette.js";
+import type { Palette } from "../theme/defaultPalette.js";
 import type { ContrastCheck } from "../parser/extractClasses.js";
 
 export interface ContrastViolation {
@@ -15,7 +16,7 @@ export interface ContrastViolation {
   suggestedRatio?: number;
 }
 
-export function resolveColorValue(utilityClass: string): string | null {
+export function resolveColorValue(utilityClass: string, palette: Palette = defaultPalette): string | null {
   const match = /^(?:text|bg)-(.+)$/.exec(utilityClass);
   if (!match) return null;
   const token = match[1];
@@ -29,15 +30,15 @@ export function resolveColorValue(utilityClass: string): string | null {
 
   const [scale, shade] = token.split("-");
   if (!scale || !shade) return null;
-  return defaultPalette[scale]?.[shade] ?? null; // unknown/custom color — skip
+  return palette[scale]?.[shade] ?? null; // unknown/custom color — skip
 }
 
-export function checkContrast(checks: ContrastCheck[]): ContrastViolation[] {
+export function checkContrast(checks: ContrastCheck[], palette: Palette = defaultPalette): ContrastViolation[] {
   const violations: ContrastViolation[] = [];
 
   for (const check of checks) {
-    const textHex = resolveColorValue(check.textColorClass);
-    const bgHex = resolveColorValue(check.bgColorClass);
+    const textHex = resolveColorValue(check.textColorClass, palette);
+    const bgHex = resolveColorValue(check.bgColorClass, palette);
     if (!textHex || !bgHex) continue;
 
     const textRgb = hexToRgb(textHex);
@@ -48,7 +49,7 @@ export function checkContrast(checks: ContrastCheck[]): ContrastViolation[] {
     const required = requiredRatio("AA", false); // v1: large-text detection deferred
 
     if (!meetsWCAG(ratio, "AA", false)) {
-      const fix = suggestContrastFix(check.textColorClass, check.bgColorClass, required);
+      const fix = suggestContrastFix(check.textColorClass, check.bgColorClass, required, palette);
       violations.push({
         type: "contrast",
         file: check.file,
@@ -81,15 +82,20 @@ const TEXT_SCALE_SHADE_RE = /^text-([a-z]+)-(\d+)$/;
 // darker is the fix a human reaches for. The original shade can never win:
 // it's in this same candidate list at distance 0, and this recomputes the
 // identical unrounded ratio comparison that just failed.
-export function suggestContrastFix(textClass: string, bgClass: string, required: number): ContrastFix | null {
+export function suggestContrastFix(
+  textClass: string,
+  bgClass: string,
+  required: number,
+  palette: Palette = defaultPalette
+): ContrastFix | null {
   const match = TEXT_SCALE_SHADE_RE.exec(textClass);
   if (!match) return null; // text-white, text-[#eee], text-gray-400/50 — no suggestion
 
   const [, scale, shade] = match;
-  const shades = defaultPalette[scale];
+  const shades = palette[scale];
   if (!shades?.[shade]) return null; // custom scale, or a decoy like text-opacity-50
 
-  const bgHex = resolveColorValue(bgClass);
+  const bgHex = resolveColorValue(bgClass, palette);
   const bgRgb = bgHex ? hexToRgb(bgHex) : null;
   if (!bgRgb) return null;
 
@@ -120,12 +126,15 @@ export interface ContrastValueSkip {
 // non-hex arbitrary value, opacity shorthand) — surfaced separately from
 // extractContrastSkips' component-boundary case, since this one already has
 // a full text/bg pair and only failed at value resolution.
-export function checkContrastValueSkips(checks: ContrastCheck[]): ContrastValueSkip[] {
+export function checkContrastValueSkips(
+  checks: ContrastCheck[],
+  palette: Palette = defaultPalette
+): ContrastValueSkip[] {
   const skips: ContrastValueSkip[] = [];
 
   for (const check of checks) {
-    const textHex = resolveColorValue(check.textColorClass);
-    const bgHex = resolveColorValue(check.bgColorClass);
+    const textHex = resolveColorValue(check.textColorClass, palette);
+    const bgHex = resolveColorValue(check.bgColorClass, palette);
     if (textHex && bgHex) continue;
 
     const unresolved = !textHex ? check.textColorClass : check.bgColorClass;

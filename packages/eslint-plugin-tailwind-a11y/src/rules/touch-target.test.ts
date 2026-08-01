@@ -1,10 +1,19 @@
 import { RuleTester } from "eslint";
-import { describe, it } from "vitest";
+import { afterAll, describe, it } from "vitest";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import rule from "./touch-target.js";
 
 RuleTester.describe = describe;
 RuleTester.it = it;
 RuleTester.itOnly = it.only;
+
+const fixtureDir = mkdtempSync(join(tmpdir(), "eslint-plugin-tailwind-a11y-"));
+const customConfigPath = join(fixtureDir, "tailwind.config.js");
+writeFileSync(customConfigPath, `module.exports = { theme: { extend: { spacing: { "5.5": "1.375rem" } } } };`); // 22px
+
+afterAll(() => rmSync(fixtureDir, { recursive: true, force: true }));
 
 const ruleTester = new RuleTester({
   languageOptions: {
@@ -26,8 +35,26 @@ ruleTester.run("touch-target", rule, {
       filename: "NotInteractive.jsx",
       code: `export const D = () => <div className="w-4 h-4">x</div>;`,
     },
+    {
+      name: "a custom spacing token is silently skipped with no configured theme",
+      filename: "Small.jsx",
+      code: `export const Small = () => <button className="w-5.5 h-5.5" onClick={() => {}}>x</button>;`,
+    },
   ],
   invalid: [
+    {
+      name: 'resolves a custom spacing token via settings["tailwind-a11y"].configPath',
+      filename: "Small.jsx",
+      code: `export const Small = () => <button className="w-5.5 h-5.5" onClick={() => {}}>x</button>;`,
+      settings: { "tailwind-a11y": { configPath: customConfigPath } },
+      errors: [
+        {
+          message: "<button> is 22×22px (w-5.5 h-5.5) — WCAG 2.5.8 requires >= 24×24px",
+          line: 1,
+          column: 1,
+        },
+      ],
+    },
     {
       name: "16x16 icon button fails",
       filename: "IconButton.jsx",

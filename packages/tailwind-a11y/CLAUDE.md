@@ -47,11 +47,32 @@ Tailwind-class-level sizing or focus-style analysis).
   `packages/vscode-tailwind-a11y` now exists as a third adapter over this
   engine (alongside the ESLint plugin) — it does not change this package's
   own scope, it just reuses `extractChecks`/`checkContrast` etc. directly.
-- **Default Tailwind palette only.** Color resolution uses a hardcoded
-  snapshot of Tailwind's default color scale (see `src/theme/defaultPalette.ts`).
-  Custom theme extension (reading a user's `tailwind.config`) is deferred.
-- **Default Tailwind spacing scale only.** Same reasoning as the color
-  palette — see `src/theme/spacingScale.ts`.
+- **Custom `tailwind.config.js`/`.cjs` theme extension *is* implemented** (see
+  `theme/loadCustomTheme.ts`), but narrowly:
+  - Reads only `theme.extend.colors`/`theme.extend.spacing` — never a full
+    `theme.colors`/`theme.spacing` replacement.
+  - `.js`/`.cjs` only. No `.mjs`/`.ts` config files (no config-transpiling
+    dependency exists in this package, and none is being added just for
+    this). A `.js` config inside a `"type": "module"` project throws
+    `ERR_REQUIRE_ESM` on `require()` — caught, treated the same as "no
+    config found," not a crash.
+  - Tailwind v4's CSS-first `@theme` config is not read at all.
+  - No ancestor-directory search — only the given root dir is checked.
+    `--config` (CLI) / `settings["tailwind-a11y"].configPath` (ESLint) exist
+    as explicit overrides.
+  - Per color entry: only a plain object of hex-string shades is accepted
+    (validated with the existing `hexToRgb`). A flat string color
+    (`colors: { brand: '#3490dc' }`) or a `DEFAULT` key is skipped — no
+    class syntax (`bg-brand-DEFAULT` isn't real Tailwind) would ever resolve
+    to it.
+  - Per spacing entry: only `rem`/`px` string values are accepted (rem × 16,
+    matching `spacingScale.ts`'s own 16px-root assumption).
+  - `semanticColors` (`white`/`black`/`transparent`/etc.) stays hardcoded,
+    not re-themeable.
+  - Running this tool now executes the target project's `tailwind.config.js`
+    as a side effect of scanning (same as ESLint/Jest/webpack/PostCSS
+    already do with their own configs) — previously this tool only ever
+    parsed JSX via Babel, never executed anything.
 - **Touch target: no `min-w-*`/`min-h-*` fallback.** A minimum-width utility
   only guarantees a floor, not the actual rendered size — using it would
   mean guessing, so elements without explicit `w-*`+`h-*` are skipped
@@ -81,6 +102,10 @@ issues at a fraction of the engineering cost.
 src/
   theme/defaultPalette.ts         — Tailwind default color name -> hex map
   theme/spacingScale.ts           — Tailwind default spacing scale -> px map
+  theme/loadCustomTheme.ts        — finds/loads a project's tailwind.config.js/.cjs,
+                                     merges theme.extend.colors/spacing over the
+                                     defaults (resolveTheme() is the one function
+                                     each adapter calls)
   contrast/luminance.ts           — WCAG relative luminance + contrast ratio math
   parser/babelInterop.ts          — shared @babel/traverse CJS/ESM interop shim,
                                      parseJSX(), getStaticClassName()
@@ -96,6 +121,7 @@ src/
   rules/checkFocusIndicator.ts    — focus indicator violations (WCAG 2.4.7, AA)
   cli.ts                         — fast-glob scan, run all three checkers,
                                     print report, exit 1 on any violations (CI)
+  cliArgs.ts                     — flag parsing, including --config <path>
 ```
 
 Each check gets its **own independent Babel parse+traverse pass** over a

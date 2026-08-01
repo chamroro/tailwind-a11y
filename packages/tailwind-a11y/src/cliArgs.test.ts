@@ -3,7 +3,14 @@ import { parseArgs, getHelpText } from "./cliArgs.js";
 
 describe("parseArgs", () => {
   it("defaults to no flags and no patterns", () => {
-    expect(parseArgs([])).toEqual({ help: false, version: false, verbose: false, patterns: [] });
+    expect(parseArgs([])).toEqual({
+      help: false,
+      version: false,
+      verbose: false,
+      config: null,
+      configError: null,
+      patterns: [],
+    });
   });
 
   it("recognizes --verbose and its short form -v", () => {
@@ -31,13 +38,42 @@ describe("parseArgs", () => {
     expect(result.verbose).toBe(true);
     expect(result.patterns).toEqual(["src/**/*.tsx", "app/**/*.jsx"]);
   });
+
+  it("consumes --config's value and excludes both from patterns", () => {
+    const result = parseArgs(["--config", "./tailwind.config.cjs", "src/**/*.tsx"]);
+    expect(result.config).toBe("./tailwind.config.cjs");
+    expect(result.configError).toBeNull();
+    expect(result.patterns).toEqual(["src/**/*.tsx"]);
+  });
+
+  it("reports a usage error when --config is the last argument", () => {
+    const result = parseArgs(["--config"]);
+    expect(result.config).toBeNull();
+    expect(result.configError).toBe("--config requires a path argument");
+  });
+
+  it("reports a usage error when --config is immediately followed by another flag", () => {
+    const result = parseArgs(["--config", "--verbose"]);
+    expect(result.config).toBeNull();
+    expect(result.configError).toBe("--config requires a path argument");
+    // The flag itself still gets recognized on its own, not swallowed.
+    expect(result.verbose).toBe(true);
+  });
+
+  it("works alongside other flags and patterns in any order", () => {
+    const result = parseArgs(["--verbose", "--config", "tw.config.js", "src/**/*.tsx"]);
+    expect(result.verbose).toBe(true);
+    expect(result.config).toBe("tw.config.js");
+    expect(result.patterns).toEqual(["src/**/*.tsx"]);
+  });
 });
 
 describe("getHelpText", () => {
-  it("documents all three flags", () => {
+  it("documents all flags", () => {
     const text = getHelpText();
     expect(text).toContain("--verbose");
     expect(text).toContain("--version");
     expect(text).toContain("--help");
+    expect(text).toContain("--config");
   });
 });
