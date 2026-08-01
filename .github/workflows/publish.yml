@@ -11,6 +11,7 @@ on:
       - "packages/tailwind-a11y/package.json"
       - "packages/eslint-plugin-tailwind-a11y/package.json"
       - "packages/vscode-tailwind-a11y/package.json"
+      - "packages/github-action-tailwind-a11y/package.json"
 
 concurrency:
   group: publish-${{ github.ref }}
@@ -23,6 +24,7 @@ jobs:
       engine: ${{ steps.diff.outputs.engine }}
       eslint: ${{ steps.diff.outputs.eslint }}
       vscode: ${{ steps.diff.outputs.vscode }}
+      action: ${{ steps.diff.outputs.action }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -35,6 +37,7 @@ jobs:
           version_changed packages/tailwind-a11y/package.json && echo "engine=true" >> "$GITHUB_OUTPUT" || echo "engine=false" >> "$GITHUB_OUTPUT"
           version_changed packages/eslint-plugin-tailwind-a11y/package.json && echo "eslint=true" >> "$GITHUB_OUTPUT" || echo "eslint=false" >> "$GITHUB_OUTPUT"
           version_changed packages/vscode-tailwind-a11y/package.json && echo "vscode=true" >> "$GITHUB_OUTPUT" || echo "vscode=false" >> "$GITHUB_OUTPUT"
+          version_changed packages/github-action-tailwind-a11y/package.json && echo "action=true" >> "$GITHUB_OUTPUT" || echo "action=false" >> "$GITHUB_OUTPUT"
 
   publish-engine:
     needs: detect
@@ -100,3 +103,46 @@ jobs:
       - run: npm run publish:vsix -w vscode-tailwind-a11y
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+  # "Publishing" the GitHub Action = moving the floating v0 tag (what
+  # consumers pin via `uses: chamroro/tailwind-a11y@v0`) plus pushing an
+  # immutable action-vX.Y.Z tag. There is no registry; the git tree at the
+  # tag IS the artifact, which is why the committed bundle is re-verified
+  # against a fresh build before tagging -- never tag a stale bundle.
+  release-action:
+    needs: [detect, publish-engine]
+    if: |
+      always() &&
+      needs.detect.outputs.action == 'true' &&
+      (needs.publish-engine.result == 'success' || needs.publish-engine.result == 'skipped')
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run build -w tailwind-a11y
+      - run: npm run build -w github-action-tailwind-a11y
+      - run: npm run test -w github-action-tailwind-a11y
+      - name: Refuse to tag a stale bundle
+        run: git diff --exit-code -- packages/github-action-tailwind-a11y/dist action.yml
+      - name: Refuse to move an existing immutable tag
+        run: |
+          version=$(node -p "require('./packages/github-action-tailwind-a11y/package.json').version")
+          tag="action-v${version}"
+          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
+            echo "ERROR: ${tag} already exists on origin -- immutable action tags must never move."
+            echo "This means either the version wasn't actually bumped, or this job is re-running after already tagging successfully."
+            exit 1
+          fi
+      - name: Tag the release
+        run: |
+          version=$(node -p "require('./packages/github-action-tailwind-a11y/package.json').version")
+          git tag "action-v${version}"
+          git tag -f v0
+          git push origin "action-v${version}"
+          git push -f origin v0

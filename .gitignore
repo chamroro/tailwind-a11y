@@ -2,3 +2,9 @@ node_modules
 dist
 *.log
 *.vsix
+
+# The GitHub Action's bundle is COMMITTED -- GitHub runs a JS action straight
+# from the repo tree with no npm install, so the built file is the artifact.
+# Must negate the directory itself (not dist/**): gitignore cannot re-include
+# files under an excluded directory, only the directory.
+!packages/github-action-tailwind-a11y/dist

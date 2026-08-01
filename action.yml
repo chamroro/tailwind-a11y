@@ -1,0 +1,35 @@
+# Manifest for the GitHub Action adapter. Lives at the repo root so consumers
+# can write `uses: chamroro/tailwind-a11y@v0`; the implementation is in
+# packages/github-action-tailwind-a11y (see that package's README).
+name: "tailwind-a11y"
+description: >-
+  Static analysis for Tailwind CSS accessibility violations -- color contrast,
+  touch target size, and focus indicator removal -- reported as inline PR
+  annotations on the exact violating lines.
+author: "chamroro"
+branding:
+  icon: "eye"
+  color: "blue"
+
+inputs:
+  patterns:
+    description: >-
+      Whitespace- or newline-separated glob pattern(s) for files to scan.
+    required: false
+    default: "**/*.{jsx,tsx}"
+  config:
+    description: >-
+      Path to a tailwind.config.js/.cjs to read custom theme colors/spacing
+      from. Defaults to auto-detecting one in the repository root.
+    required: false
+    default: ""
+  fail-on-violations:
+    description: >-
+      Fail the job (exit 1) when violations are found. Set to "false" to
+      report annotations without failing.
+    required: false
+    default: "true"
+
+runs:
+  using: "node24"
+  main: "packages/github-action-tailwind-a11y/dist/index.js"

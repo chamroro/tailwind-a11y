@@ -11,8 +11,9 @@ they ship, instead of at a Lighthouse audit or QA pass.
 | [`tailwind-a11y`](./packages/tailwind-a11y) | CLI and analysis engine |
 | [`eslint-plugin-tailwind-a11y`](./packages/eslint-plugin-tailwind-a11y) | ESLint rules |
 | [`vscode-tailwind-a11y`](./packages/vscode-tailwind-a11y) | Live editor diagnostics |
+| [`github-action-tailwind-a11y`](./packages/github-action-tailwind-a11y) | Inline PR annotations (`uses: chamroro/tailwind-a11y@v0`) |
 
-All three run the same three checks — color contrast (WCAG 1.4.3), touch target size
+All four run the same three checks — color contrast (WCAG 1.4.3), touch target size
 (WCAG 2.5.8), and focus indicator removal (WCAG 2.4.7) — through one shared engine, so
 results never disagree between them. See each package's README for install and usage.
 
