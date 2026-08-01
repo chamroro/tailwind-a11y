@@ -19,6 +19,10 @@ Diagnostics appear as warnings in `.jsx`/`.tsx` files, updating on open, save, a
 or [ESLint plugin](https://github.com/chamroro/tailwind-a11y/tree/main/packages/eslint-plugin-tailwind-a11y)
 instead — both treat the same findings as errors.
 
+A `tailwind.config.js`/`.cjs` in the open file's workspace folder is picked up
+automatically, so custom theme colors/spacing resolve the same way they do in the CLI
+and ESLint plugin.
+
 ## License
 
 MIT

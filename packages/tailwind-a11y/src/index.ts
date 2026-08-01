@@ -5,3 +5,13 @@ export { checkTouchTargets, type TouchTargetViolation } from "./rules/checkTouch
 export { extractFocusIndicatorChecks, type FocusIndicatorCheck } from "./parser/extractFocusIndicators.js";
 export { checkFocusIndicators, type FocusIndicatorViolation } from "./rules/checkFocusIndicator.js";
 export { hexToRgb, contrastRatio, meetsWCAG, requiredRatio, type RGB } from "./contrast/luminance.js";
+export {
+  resolveTheme,
+  findTailwindConfig,
+  loadCustomTheme,
+  mergePalette,
+  mergeSpacing,
+  type ResolvedTheme,
+  type RawCustomTheme,
+} from "./theme/loadCustomTheme.js";
+export type { Palette, ColorScale } from "./theme/defaultPalette.js";

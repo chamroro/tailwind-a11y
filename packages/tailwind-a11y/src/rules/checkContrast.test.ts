@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { checkContrast, checkContrastValueSkips, suggestContrastFix } from "./checkContrast.js";
 import { extractChecks } from "../parser/extractClasses.js";
+import { defaultPalette } from "../theme/defaultPalette.js";
+import { mergePalette } from "../theme/loadCustomTheme.js";
 
 describe("checkContrast", () => {
   it("flags a known low-contrast pair", () => {
@@ -87,6 +89,25 @@ describe("checkContrast", () => {
   });
 });
 
+describe("checkContrast with a custom palette", () => {
+  const customPalette = mergePalette(defaultPalette, { brand: { "500": "#9ca3af" } }); // same hex as gray-400
+
+  it("resolves a custom-theme color that a default-palette-only call would skip", () => {
+    const violations = checkContrast(
+      [{ file: "f.tsx", line: 1, textColorClass: "text-brand-500", bgColorClass: "bg-white", bgSource: "self" }],
+      customPalette
+    );
+    expect(violations).toHaveLength(1);
+  });
+
+  it("still skips the same class when no custom palette is passed", () => {
+    const violations = checkContrast([
+      { file: "f.tsx", line: 1, textColorClass: "text-brand-500", bgColorClass: "bg-white", bgSource: "self" },
+    ]);
+    expect(violations).toEqual([]);
+  });
+});
+
 describe("checkContrastValueSkips", () => {
   it("reports a skip for an unrecognized custom color", () => {
     const skips = checkContrastValueSkips([
@@ -108,6 +129,15 @@ describe("checkContrastValueSkips", () => {
     const skips = checkContrastValueSkips([
       { file: "f.tsx", line: 1, textColorClass: "text-gray-400", bgColorClass: "bg-white", bgSource: "self" },
     ]);
+    expect(skips).toEqual([]);
+  });
+
+  it("does not report a skip once a custom palette resolves the color", () => {
+    const customPalette = mergePalette(defaultPalette, { brand: { "500": "#9ca3af" } });
+    const skips = checkContrastValueSkips(
+      [{ file: "f.tsx", line: 1, textColorClass: "text-brand-500", bgColorClass: "bg-white", bgSource: "self" }],
+      customPalette
+    );
     expect(skips).toEqual([]);
   });
 });
@@ -164,6 +194,15 @@ describe("suggestContrastFix", () => {
     const fix = suggestContrastFix("text-gray-400", "bg-white", 4.5);
     expect(fix).not.toBeNull();
     expect(fix?.textClass).not.toBe("text-gray-400");
+    expect(fix?.ratio).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("finds a fix within a custom-theme scale that the default palette doesn't have", () => {
+    const customPalette = mergePalette(defaultPalette, {
+      brand: { "400": "#9ca3af", "700": "#374151" }, // same hex as gray-400/gray-700
+    });
+    const fix = suggestContrastFix("text-brand-400", "bg-white", 4.5, customPalette);
+    expect(fix?.textClass).toBe("text-brand-700");
     expect(fix?.ratio).toBeGreaterThanOrEqual(4.5);
   });
 });

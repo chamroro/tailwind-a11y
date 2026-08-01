@@ -47,6 +47,18 @@ export default [
 
 Exact scope and known limitations: [engine README](https://github.com/chamroro/tailwind-a11y/tree/main/packages/tailwind-a11y#scope).
 
+## Custom theme
+
+A `tailwind.config.js`/`.cjs` in ESLint's cwd is auto-detected; point at a specific
+file instead via `settings`:
+
+```js
+export default [
+  ...tailwindA11y.configs.recommended,
+  { settings: { "tailwind-a11y": { configPath: "./tailwind.config.cjs" } } },
+];
+```
+
 ## Notes
 
 `.tsx` files need a TypeScript-aware `languageOptions.parser` (e.g. `typescript-eslint`)

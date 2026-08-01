@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
-import { relative, sep } from "node:path";
+import { relative, resolve, sep } from "node:path";
 import { createRequire } from "node:module";
 import fg from "fast-glob";
 import { extractChecks, extractContrastSkips } from "./parser/extractClasses.js";
@@ -10,6 +10,7 @@ import { checkTouchTargets, type TouchTargetViolation } from "./rules/checkTouch
 import { extractFocusIndicatorChecks } from "./parser/extractFocusIndicators.js";
 import { checkFocusIndicators, type FocusIndicatorViolation } from "./rules/checkFocusIndicator.js";
 import { parseArgs, getHelpText } from "./cliArgs.js";
+import { resolveTheme } from "./theme/loadCustomTheme.js";
 
 // ../package.json resolves correctly from both src/ (dev) and dist/ (published).
 const require = createRequire(import.meta.url);
@@ -50,7 +51,7 @@ function groupByFile<T extends { file: string }>(items: T[]): Map<string, T[]> {
 }
 
 async function main(): Promise<void> {
-  const { help, version, verbose, patterns } = parseArgs(process.argv.slice(2));
+  const { help, version, verbose, config, configError: usageError, patterns } = parseArgs(process.argv.slice(2));
 
   if (help) {
     console.log(getHelpText());
@@ -59,6 +60,19 @@ async function main(): Promise<void> {
   if (version) {
     console.log(packageVersion);
     return;
+  }
+  if (usageError) {
+    console.error(`tailwind-a11y: ${usageError}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const { palette, spacing, configError } = resolveTheme({
+    rootDir: process.cwd(),
+    configPath: config ? resolve(process.cwd(), config) : null,
+  });
+  if (configError) {
+    console.warn(`tailwind-a11y: ${configError}`);
   }
 
   const globPatterns = patterns.length > 0 ? patterns : ["**/*.{jsx,tsx}"];
@@ -83,16 +97,16 @@ async function main(): Promise<void> {
       const contrastChecks = extractChecks(code, file);
 
       violations.push(
-        ...checkContrast(contrastChecks),
-        ...checkTouchTargets(extractTouchTargetChecks(code, file)),
+        ...checkContrast(contrastChecks, palette),
+        ...checkTouchTargets(extractTouchTargetChecks(code, file, spacing)),
         ...checkFocusIndicators(extractFocusIndicatorChecks(code, file))
       );
 
       if (verbose) {
         skips.push(
           ...extractContrastSkips(code, file),
-          ...checkContrastValueSkips(contrastChecks),
-          ...extractTouchTargetSkips(code, file)
+          ...checkContrastValueSkips(contrastChecks, palette),
+          ...extractTouchTargetSkips(code, file, spacing)
         );
       }
     } catch (err) {
