@@ -1,0 +1,33 @@
+{
+  "name": "github-action-tailwind-a11y",
+  "version": "0.1.0",
+  "description": "GitHub Action that reports WCAG accessibility violations in Tailwind CSS class combinations as inline PR annotations.",
+  "private": true,
+  "license": "MIT",
+  "author": "chamroro",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chamroro/tailwind-a11y.git",
+    "directory": "packages/github-action-tailwind-a11y"
+  },
+  "bugs": {
+    "url": "https://github.com/chamroro/tailwind-a11y/issues"
+  },
+  "homepage": "https://github.com/chamroro/tailwind-a11y/tree/main/packages/github-action-tailwind-a11y#readme",
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "tailwind-a11y": "^0.5.0",
+    "fast-glob": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.28.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.1.0"
+  }
+}

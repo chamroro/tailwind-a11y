@@ -77,7 +77,14 @@ function bustRequireCache(require: NodeJS.Require, mod: NodeJS.Module, seen: Set
 // spacing returns {}, which callers must not treat as an error.
 export function loadCustomTheme(configPath: string): RawCustomTheme | null {
   try {
-    const require = createRequire(import.meta.url);
+    // createRequire is anchored to the config file itself, NOT import.meta.url:
+    // esbuild's CJS output (the VS Code and GitHub Action bundles) rewrites
+    // import.meta to an empty object, so createRequire(import.meta.url) throws
+    // inside a bundle -- and this function's own try/catch would swallow that
+    // into a silent "no config found" fallback. configPath is documented as
+    // absolute, which is exactly what createRequire needs as an anchor, and it
+    // also makes relative require()s inside the config resolve correctly.
+    const require = createRequire(configPath);
     const resolved = require.resolve(configPath);
     const cached = require.cache[resolved];
     if (cached) bustRequireCache(require, cached, new Set());

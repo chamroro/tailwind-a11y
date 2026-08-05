@@ -2,7 +2,7 @@
   "name": "vscode-tailwind-a11y",
   "displayName": "Tailwind a11y",
   "description": "Static accessibility analysis for Tailwind CSS projects 🩵",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "private": true,
   "icon": "icon.png",
   "publisher": "HaeunKim",

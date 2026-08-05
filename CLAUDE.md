@@ -1,6 +1,6 @@
 # tailwind-a11y (monorepo root)
 
-npm workspaces monorepo with three packages. Per-package conventions, scope boundaries,
+npm workspaces monorepo with four packages. Per-package conventions, scope boundaries,
 and architecture live in each package's own `CLAUDE.md` — this file covers only
 monorepo-level rules.
 
@@ -9,10 +9,13 @@ packages/
   tailwind-a11y/                  the engine + CLI — see packages/tailwind-a11y/CLAUDE.md
   eslint-plugin-tailwind-a11y/    thin ESLint adapter over the engine
   vscode-tailwind-a11y/           thin VS Code adapter over the engine (live diagnostics)
+  github-action-tailwind-a11y/    thin GitHub Action adapter (inline PR annotations);
+                                   its manifest is the root-level action.yml so consumers
+                                   can write `uses: chamroro/tailwind-a11y@v0`
 ```
 
-All three adapters call the engine's `extract*`/`check*` functions directly —
-none of them reimplement detection logic. Adding a fourth adapter (or a
+All adapters call the engine's `extract*`/`check*` functions directly —
+none of them reimplement detection logic. Adding another adapter (or a
 fourth check) should follow the same pattern.
 
 ## Rules specific to the monorepo layout
@@ -49,7 +52,38 @@ fourth check) should follow the same pattern.
   `vscode-tailwind-a11y` bundles the engine into a static `.vsix` at build time, there is
   no dependency resolution happening on the end user's machine — a bug fix to the engine
   is frozen out of every Marketplace install until the extension itself is rebuilt and
-  republished with a bumped version.
+  republished with a bumped version. The same applies to `github-action-tailwind-a11y`
+  (also a bundle — see below).
+- **`packages/github-action-tailwind-a11y/dist/index.js` is a COMMITTED build
+  artifact** — the only dist in this repo that is (`.gitignore` re-includes that one
+  directory). GitHub runs a JS action straight from the repo tree at a git ref with no
+  npm install, so the bundle IS the release artifact; there is no publish step to force
+  a rebuild. After any engine change, rebuild and commit it
+  (`npm run build -w tailwind-a11y && npm run build -w github-action-tailwind-a11y`).
+  `.github/workflows/verify-action-bundle.yml` enforces this on every PR and push to
+  main by rebuilding and failing on `git diff` (deliberately no paths filter — a
+  lockfile-only bump changes bundle bytes without touching any filterable path). The
+  bundle build keeps `minify: false, sourcemap: false` so rebuilds are reproducible
+  given the lockfile-pinned esbuild.
+- **Bundled adapters must not rely on `import.meta`** — esbuild's CJS output rewrites
+  `import.meta` to an empty object, so e.g. `createRequire(import.meta.url)` throws
+  inside a bundle (and if wrapped in try/catch, degrades silently — this shipped as a
+  real bug in vscode-tailwind-a11y 0.5.0, where custom-theme detection silently never
+  worked). The engine's `loadCustomTheme` anchors `createRequire` to the config path
+  itself instead; a bundling regression test in `loadCustomTheme.test.ts` builds a real
+  CJS bundle and runs it.
+- **Tag namespaces**: bare `vX.Y.Z` tags are the engine's releases. The GitHub Action
+  releases via a floating `v0` tag (what consumers pin) plus an immutable
+  `action-vX.Y.Z` tag, both handled by publish.yml's `release-action` job (gated
+  on the action package's own version bump, like every other package). Never tag an
+  action release as bare `vX.Y.Z`. Unlike `v0` (deliberately force-moved every
+  release), `action-vX.Y.Z` is pushed *without* `-f` and the job fails first if that
+  tag already exists on origin — npm/vsce reject a duplicate version automatically,
+  but git has no such built-in check, so this job does it explicitly rather than
+  letting an "immutable" tag silently move.
+- **Why the Action is a bundled JS action, not a composite running `npx tailwind-a11y`**:
+  a composite gets no structured violation objects (so no inline annotations, the whole
+  point) and pays npm-install latency per CI run.
 - **`.github/workflows/publish.yml` auto-publishes on push to `main`, gated per-package
   by whether that package's `version` field actually changed in the push.** A version
   bump landing via a merged PR is what triggers a real publish — don't bump a version

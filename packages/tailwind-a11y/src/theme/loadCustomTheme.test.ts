@@ -141,6 +141,30 @@ describe("loadCustomTheme", () => {
     writeFileSync(colorsPath, `module.exports = { brand: { 500: "#222222" } };`);
     expect(loadCustomTheme(configPath)).toEqual({ colors: { brand: { "500": "#222222" } } });
   });
+
+  it("still works when the engine is esbuild-bundled to CJS (regression: import.meta rewritten to {})", async () => {
+    // esbuild's CJS output (the VS Code extension and GitHub Action bundles)
+    // rewrites import.meta to an empty object -- createRequire(import.meta.url)
+    // throws inside such a bundle, and this function's own try/catch would
+    // swallow that into a silent "no config found" fallback (custom themes
+    // would silently never load in any bundled adapter). Reproduce the real
+    // bundling context: bundle this module to CJS, run it, load a config.
+    const { build } = await import("esbuild");
+    const entryPath = join(dir, "entry.js");
+    const bundlePath = join(dir, "bundle.cjs");
+    const configPath = join(dir, "tailwind.config.js");
+    writeFileSync(configPath, `module.exports = { theme: { extend: { colors: { brand: { 500: "#123456" } } } } };`);
+    writeFileSync(
+      entryPath,
+      `import { loadCustomTheme } from "${join(import.meta.dirname, "loadCustomTheme.ts").split("\\").join("/")}";
+       console.log(JSON.stringify(loadCustomTheme(${JSON.stringify(configPath)})));`
+    );
+    await build({ entryPoints: [entryPath], bundle: true, outfile: bundlePath, platform: "node", format: "cjs" });
+
+    const { execFileSync } = await import("node:child_process");
+    const output = execFileSync(process.execPath, [bundlePath], { encoding: "utf8" }).trim();
+    expect(JSON.parse(output)).toEqual({ colors: { brand: { "500": "#123456" } } });
+  });
 });
 
 describe("mergePalette", () => {

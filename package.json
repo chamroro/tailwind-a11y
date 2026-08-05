@@ -12,7 +12,8 @@
   "workspaces": [
     "packages/tailwind-a11y",
     "packages/eslint-plugin-tailwind-a11y",
-    "packages/vscode-tailwind-a11y"
+    "packages/vscode-tailwind-a11y",
+    "packages/github-action-tailwind-a11y"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",

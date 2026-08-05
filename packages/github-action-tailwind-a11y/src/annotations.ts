@@ -1,0 +1,43 @@
+import type { ContrastViolation, TouchTargetViolation, FocusIndicatorViolation } from "tailwind-a11y";
+
+export type AnyViolation = ContrastViolation | TouchTargetViolation | FocusIndicatorViolation;
+
+// GitHub renders roughly 10 annotations per type per step (and ~50 per job) --
+// undocumented, observed limits. Correctness never rides on annotations:
+// every violation is also printed as a plain log line and counted toward the
+// exit code regardless of how many annotations GitHub actually renders.
+export const MAX_ANNOTATIONS = 10;
+
+// Workflow-command escaping per the runner's own toCommandValue rules.
+// Message data escapes %, \r, \n; property values (file=, title=) must
+// additionally escape : and , since those delimit the property list.
+export function escapeData(value: string): string {
+  return value.replaceAll("%", "%25").replaceAll("\r", "%0D").replaceAll("\n", "%0A");
+}
+
+export function escapeProperty(value: string): string {
+  return escapeData(value).replaceAll(":", "%3A").replaceAll(",", "%2C");
+}
+
+// Same wording as cli.ts's formatViolation minus the leading "line:" prefix
+// (the annotation itself carries file/line). Duplicated rather than exported
+// from the engine, following the explicit format.ts precedent in the vscode
+// adapter.
+export function formatViolation(v: AnyViolation): string {
+  switch (v.type) {
+    case "contrast": {
+      const base = `${v.textClass} on ${v.bgClass} — ratio ${v.ratio.toFixed(2)}, needs ${v.required} (${v.level})`;
+      return v.suggestion ? `${base}; try ${v.suggestion} (${v.suggestedRatio!.toFixed(2)})` : base;
+    }
+    case "touch-target":
+      return `<${v.tagName}> is ${v.widthPx}×${v.heightPx}px (${v.widthClass} ${v.heightClass}) — WCAG 2.5.8 requires >= 24×24px`;
+    case "focus-indicator":
+      return `<${v.tagName}> removes the focus outline (${v.removalClass}) with no visible replacement (focus:ring-*/border-*/shadow-*/bg-*/outline-*)`;
+  }
+}
+
+// `file` must be relative to the consumer repo root, forward slashes, no
+// leading slash -- GitHub silently fails to attach the annotation otherwise.
+export function toAnnotationCommand(v: AnyViolation): string {
+  return `::error file=${escapeProperty(v.file)},line=${v.line},title=${escapeProperty("tailwind-a11y")}::${escapeData(formatViolation(v))}`;
+}

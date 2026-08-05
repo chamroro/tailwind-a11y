@@ -1,0 +1,35 @@
+name: Verify action bundle
+
+# The GitHub Action's dist/index.js is a COMMITTED build artifact (GitHub runs
+# a JS action straight from the repo tree, no npm install) -- so a stale bundle
+# silently ships old detection logic with no publish step to catch it. This
+# check rebuilds the bundle from source and fails if the committed copy
+# differs. Deliberately NO paths filter: a lockfile-only bump (e.g. esbuild or
+# @babel/parser) changes the bundle bytes without touching any path a filter
+# would name.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run build -w tailwind-a11y
+      - run: npm run build -w github-action-tailwind-a11y
+      - name: Committed bundle must match a fresh build
+        run: |
+          if ! git diff --exit-code -- packages/github-action-tailwind-a11y/dist action.yml; then
+            echo ""
+            echo "ERROR: packages/github-action-tailwind-a11y/dist is stale."
+            echo "Rebuild and commit it:"
+            echo "  npm run build -w tailwind-a11y && npm run build -w github-action-tailwind-a11y"
+            echo "  git add packages/github-action-tailwind-a11y/dist && git commit"
+            exit 1
+          fi
