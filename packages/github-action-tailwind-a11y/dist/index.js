@@ -49171,7 +49171,7 @@ function getStaticClassName(attributes) {
 
 // ../tailwind-a11y/dist/parser/extractClasses.js
 var COLOR_TOKEN = /^\[(#[0-9a-fA-F]{3,8})\](\/\d{1,3})?$|^[a-z]+-\d{2,3}(\/\d{1,3})?$|^(white|black|transparent|current|inherit)(\/\d{1,3})?$/;
-var NON_COLOR_SCALE_NAMES = /* @__PURE__ */ new Set(["opacity"]);
+var NON_COLOR_SCALE_NAMES = /* @__PURE__ */ new Set(["opacity", "linear", "conic"]);
 function lastColorToken(className, prefix) {
   let found = null;
   for (const raw of className.split(/\s+/).filter(Boolean)) {
@@ -49824,12 +49824,48 @@ function extractFocusIndicatorChecks(code, filePath) {
 var REMOVAL_BASE = "outline-none";
 var DEGENERATE_BASES = /* @__PURE__ */ new Set(["outline-none", "ring-0", "border-0", "shadow-none", "bg-transparent"]);
 var MODIFIER_ONLY = /^(bg|border|ring)-opacity-\d{1,3}$|^(ring|outline)-offset-\d{1,3}$|^ring-inset$/;
+var NON_VISUAL_BASES = /* @__PURE__ */ new Set([
+  "bg-fixed",
+  "bg-local",
+  "bg-scroll",
+  "bg-repeat",
+  "bg-no-repeat",
+  "bg-repeat-x",
+  "bg-repeat-y",
+  "bg-repeat-round",
+  "bg-repeat-space",
+  "bg-auto",
+  "bg-cover",
+  "bg-contain",
+  "bg-clip-border",
+  "bg-clip-padding",
+  "bg-clip-content",
+  "bg-clip-text",
+  "bg-origin-border",
+  "bg-origin-padding",
+  "bg-origin-content",
+  "bg-none",
+  "bg-bottom",
+  "bg-center",
+  "bg-left",
+  "bg-left-bottom",
+  "bg-left-top",
+  "bg-right",
+  "bg-right-bottom",
+  "bg-right-top",
+  "bg-top",
+  "border-collapse",
+  "border-separate"
+]);
+var NON_VISUAL_PATTERN = /^bg-blend-/;
 function baseUtility(raw) {
   return raw.slice(raw.lastIndexOf(":") + 1);
 }
 function isReplacement(raw) {
   const base = baseUtility(raw);
   if (DEGENERATE_BASES.has(base) || MODIFIER_ONLY.test(base))
+    return false;
+  if (NON_VISUAL_BASES.has(base) || NON_VISUAL_PATTERN.test(base))
     return false;
   return /^(ring|border|shadow|bg|outline)(-|$)/.test(base);
 }

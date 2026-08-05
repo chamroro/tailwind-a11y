@@ -95,4 +95,15 @@ describe("extractChecks", () => {
       { file: "fake.tsx", line: 1, textColorClass: "text-[#eeeeee]/40", bgColorClass: "bg-gray-800", bgSource: "self" },
     ]);
   });
+
+  it.each(["bg-linear-45", "bg-conic-180"])(
+    "does not let a trailing gradient-angle utility %s overwrite the real color match (regression)",
+    (decoy) => {
+      const code = `const C = () => <p className="text-gray-400 bg-red-500 ${decoy}">x</p>;`;
+      const checks = extractChecks(code, "fake.tsx");
+      expect(checks).toEqual([
+        { file: "fake.tsx", line: 1, textColorClass: "text-gray-400", bgColorClass: "bg-red-500", bgSource: "self" },
+      ]);
+    }
+  );
 });
