@@ -45,9 +45,9 @@ found (configurable below).
 
 - `node_modules`, `dist`, `build`, and `.git` directories are always excluded
   from scanning.
-- GitHub renders roughly 10 inline annotations per step — beyond that, the
-  full list is still in the job log and the job summary table, and the exit
-  code always reflects every violation found.
+- GitHub renders roughly 10 inline annotations per type per step (and ~50 per
+  job) — beyond that, the full list is still in the job log and the job
+  summary table, and the exit code always reflects every violation found.
 - Pin a commit SHA instead of `@v0` if you want fully immutable behavior:
   `uses: chamroro/tailwind-a11y@<sha>`.
 - Checks and known limitations are the engine's:

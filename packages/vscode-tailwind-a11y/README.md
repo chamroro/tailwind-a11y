@@ -1,9 +1,10 @@
 # Tailwind a11y
 
 Live WCAG diagnostics for Tailwind CSS, in the editor — the same three checks as
-[`tailwind-a11y`](https://github.com/chamroro/tailwind-a11y/tree/main/packages/tailwind-a11y)
-and its [ESLint plugin](https://github.com/chamroro/tailwind-a11y/tree/main/packages/eslint-plugin-tailwind-a11y),
-powered by the same engine. Results never disagree between them — no detection logic is
+[`tailwind-a11y`](https://github.com/chamroro/tailwind-a11y/tree/main/packages/tailwind-a11y),
+its [ESLint plugin](https://github.com/chamroro/tailwind-a11y/tree/main/packages/eslint-plugin-tailwind-a11y),
+and its [GitHub Action](https://github.com/chamroro/tailwind-a11y/tree/main/packages/github-action-tailwind-a11y),
+all powered by the same engine. Results never disagree between them — no detection logic is
 reimplemented here.
 
 ## What it shows
