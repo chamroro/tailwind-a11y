@@ -26,7 +26,7 @@ fourth check) should follow the same pattern.
   from the engine's build output, so that order fails. When adding a package, append it
   in dependency order.
 - **`eslint-plugin-tailwind-a11y`'s dependency on `tailwind-a11y` is a plain semver range
-  (`^0.1.0`), not a special workspace protocol** — npm has no `workspace:` protocol.
+  (`^0.6.0`), not a special workspace protocol** — npm has no `workspace:` protocol.
   npm resolves it to the local workspace symlink only while the range is satisfied by
   the engine's actual `version`. Bump both together; `npm run check:link` at the root
   guards against this drifting silently (a version bump that breaks the range makes npm

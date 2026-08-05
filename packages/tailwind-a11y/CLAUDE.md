@@ -4,9 +4,9 @@
 added. Later, the GitHub repo itself was also renamed to `tailwind-a11y` and
 restructured as an npm workspaces monorepo — this package now lives at
 `packages/tailwind-a11y/` alongside `packages/eslint-plugin-tailwind-a11y/`.
-See the monorepo root `CLAUDE.md` for workspace-level conventions. Not yet
-published to npm, so all of this was free pre-launch churn with no
-back-compat concerns.)
+See the monorepo root `CLAUDE.md` for workspace-level conventions. Published
+to npm since 0.1.0, so changes here now carry real back-compat weight for
+published consumers, not free pre-launch churn.)
 
 ## What this is
 

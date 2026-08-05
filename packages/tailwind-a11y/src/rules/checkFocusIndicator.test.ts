@@ -69,6 +69,46 @@ describe("checkFocusIndicators", () => {
     expect(violations).toHaveLength(1);
   });
 
+  it.each([
+    "focus:bg-fixed",
+    "focus:bg-local",
+    "focus:bg-scroll",
+    "focus:bg-repeat",
+    "focus:bg-no-repeat",
+    "focus:bg-repeat-x",
+    "focus:bg-repeat-y",
+    "focus:bg-repeat-round",
+    "focus:bg-repeat-space",
+    "focus:bg-auto",
+    "focus:bg-cover",
+    "focus:bg-contain",
+    "focus:bg-clip-border",
+    "focus:bg-clip-padding",
+    "focus:bg-clip-content",
+    "focus:bg-clip-text",
+    "focus:bg-origin-border",
+    "focus:bg-origin-padding",
+    "focus:bg-origin-content",
+    "focus:bg-none",
+    "focus:bg-bottom",
+    "focus:bg-center",
+    "focus:bg-left",
+    "focus:bg-left-bottom",
+    "focus:bg-left-top",
+    "focus:bg-right",
+    "focus:bg-right-bottom",
+    "focus:bg-right-top",
+    "focus:bg-top",
+    "focus:border-collapse",
+    "focus:border-separate",
+    "focus:bg-blend-multiply",
+  ])("still flags when the only 'replacement' is a non-visual decoy %s (regression)", (decoy) => {
+    const violations = checkFocusIndicators([
+      { file: "f.tsx", line: 1, tagName: "button", focusClasses: ["focus:outline-none", decoy] },
+    ]);
+    expect(violations).toHaveLength(1);
+  });
+
   it("still passes when a modifier accompanies a real replacement value", () => {
     const violations = checkFocusIndicators([
       {

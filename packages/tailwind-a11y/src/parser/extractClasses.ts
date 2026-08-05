@@ -25,8 +25,11 @@ const COLOR_TOKEN =
 // "word-number" shape as a color token but isn't one — without this
 // exclusion it can silently overwrite a real color match via the
 // last-token-wins rule below, making a real violation vanish (a false
-// negative, the worst failure mode for a linter).
-const NON_COLOR_SCALE_NAMES = new Set(["opacity"]);
+// negative, the worst failure mode for a linter). linear-{N}/conic-{N}
+// (Tailwind v4's bg-linear-45/bg-conic-180 gradient-angle utilities) are
+// the same failure mode: bg-linear-45 shares the word-number shape with
+// bg-red-500 and would otherwise mask it via last-token-wins.
+const NON_COLOR_SCALE_NAMES = new Set(["opacity", "linear", "conic"]);
 
 export function lastColorToken(className: string, prefix: "text" | "bg"): string | null {
   let found: string | null = null;

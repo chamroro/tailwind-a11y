@@ -2,7 +2,7 @@
   "name": "vscode-tailwind-a11y",
   "displayName": "Tailwind a11y",
   "description": "Static accessibility analysis for Tailwind CSS projects 🩵",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "private": true,
   "icon": "icon.png",
   "publisher": "HaeunKim",
@@ -48,7 +48,7 @@
     "publish:vsix": "vsce publish --no-dependencies"
   },
   "dependencies": {
-    "tailwind-a11y": "^0.5.0"
+    "tailwind-a11y": "^0.6.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

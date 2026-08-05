@@ -170,6 +170,18 @@ describe("checkContrast with a text-side opacity modifier", () => {
     expect(violations[0]).toMatchObject({ textClass: "text-white/40", bgClass: "bg-gray-800" });
     expect(violations[0].ratio).toBeCloseTo(3.63, 2);
   });
+
+  it("does not let a trailing gradient-angle utility mask a real violation end-to-end (regression)", () => {
+    // Caught in independent review: bg-linear-45 (Tailwind v4's gradient-angle
+    // utility) shared the word-number shape with a color token in
+    // extractClasses.ts's COLOR_TOKEN, so it won last-token-wins over the real
+    // bg-red-500 and the whole check silently vanished. Fixed by adding
+    // "linear"/"conic" to NON_COLOR_SCALE_NAMES.
+    const code = `const C = () => <p className="text-gray-400 bg-red-500 bg-linear-45">low contrast</p>;`;
+    const violations = checkContrast(extractChecks(code, "fake.tsx"));
+    expect(violations).toHaveLength(1);
+    expect(violations[0]).toMatchObject({ textClass: "text-gray-400", bgClass: "bg-red-500" });
+  });
 });
 
 describe("checkContrast with a custom palette", () => {
