@@ -3,9 +3,8 @@
 # packages/github-action-tailwind-a11y (see that package's README).
 name: "tailwind-a11y"
 description: >-
-  Static analysis for Tailwind CSS accessibility violations -- color contrast,
-  touch target size, and focus indicator removal -- reported as inline PR
-  annotations on the exact violating lines.
+  Catches Tailwind CSS accessibility violations (contrast, touch targets,
+  focus) as inline PR annotations.
 author: "chamroro"
 branding:
   icon: "eye"
