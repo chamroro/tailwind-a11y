@@ -25,15 +25,17 @@ npm install --save-dev tailwind-a11y
 npx tailwind-a11y                              # scans **/*.{jsx,tsx}
 npx tailwind-a11y "src/**/*.tsx"               # custom glob
 npx tailwind-a11y --verbose                    # also reports what couldn't be checked, and why
-npx tailwind-a11y --config ./tw.config.cjs     # use a specific tailwind.config instead of auto-detecting
+npx tailwind-a11y --config ./tw.config.cjs     # use a specific config instead of auto-detecting
 npx tailwind-a11y --version                    # print the installed version
 npx tailwind-a11y --help                       # usage and all options
 ```
 
-Custom `theme.extend.colors`/`theme.extend.spacing` in a `tailwind.config.js`/`.cjs`
-found in the current directory (or passed via `--config`) are read automatically, so
-colors and spacing outside Tailwind's defaults resolve too — not just the built-in
-palette.
+Custom theme colors/spacing are read automatically, so colors and spacing outside
+Tailwind's defaults resolve too — not just the built-in palette. Both config formats
+are supported: `theme.extend.colors`/`theme.extend.spacing` in a Tailwind v3
+`tailwind.config.js`/`.cjs`, and `--color-*`/`--spacing-*` custom properties in a
+Tailwind v4 CSS `@theme { ... }` block (auto-detected from common paths like
+`app/globals.css`, or passed via `--config`).
 
 ```
 src/components/Card.tsx

@@ -47,26 +47,47 @@ Tailwind-class-level sizing or focus-style analysis).
   `packages/vscode-tailwind-a11y` now exists as a third adapter over this
   engine (alongside the ESLint plugin) — it does not change this package's
   own scope, it just reuses `extractChecks`/`checkContrast` etc. directly.
-- **Custom `tailwind.config.js`/`.cjs` theme extension *is* implemented** (see
-  `theme/loadCustomTheme.ts`), but narrowly:
-  - Reads only `theme.extend.colors`/`theme.extend.spacing` — never a full
-    `theme.colors`/`theme.spacing` replacement.
-  - `.js`/`.cjs` only. No `.mjs`/`.ts` config files (no config-transpiling
-    dependency exists in this package, and none is being added just for
-    this). A `.js` config inside a `"type": "module"` project throws
-    `ERR_REQUIRE_ESM` on `require()` — caught, treated the same as "no
-    config found," not a crash.
-  - Tailwind v4's CSS-first `@theme` config is not read at all.
-  - No ancestor-directory search — only the given root dir is checked.
-    `--config` (CLI) / `settings["tailwind-a11y"].configPath` (ESLint) exist
-    as explicit overrides.
-  - Per color entry: only a plain object of hex-string shades is accepted
-    (validated with the existing `hexToRgb`). A flat string color
-    (`colors: { brand: '#3490dc' }`) or a `DEFAULT` key is skipped — no
-    class syntax (`bg-brand-DEFAULT` isn't real Tailwind) would ever resolve
-    to it.
-  - Per spacing entry: only `rem`/`px` string values are accepted (rem × 16,
-    matching `spacingScale.ts`'s own 16px-root assumption).
+- **Custom theme extension *is* implemented for both Tailwind v3 JS configs
+  and v4 CSS `@theme` configs** (see `theme/loadCustomTheme.ts` and
+  `theme/parseThemeCss.ts`), but narrowly:
+  - JS path: `tailwind.config.js`/`.cjs` only, reads only
+    `theme.extend.colors`/`theme.extend.spacing` — never a full
+    `theme.colors`/`theme.spacing` replacement. No `.mjs`/`.ts` config files
+    (no config-transpiling dependency exists in this package, and none is
+    being added just for this). A `.js` config inside a `"type": "module"`
+    project throws `ERR_REQUIRE_ESM` on `require()` — caught, treated the
+    same as "no config found," not a crash.
+  - CSS path: reads `--color-{name}-{shade}`/`--spacing-{token}` custom
+    properties out of `@theme { ... }` blocks (any modifier keyword, e.g.
+    `@theme inline { ... }`, is accepted — the declaration syntax inside is
+    identical). Auto-detection is a heuristic filename list (`app/globals.css`,
+    `src/app/globals.css`, `styles/globals.css`, `src/styles/globals.css`,
+    `src/index.css`, `globals.css` — most-specific first, since v4 has no
+    single conventional filename the way v3 has `tailwind.config.js`). Does
+    **not** follow `@import` statements to other CSS files — only `@theme`
+    blocks physically present in the loaded file are read. A bare
+    `--color-brand: #hex` (no shade suffix) or a bare `--spacing: <value>`
+    (the v4 global spacing multiplier) is skipped — same "no class syntax to
+    resolve it to" reasoning as the JS path's flat-string-color skip; the
+    multiplier specifically would need derived-value math `spacingScale.ts`'s
+    static token→px map doesn't do, a different feature.
+  - When both a JS config and an auto-detectable CSS file exist, the JS
+    config wins and the CSS file is never even checked — an existing
+    JS-config project gets zero change in resolved output.
+  - No ancestor-directory search — only the given root dir is checked (JS or
+    CSS). `--config` (CLI) / `settings["tailwind-a11y"].configPath` (ESLint) /
+    `INPUT_CONFIG` (GitHub Action) exist as explicit overrides, and accept
+    either a `.js`/`.cjs` or a `.css` path.
+  - Per color entry (both paths): only a plain hex-string value is accepted
+    (validated with the existing `hexToRgb`) — CSS `oklch()`/`rgb()`/`hsl()`/
+    `var()` etc. are skipped, same "not a hex value -- skip, don't guess"
+    precedent, even though Tailwind v4's own ecosystem leans OKLCH for brand
+    colors. A flat string color (`colors: { brand: '#3490dc' }`) or a
+    `DEFAULT` key is skipped on the JS path — no class syntax
+    (`bg-brand-DEFAULT` isn't real Tailwind) would ever resolve to it.
+  - Per spacing entry (both paths): only `rem`/`px` string values are
+    accepted (rem × 16, matching `spacingScale.ts`'s own 16px-root
+    assumption).
   - `semanticColors` (`white`/`black`/`transparent`/etc.) stays hardcoded,
     not re-themeable.
   - Running this tool now executes the target project's `tailwind.config.js`

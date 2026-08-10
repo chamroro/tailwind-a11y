@@ -9,9 +9,12 @@ export {
   resolveTheme,
   findTailwindConfig,
   loadCustomTheme,
+  findTailwindThemeCss,
+  loadThemeFromCssFile,
   mergePalette,
   mergeSpacing,
   type ResolvedTheme,
   type RawCustomTheme,
 } from "./theme/loadCustomTheme.js";
+export { parseThemeCss } from "./theme/parseThemeCss.js";
 export type { Palette, ColorScale } from "./theme/defaultPalette.js";

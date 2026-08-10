@@ -28,7 +28,7 @@ found (configurable below).
 | Input | Default | Description |
 |---|---|---|
 | `patterns` | `**/*.{jsx,tsx}` | Whitespace/newline-separated glob pattern(s) to scan |
-| `config` | auto-detect | Path to a `tailwind.config.js`/`.cjs` for custom theme colors/spacing |
+| `config` | auto-detect | Path to a `tailwind.config.js`/`.cjs` (v3) or CSS `@theme` file (v4) for custom theme colors/spacing |
 | `fail-on-violations` | `"true"` | Set `"false"` to annotate without failing the job |
 
 ```yaml

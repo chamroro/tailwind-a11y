@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   findTailwindConfig,
+  findTailwindThemeCss,
   loadCustomTheme,
+  loadThemeFromCssFile,
   mergePalette,
   mergeSpacing,
   resolveTheme,
@@ -41,6 +43,52 @@ describe("findTailwindConfig", () => {
 
   it("returns null when neither exists", () => {
     expect(findTailwindConfig(dir)).toBeNull();
+  });
+});
+
+describe("findTailwindThemeCss", () => {
+  it("finds app/globals.css", () => {
+    mkdirSync(join(dir, "app"), { recursive: true });
+    writeFileSync(join(dir, "app/globals.css"), "@theme {}");
+    expect(findTailwindThemeCss(dir)).toBe(join(dir, "app/globals.css"));
+  });
+
+  it("finds src/app/globals.css when app/globals.css is absent", () => {
+    mkdirSync(join(dir, "src/app"), { recursive: true });
+    writeFileSync(join(dir, "src/app/globals.css"), "@theme {}");
+    expect(findTailwindThemeCss(dir)).toBe(join(dir, "src/app/globals.css"));
+  });
+
+  it("finds bare globals.css only as a last resort", () => {
+    mkdirSync(join(dir, "app"), { recursive: true });
+    writeFileSync(join(dir, "app/globals.css"), "@theme {}");
+    writeFileSync(join(dir, "globals.css"), "@theme {}");
+    expect(findTailwindThemeCss(dir)).toBe(join(dir, "app/globals.css"));
+  });
+
+  it("returns null when no candidate exists", () => {
+    expect(findTailwindThemeCss(dir)).toBeNull();
+  });
+});
+
+describe("loadThemeFromCssFile", () => {
+  it("extracts @theme colors/spacing from a real file", () => {
+    const cssPath = join(dir, "globals.css");
+    writeFileSync(
+      cssPath,
+      `@theme {
+        --color-brand-500: #3490dc;
+        --spacing-18: 4.5rem;
+      }`
+    );
+    expect(loadThemeFromCssFile(cssPath)).toEqual({
+      colors: { brand: { "500": "#3490dc" } },
+      spacing: { "18": 72 },
+    });
+  });
+
+  it("returns null for a missing file", () => {
+    expect(loadThemeFromCssFile(join(dir, "nope.css"))).toBeNull();
   });
 });
 
@@ -237,6 +285,53 @@ describe("resolveTheme", () => {
 
   it("stays silent (no configError) when auto-detection finds a broken config", () => {
     writeFileSync(join(dir, "tailwind.config.js"), "throw new Error('boom');");
+    expect(resolveTheme({ rootDir: dir }).configError).toBeUndefined();
+  });
+
+  it("auto-detects and merges a Tailwind v4 CSS @theme file when no JS config exists", () => {
+    mkdirSync(join(dir, "app"), { recursive: true });
+    writeFileSync(
+      join(dir, "app/globals.css"),
+      `@theme {
+        --color-brand-500: #3490dc;
+        --spacing-18: 4.5rem;
+      }`
+    );
+    const result = resolveTheme({ rootDir: dir });
+    expect(result.palette.brand).toEqual({ "500": "#3490dc" });
+    expect(result.spacing["18"]).toBe(72);
+    expect(result.configError).toBeUndefined();
+  });
+
+  it("prefers a JS config over an auto-detected CSS file when both exist", () => {
+    writeFileSync(
+      join(dir, "tailwind.config.js"),
+      `module.exports = { theme: { extend: { colors: { brand: { 500: "#111111" } } } } };`
+    );
+    mkdirSync(join(dir, "app"), { recursive: true });
+    writeFileSync(join(dir, "app/globals.css"), `@theme { --color-brand-500: #222222; }`);
+    const result = resolveTheme({ rootDir: dir });
+    expect(result.palette.brand).toEqual({ "500": "#111111" });
+  });
+
+  it("uses an explicit .css configPath over auto-detection", () => {
+    writeFileSync(join(dir, "tailwind.config.js"), `module.exports = {};`);
+    const explicitPath = join(dir, "custom-theme.css");
+    writeFileSync(explicitPath, `@theme { --color-brand-500: #abcdef; }`);
+    const result = resolveTheme({ rootDir: dir, configPath: explicitPath });
+    expect(result.palette.brand).toEqual({ "500": "#abcdef" });
+  });
+
+  it("sets configError when an explicit .css configPath fails to load", () => {
+    const explicitPath = join(dir, "does-not-exist.css");
+    const result = resolveTheme({ rootDir: dir, configPath: explicitPath });
+    expect(result.palette).toBe(defaultPalette);
+    expect(result.configError).toContain(explicitPath);
+  });
+
+  it("stays silent (no configError) when auto-detected CSS has no usable @theme content", () => {
+    mkdirSync(join(dir, "app"), { recursive: true });
+    writeFileSync(join(dir, "app/globals.css"), `body { color: red; }`);
     expect(resolveTheme({ rootDir: dir }).configError).toBeUndefined();
   });
 });
