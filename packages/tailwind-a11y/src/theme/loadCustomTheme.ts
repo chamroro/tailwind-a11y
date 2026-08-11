@@ -1,9 +1,10 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createRequire } from "node:module";
-import { hexToRgb } from "../contrast/luminance.js";
 import { defaultPalette } from "./defaultPalette.js";
 import { spacingScale } from "./spacingScale.js";
+import { parseColorScale, parseSpacingValue } from "./themeValueParsers.js";
+import { parseThemeCss } from "./parseThemeCss.js";
 import type { Palette } from "./defaultPalette.js";
 
 const CONFIG_FILENAMES = ["tailwind.config.js", "tailwind.config.cjs"];
@@ -20,43 +21,44 @@ export function findTailwindConfig(rootDir: string): string | null {
   return null;
 }
 
+// Checked in priority order, in rootDir only (no recursive walk) -- v4 has no
+// single conventional filename the way v3 has tailwind.config.js, so this is
+// a heuristic covering common Next.js App Router / Pages Router / Vite React
+// conventions, most-specific first. `globals.css` is checked last since it's
+// the most generic name and the most likely to false-positive-match a file
+// that isn't actually the Tailwind entry point. --config (CLI) /
+// settings["tailwind-a11y"].configPath (ESLint) / INPUT_CONFIG (Action)
+// remain the escape hatch for anything else.
+const CSS_THEME_CANDIDATES = [
+  "app/globals.css",
+  "src/app/globals.css",
+  "styles/globals.css",
+  "src/styles/globals.css",
+  "src/index.css",
+  "globals.css",
+];
+
+export function findTailwindThemeCss(rootDir: string): string | null {
+  for (const rel of CSS_THEME_CANDIDATES) {
+    const candidate = join(rootDir, rel);
+    if (existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
 export interface RawCustomTheme {
   colors?: Palette;
   spacing?: Record<string, number>;
 }
 
-const SPACING_RE = /^-?[\d.]+(rem|px)$/;
-
-function parseSpacingValue(value: unknown): number | null {
-  if (typeof value !== "string") return null;
-  const match = SPACING_RE.exec(value);
-  if (!match) return null; // em/%/vw/bare number/function -- skip, don't guess
-  const num = parseFloat(value);
-  return match[1] === "rem" ? num * 16 : num; // matches spacingScale.ts's 16px-root assumption
-}
-
-// Only plain hex-shade objects are accepted (e.g. `brand: { 500: '#3490dc' }`).
-// A flat string color (`brand: '#3490dc'`) or a `DEFAULT` key is skipped
-// entirely -- there's no class syntax ("bg-brand-DEFAULT" isn't real Tailwind)
-// that would ever resolve to it, so partially supporting it would be dead code.
-function parseColorScale(value: unknown): Record<string, string> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
-  const shades: Record<string, string> = {};
-  for (const [shade, shadeValue] of Object.entries(value)) {
-    if (shade === "DEFAULT") continue; // no "bg-brand-DEFAULT" class syntax exists to resolve it
-    if (typeof shadeValue !== "string") continue;
-    if (hexToRgb(shadeValue) === null) continue; // not a hex value -- skip, don't guess
-    shades[shade] = shadeValue;
-  }
-  return Object.keys(shades).length > 0 ? shades : null;
-}
-
-// Loads a tailwind.config.js/.cjs and extracts only `theme.extend.colors` /
-// `theme.extend.spacing` -- v1 does not read a full `theme.colors`/`theme.spacing`
-// replacement, Tailwind v4's CSS-based `@theme` config, or .mjs/.ts configs (no
-// config-transpiling dependency exists in this package). `configPath` must be
-// an absolute path (require() resolves relative paths against this module's
-// own location, not the caller's cwd).
+// Loads a Tailwind v3-style tailwind.config.js/.cjs and extracts only
+// `theme.extend.colors`/`theme.extend.spacing` -- v1 does not read a full
+// `theme.colors`/`theme.spacing` replacement, or .mjs/.ts configs (no
+// config-transpiling dependency exists in this package). Tailwind v4's
+// CSS-based `@theme` config is a separate format entirely, handled by
+// loadThemeFromCssFile()/parseThemeCss() below, not by this function.
+// `configPath` must be an absolute path (require() resolves relative paths
+// against this module's own location, not the caller's cwd).
 //
 // Node's require() cache is busted before loading -- recursively, for the
 // config file *and* everything it required (e.g. a config that factors
@@ -117,6 +119,19 @@ export function loadCustomTheme(configPath: string): RawCustomTheme | null {
   }
 }
 
+// Loads a Tailwind v4 CSS file and extracts @theme colors/spacing via
+// parseThemeCss(). Returns null only when the file itself couldn't be read
+// (missing, permission error) -- a file that reads fine but has no @theme
+// block (or nothing recognized inside one) returns {}, same contract as
+// loadCustomTheme. `cssPath` must be an absolute path.
+export function loadThemeFromCssFile(cssPath: string): RawCustomTheme | null {
+  try {
+    return parseThemeCss(readFileSync(cssPath, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
 // New scale names are added wholesale; extending an existing scale merges
 // shade keys in without dropping the scale's other (default) shades.
 export function mergePalette(base: Palette, extend?: Palette): Palette {
@@ -145,16 +160,26 @@ export interface ResolvedTheme {
 // --config flag or ESLint settings) and failed to load -- auto-detected
 // absence stays silent, matching the "avoid confusing noise in an unrelated
 // linter run" precedent already in the ESLint plugin's index.ts. `rootDir`
-// and `configPath` (if given) must be absolute paths.
+// and `configPath` (if given) must be absolute paths. `configPath` may point
+// at either a .js/.cjs config or a .css file with an @theme block --
+// dispatched by extension below.
+//
+// Auto-detection tries the JS config first, CSS second: an existing project
+// with a tailwind.config.js gets zero change in resolved output even if it
+// also happens to have an unrelated @theme block (e.g. mid v3-to-v4
+// migration, or a leftover v3 config alongside a partially-adopted v4 CSS
+// file).
 export function resolveTheme(opts: { rootDir: string | null; configPath?: string | null }): ResolvedTheme {
   const explicitPath = opts.configPath ?? null;
-  const configPath = explicitPath ?? (opts.rootDir ? findTailwindConfig(opts.rootDir) : null);
+  const configPath =
+    explicitPath ??
+    (opts.rootDir ? (findTailwindConfig(opts.rootDir) ?? findTailwindThemeCss(opts.rootDir)) : null);
 
   if (!configPath) {
     return { palette: defaultPalette, spacing: spacingScale };
   }
 
-  const custom = loadCustomTheme(configPath);
+  const custom = configPath.endsWith(".css") ? loadThemeFromCssFile(configPath) : loadCustomTheme(configPath);
   if (custom === null) {
     return explicitPath
       ? {

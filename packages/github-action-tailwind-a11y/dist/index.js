@@ -49893,15 +49893,8 @@ function checkFocusIndicators(checks) {
 var import_node_fs = require("node:fs");
 var import_node_path = require("node:path");
 var import_node_module = require("node:module");
-var CONFIG_FILENAMES = ["tailwind.config.js", "tailwind.config.cjs"];
-function findTailwindConfig(rootDir) {
-  for (const filename of CONFIG_FILENAMES) {
-    const candidate = (0, import_node_path.join)(rootDir, filename);
-    if ((0, import_node_fs.existsSync)(candidate))
-      return candidate;
-  }
-  return null;
-}
+
+// ../tailwind-a11y/dist/theme/themeValueParsers.js
 var SPACING_RE = /^-?[\d.]+(rem|px)$/;
 function parseSpacingValue(value) {
   if (typeof value !== "string")
@@ -49926,6 +49919,115 @@ function parseColorScale(value) {
     shades[shade] = shadeValue;
   }
   return Object.keys(shades).length > 0 ? shades : null;
+}
+
+// ../tailwind-a11y/dist/theme/parseThemeCss.js
+function maskStringLiterals(css) {
+  return css.replace(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g, (m) => " ".repeat(m.length));
+}
+function stripComments(css) {
+  return css.replace(/\/\*[\s\S]*?\*\//g, "");
+}
+function extractThemeBlocks(css) {
+  const blocks = [];
+  const OPEN_RE = /@theme\b[^{]*\{/g;
+  let match;
+  while (match = OPEN_RE.exec(css)) {
+    const start = match.index + match[0].length;
+    let depth = 1;
+    let i = start;
+    for (; i < css.length && depth > 0; i++) {
+      if (css[i] === "{")
+        depth++;
+      else if (css[i] === "}")
+        depth--;
+    }
+    if (depth !== 0)
+      break;
+    blocks.push(css.slice(start, i - 1));
+    OPEN_RE.lastIndex = i;
+  }
+  return blocks;
+}
+function extractDeclarations(block) {
+  const decls = [];
+  for (const raw of block.split(";")) {
+    const trimmed = raw.trim();
+    if (!trimmed)
+      continue;
+    const colon = trimmed.indexOf(":");
+    if (colon === -1)
+      continue;
+    const prop = trimmed.slice(0, colon).trim();
+    if (!prop.startsWith("--"))
+      continue;
+    decls.push([prop, trimmed.slice(colon + 1).trim()]);
+  }
+  return decls;
+}
+var COLOR_PROP_RE = /^--color-(.+)-(\d+)$/;
+var SPACING_PROP_RE = /^--spacing-([\w-]+)$/;
+function parseThemeCss(cssText) {
+  const colorBuckets = {};
+  const spacingRaw = {};
+  for (const block of extractThemeBlocks(stripComments(maskStringLiterals(cssText)))) {
+    for (const [prop, value] of extractDeclarations(block)) {
+      const colorMatch = COLOR_PROP_RE.exec(prop);
+      if (colorMatch) {
+        const [, scale, shade] = colorMatch;
+        (colorBuckets[scale] ??= {})[shade] = value;
+        continue;
+      }
+      const spacingMatch = SPACING_PROP_RE.exec(prop);
+      if (spacingMatch)
+        spacingRaw[spacingMatch[1]] = value;
+    }
+  }
+  const result = {};
+  const colors = {};
+  for (const [scale, shades] of Object.entries(colorBuckets)) {
+    const parsed = parseColorScale(shades);
+    if (parsed)
+      colors[scale] = parsed;
+  }
+  if (Object.keys(colors).length > 0)
+    result.colors = colors;
+  const spacing = {};
+  for (const [token, value] of Object.entries(spacingRaw)) {
+    const px = parseSpacingValue(value);
+    if (px !== null)
+      spacing[token] = px;
+  }
+  if (Object.keys(spacing).length > 0)
+    result.spacing = spacing;
+  return result;
+}
+
+// ../tailwind-a11y/dist/theme/loadCustomTheme.js
+var CONFIG_FILENAMES = ["tailwind.config.js", "tailwind.config.cjs"];
+function findTailwindConfig(rootDir) {
+  for (const filename of CONFIG_FILENAMES) {
+    const candidate = (0, import_node_path.join)(rootDir, filename);
+    if ((0, import_node_fs.existsSync)(candidate))
+      return candidate;
+  }
+  return null;
+}
+var CSS_THEME_CANDIDATES = [
+  "app/globals.css",
+  "src/app/globals.css",
+  "styles/globals.css",
+  "src/styles/globals.css",
+  "src/index.css",
+  "globals.css"
+];
+function findTailwindThemeCss(rootDir) {
+  for (const rel of CSS_THEME_CANDIDATES) {
+    const candidate = (0, import_node_path.join)(rootDir, rel);
+    if ((0, import_node_fs.existsSync)(candidate))
+      return candidate;
+  }
+  return null;
 }
 function bustRequireCache(require2, mod, seen) {
   if (seen.has(mod.id))
@@ -49970,6 +50072,13 @@ function loadCustomTheme(configPath) {
     return null;
   }
 }
+function loadThemeFromCssFile(cssPath) {
+  try {
+    return parseThemeCss((0, import_node_fs.readFileSync)(cssPath, "utf8"));
+  } catch {
+    return null;
+  }
+}
 function mergePalette(base, extend) {
   if (!extend)
     return base;
@@ -49984,11 +50093,11 @@ function mergeSpacing(base, extend) {
 }
 function resolveTheme(opts) {
   const explicitPath = opts.configPath ?? null;
-  const configPath = explicitPath ?? (opts.rootDir ? findTailwindConfig(opts.rootDir) : null);
+  const configPath = explicitPath ?? (opts.rootDir ? findTailwindConfig(opts.rootDir) ?? findTailwindThemeCss(opts.rootDir) : null);
   if (!configPath) {
     return { palette: defaultPalette, spacing: spacingScale };
   }
-  const custom = loadCustomTheme(configPath);
+  const custom = configPath.endsWith(".css") ? loadThemeFromCssFile(configPath) : loadCustomTheme(configPath);
   if (custom === null) {
     return explicitPath ? {
       palette: defaultPalette,

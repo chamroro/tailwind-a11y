@@ -19,9 +19,10 @@ Options:
   -v, --verbose      Also report what couldn't be checked, and why
   -V, --version      Print the version number
   -h, --help         Print this help message
-      --config <path>  Path to a tailwind.config.js/.cjs to read custom
-                        theme colors/spacing from (default: auto-detected
-                        in the current directory)
+      --config <path>  Path to a tailwind.config.js/.cjs (v3) or a CSS
+                        @theme file like app/globals.css (v4) to read
+                        custom theme colors/spacing from (default:
+                        auto-detected in the current directory)
 
 Examples:
   tailwind-a11y                    Scan **/*.{jsx,tsx} from the current directory
