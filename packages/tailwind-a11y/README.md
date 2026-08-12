@@ -78,6 +78,7 @@ When a case can't be resolved with confidence, it's skipped rather than guessed:
 
 - [`eslint-plugin-tailwind-a11y`](https://github.com/chamroro/tailwind-a11y/tree/main/packages/eslint-plugin-tailwind-a11y) — same checks as ESLint rules
 - [`vscode-tailwind-a11y`](https://github.com/chamroro/tailwind-a11y/tree/main/packages/vscode-tailwind-a11y) — same checks as live editor diagnostics
+- [`github-action-tailwind-a11y`](https://github.com/chamroro/tailwind-a11y/tree/main/packages/github-action-tailwind-a11y) — same checks as inline PR annotations
 
 ## License
 
