@@ -9,6 +9,7 @@ import {
   resolveTheme,
 } from "tailwind-a11y";
 import { formatViolation, type AnyViolation } from "./format.js";
+import { resolveConfigPathSetting } from "./resolveConfigSetting.js";
 
 const SUPPORTED_LANGUAGES = new Set(["javascriptreact", "typescriptreact"]);
 const DEBOUNCE_MS = 300;
@@ -71,9 +72,20 @@ function analyze(doc: vscode.TextDocument): vscode.Diagnostic[] {
   // Resolved fresh on every call rather than cached -- fine performance-wise
   // since edits are already 300ms-debounced, and it's what makes an edit to
   // tailwind.config.js itself actually get picked up (relies on the engine's
-  // own require-cache busting in loadCustomTheme, not any caching here).
+  // own require-cache busting in loadCustomTheme, not any caching here). The
+  // same freshness covers the configPath setting too -- no
+  // onDidChangeConfiguration listener needed, the next debounced/save-
+  // triggered refresh() just picks up a changed setting on its own.
   const rootDir = vscode.workspace.getWorkspaceFolder(doc.uri)?.uri.fsPath ?? null;
-  const { palette, spacing } = resolveTheme({ rootDir });
+  const rawConfigPath = vscode.workspace.getConfiguration("tailwind-a11y", doc.uri).get<string>("configPath");
+  const configPath = resolveConfigPathSetting(rawConfigPath, rootDir);
+  const { palette, spacing, configError } = resolveTheme({ rootDir, configPath });
+  // configError only ever fires for an explicit configPath that failed to
+  // load -- auto-detection failure stays silent by design (see
+  // resolveTheme's own doc comment). A toast here would fire on every
+  // 300ms-debounced edit while the setting is broken; the Extension Host
+  // log is the same low-key channel the catch block below already uses.
+  if (configError) console.error(`tailwind-a11y: ${configError}`);
 
   const violations: AnyViolation[] = [
     ...checkContrast(extractChecks(text, file), palette),

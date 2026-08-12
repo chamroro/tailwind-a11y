@@ -2,7 +2,7 @@
   "name": "vscode-tailwind-a11y",
   "displayName": "Tailwind a11y",
   "description": "Static accessibility analysis for Tailwind CSS projects 🩵",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
   "icon": "icon.png",
   "publisher": "HaeunKim",
@@ -27,7 +27,19 @@
     "onLanguage:javascriptreact",
     "onLanguage:typescriptreact"
   ],
-  "contributes": {},
+  "contributes": {
+    "configuration": {
+      "title": "Tailwind a11y",
+      "properties": {
+        "tailwind-a11y.configPath": {
+          "type": "string",
+          "default": "",
+          "scope": "resource",
+          "description": "Path to a tailwind.config.js/.cjs (v3) or a CSS @theme file like app/globals.css (v4), relative to the workspace folder. Overrides auto-detection."
+        }
+      }
+    }
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/chamroro/tailwind-a11y.git",
