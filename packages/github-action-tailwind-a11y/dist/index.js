@@ -49822,7 +49822,15 @@ function extractFocusIndicatorChecks(code, filePath) {
 
 // ../tailwind-a11y/dist/rules/checkFocusIndicator.js
 var REMOVAL_BASE = "outline-none";
-var DEGENERATE_BASES = /* @__PURE__ */ new Set(["outline-none", "ring-0", "border-0", "shadow-none", "bg-transparent"]);
+var DEGENERATE_BASES = /* @__PURE__ */ new Set([
+  "outline-none",
+  "ring-0",
+  "border-0",
+  "shadow-none",
+  "bg-transparent",
+  "border-none",
+  "border-hidden"
+]);
 var MODIFIER_ONLY = /^(bg|border|ring)-opacity-\d{1,3}$|^(ring|outline)-offset-\d{1,3}$|^ring-inset$/;
 var NON_VISUAL_BASES = /* @__PURE__ */ new Set([
   "bg-fixed",
@@ -49857,7 +49865,16 @@ var NON_VISUAL_BASES = /* @__PURE__ */ new Set([
   "border-collapse",
   "border-separate"
 ]);
-var NON_VISUAL_PATTERN = /^bg-blend-/;
+var NON_VISUAL_PATTERN = /^bg-blend-|^border-spacing(-[xy])?-/;
+function isColorOnlyShadowOrRing(base) {
+  const shadowMatch = /^shadow-(.+)$/.exec(base);
+  if (shadowMatch && COLOR_TOKEN.test(shadowMatch[1]))
+    return true;
+  const ringMatch = /^ring-(.+)$/.exec(base);
+  if (ringMatch && COLOR_TOKEN.test(ringMatch[1]))
+    return true;
+  return false;
+}
 function baseUtility(raw) {
   return raw.slice(raw.lastIndexOf(":") + 1);
 }
@@ -49866,6 +49883,8 @@ function isReplacement(raw) {
   if (DEGENERATE_BASES.has(base) || MODIFIER_ONLY.test(base))
     return false;
   if (NON_VISUAL_BASES.has(base) || NON_VISUAL_PATTERN.test(base))
+    return false;
+  if (isColorOnlyShadowOrRing(base))
     return false;
   return /^(ring|border|shadow|bg|outline)(-|$)/.test(base);
 }
