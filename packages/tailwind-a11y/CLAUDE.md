@@ -110,6 +110,31 @@ Tailwind-class-level sizing or focus-style analysis).
 - **Focus indicator: `focus:` and `focus-visible:` are merged** for the
   removal-vs-replacement comparison, since the standard accessible pattern
   (`focus:outline-none focus-visible:ring-2`) spans both variants.
+  - `isReplacement()`'s denylist was built via a systematic, one-time audit
+    of Tailwind's real utility surface (not memory) — every candidate below
+    was verified against a real Tailwind v4 build with computed styles
+    checked in a real browser, not reasoned about abstractly:
+    `border-none`/`border-hidden` (sets border-style but preflight resets
+    border-width to 0 on every element, so no border is ever drawn, same
+    failure mode as `border-0`); `border-spacing-*`/`-x-*`/`-y-*` (a
+    table-cell-gap property with zero effect on any non-table element);
+    `shadow-{color}`/`ring-{color}` alone, e.g. `shadow-red-500` (only sets
+    the `--tw-shadow-color`/`--tw-ring-color` CSS variable — the actual
+    `box-shadow` comes from a separate *size* utility like `shadow-lg`/
+    `ring-2` that references it, so the color alone renders nothing).
+    Confirmed *not* decoys, deliberately left alone: `outline-dashed`/
+    `-dotted`/`-solid`/`-double` alone (unlike border-width, preflight does
+    not reset `outline-width`, so the browser's default ~3px applies and
+    the outline is genuinely visible) and any border-*width* utility alone,
+    e.g. `border-t-4` (border-color defaults to `currentColor`, not
+    transparent, so a width-only utility is genuinely visible).
+  - Out of scope for this and future audits of this check: arbitrary
+    variants (`[&:hover]`-style), first-party plugin utilities
+    (`@tailwindcss/forms`, `@tailwindcss/typography` — not installed or
+    processed by this engine), container queries, and `divide-*` utilities
+    (they style child elements via a `> * + *` selector, not the element
+    carrying the `focus:` class itself, so they're structurally inapplicable
+    here regardless of visibility).
 - **Contrast: opacity modifiers (`text-gray-400/50`) are resolved on the
   *text* side only**, composited against the already-resolved (fully opaque)
   background — see `resolveTextColorWithOpacity()`/`applyAlpha()` in
@@ -195,6 +220,21 @@ the focus-indicator check (`focus:ring-0`/`border-0`/`shadow-none`/
 `bg-transparent` are explicitly denylisted as degenerate non-replacements).
 **Any new class-matching logic should ask: is there a same-shape decoy token
 that could mask a real violation?** — and add a regression test for it if so.
+
+This pattern was found reactively, one instance at a time, until a
+systematic one-time audit walked the focus-indicator check's entire risk
+surface against a real Tailwind v4 build (see the "Focus indicator" bullet
+above) and found five more in one pass: `border-none`/`border-hidden`,
+`border-spacing-*`, and color-only `shadow-*`/`ring-*`. That audit also
+confirmed the *other* two checks in this file have no equivalent risk: the
+touch-target check resolves against a closed, enumerated lookup table
+(`spacingScale`) rather than a permissive regex, so there's no same-shape-
+different-meaning token possible there; the contrast check's `bg-*`
+namespace was re-walked against every real `bg-*` utility category and
+turned up nothing beyond what was already fixed (`opacity`/`linear`/
+`conic`). If a new regex/token-matching check is ever added, prefer this
+same approach — verify against the real tool's actual output, not memory —
+over waiting for bugs to surface one at a time.
 
 ## Stack
 

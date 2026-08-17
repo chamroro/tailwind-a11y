@@ -18,7 +18,11 @@ export interface ContrastCheck {
 // an extremely common real idiom, more so than the named-scale case, and
 // dropping it here would make the contrast checker's opacity support (see
 // rules/checkContrast.ts) silently inapplicable to the most common case.
-const COLOR_TOKEN =
+// Exported for reuse in checkFocusIndicator.ts, which needs the exact same
+// "does this suffix look like a color value" test to detect shadow-{color}/
+// ring-{color} decoys (see that file for why) -- one definition, not a
+// second copy that could silently drift out of sync.
+export const COLOR_TOKEN =
   /^\[(#[0-9a-fA-F]{3,8})\](\/\d{1,3})?$|^[a-z]+-\d{2,3}(\/\d{1,3})?$|^(white|black|transparent|current|inherit)(\/\d{1,3})?$/;
 
 // opacity-{N} (e.g. bg-opacity-50, text-opacity-50) matches the same

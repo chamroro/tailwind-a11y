@@ -1,4 +1,5 @@
 import type { FocusIndicatorCheck } from "../parser/extractFocusIndicators.js";
+import { COLOR_TOKEN } from "../parser/extractClasses.js";
 
 export interface FocusIndicatorViolation {
   type: "focus-indicator";
@@ -13,8 +14,15 @@ const REMOVAL_BASE = "outline-none";
 // Utilities that match the "replacement" shape but are semantically no-ops —
 // the same failure mode as bg-opacity-50 masking a real color match: a
 // same-prefix decoy that would silently hide a real violation if we only
-// checked the prefix.
-const DEGENERATE_BASES = new Set(["outline-none", "ring-0", "border-0", "shadow-none", "bg-transparent"]);
+// checked the prefix. border-none/border-hidden only set border-style, not
+// border-width -- verified against a real Tailwind v4 build that preflight
+// resets every element to `border: 0 solid`, so border-width stays 0
+// regardless of style and no border is ever drawn, same failure mode as
+// border-0.
+const DEGENERATE_BASES = new Set([
+  "outline-none", "ring-0", "border-0", "shadow-none", "bg-transparent",
+  "border-none", "border-hidden",
+]);
 
 // Modifier-only utilities (opacity/offset/inset) don't set a concrete value
 // on their own — e.g. bg-opacity-50 with no bg-* color, or ring-offset-4
@@ -45,8 +53,31 @@ const NON_VISUAL_BASES = new Set([
 
 // bg-blend-{mode} (e.g. bg-blend-multiply) sets a blend mode, not a color --
 // suffix-varying like MODIFIER_ONLY above, so pattern-matched instead of
-// enumerated.
-const NON_VISUAL_PATTERN = /^bg-blend-/;
+// enumerated. border-spacing-*/-x-*/-y-* sets the CSS border-spacing
+// property, which only affects the gap between <table> cells -- verified
+// against a real Tailwind v4 build that it has zero visual effect on any
+// non-table element (the only elements this check ever fires on), even
+// with a real numeric value applied.
+const NON_VISUAL_PATTERN = /^bg-blend-|^border-spacing(-[xy])?-/;
+
+// shadow-{color}/ring-{color} alone (e.g. shadow-red-500, ring-blue-400/50,
+// an arbitrary hex) only sets the --tw-shadow-color/--tw-ring-color CSS
+// variable -- the actual box-shadow property is set by a separate *size*
+// utility (shadow-lg, ring-2, etc.) that references that variable. Verified
+// against a real Tailwind v4 build: shadow-red-500 alone computes to
+// `box-shadow: none`; shadow-lg shadow-red-500 together produce a real,
+// colored shadow. Same underlying mechanism as MODIFIER_ONLY's opacity/
+// offset cases above, but shaped like a color token rather than a fixed
+// suffix, so it reuses COLOR_TOKEN (the exact same "is this a color value"
+// test extractClasses.ts uses) instead of a third, drifting definition of
+// what a color looks like.
+function isColorOnlyShadowOrRing(base: string): boolean {
+  const shadowMatch = /^shadow-(.+)$/.exec(base);
+  if (shadowMatch && COLOR_TOKEN.test(shadowMatch[1])) return true;
+  const ringMatch = /^ring-(.+)$/.exec(base);
+  if (ringMatch && COLOR_TOKEN.test(ringMatch[1])) return true;
+  return false;
+}
 
 function baseUtility(raw: string): string {
   return raw.slice(raw.lastIndexOf(":") + 1);
@@ -56,6 +87,7 @@ function isReplacement(raw: string): boolean {
   const base = baseUtility(raw);
   if (DEGENERATE_BASES.has(base) || MODIFIER_ONLY.test(base)) return false;
   if (NON_VISUAL_BASES.has(base) || NON_VISUAL_PATTERN.test(base)) return false;
+  if (isColorOnlyShadowOrRing(base)) return false;
   return /^(ring|border|shadow|bg|outline)(-|$)/.test(base);
 }
 
