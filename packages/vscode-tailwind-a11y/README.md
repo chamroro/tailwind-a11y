@@ -12,7 +12,7 @@ reimplemented here.
 | Check | WCAG | Detects |
 |---|---|---|
 | Contrast | 1.4.3 (AA) | Low-contrast `text-*`/`bg-*` pairs — with a suggested nearby shade |
-| Touch target | 2.5.8 (AA) | Interactive elements under 24×24px |
+| Touch target | 2.5.8 (AA) | Interactive elements under 24×24px — or 44×44px with `tailwind-a11y.strict` (2.5.5, AAA) |
 | Focus indicator | 2.4.7 (AA) | `focus:outline-none` with no visible replacement |
 
 Diagnostics appear as warnings in `.jsx`/`.tsx` files, updating on open, save, and
@@ -28,6 +28,13 @@ setting:
 
 ```json
 { "tailwind-a11y.configPath": "./app/globals.css" }
+```
+
+Set `tailwind-a11y.strict` to enforce the stricter 44×44px touch target
+minimum (WCAG 2.5.5, AAA) instead of the default 24×24px (2.5.8, AA):
+
+```json
+{ "tailwind-a11y.strict": true }
 ```
 
 ## License

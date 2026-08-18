@@ -8,7 +8,18 @@ describe("checkTouchTargets", () => {
       { file: "f.tsx", line: 1, tagName: "button", widthClass: "w-4", heightClass: "h-4", widthPx: 16, heightPx: 16 },
     ]);
     expect(violations).toEqual([
-      { type: "touch-target", file: "f.tsx", line: 1, tagName: "button", widthClass: "w-4", heightClass: "h-4", widthPx: 16, heightPx: 16 },
+      {
+        type: "touch-target",
+        file: "f.tsx",
+        line: 1,
+        tagName: "button",
+        widthClass: "w-4",
+        heightClass: "h-4",
+        widthPx: 16,
+        heightPx: 16,
+        required: 24,
+        level: "AA",
+      },
     ]);
   });
 
@@ -39,7 +50,54 @@ describe("checkTouchTargets", () => {
     ]);
     // Same wording as cli.ts's formatViolation (touch-target case).
     console.log(
-      `${v.line}: <${v.tagName}> is ${v.widthPx}×${v.heightPx}px (${v.widthClass} ${v.heightClass}) — WCAG 2.5.8 requires >= 24×24px`
+      `${v.line}: <${v.tagName}> is ${v.widthPx}×${v.heightPx}px (${v.widthClass} ${v.heightClass}) — WCAG ${v.level === "AAA" ? "2.5.5" : "2.5.8"} requires >= ${v.required}×${v.required}px`
     );
+  });
+
+  describe("strict mode (WCAG 2.5.5 AAA, 44x44)", () => {
+    it("does not flag a 40x40 target by default (passes AA's 24px minimum)", () => {
+      const violations = checkTouchTargets([
+        { file: "f.tsx", line: 1, tagName: "button", widthClass: "w-10", heightClass: "h-10", widthPx: 40, heightPx: 40 },
+      ]);
+      expect(violations).toEqual([]);
+    });
+
+    it("flags the same 40x40 target under strict mode (fails AAA's 44px minimum)", () => {
+      const violations = checkTouchTargets(
+        [{ file: "f.tsx", line: 1, tagName: "button", widthClass: "w-10", heightClass: "h-10", widthPx: 40, heightPx: 40 }],
+        true
+      );
+      expect(violations).toEqual([
+        {
+          type: "touch-target",
+          file: "f.tsx",
+          line: 1,
+          tagName: "button",
+          widthClass: "w-10",
+          heightClass: "h-10",
+          widthPx: 40,
+          heightPx: 40,
+          required: 44,
+          level: "AAA",
+        },
+      ]);
+    });
+
+    it("passes exactly 44x44 under strict mode (minimum is inclusive, same as AA's 24px)", () => {
+      const violations = checkTouchTargets(
+        [{ file: "f.tsx", line: 1, tagName: "button", widthClass: "w-11", heightClass: "h-11", widthPx: 44, heightPx: 44 }],
+        true
+      );
+      expect(violations).toEqual([]);
+    });
+
+    it("still flags a target below both thresholds under strict mode, reporting the strict values", () => {
+      const violations = checkTouchTargets(
+        [{ file: "f.tsx", line: 1, tagName: "button", widthClass: "w-4", heightClass: "h-4", widthPx: 16, heightPx: 16 }],
+        true
+      );
+      expect(violations).toHaveLength(1);
+      expect(violations[0]).toMatchObject({ required: 44, level: "AAA" });
+    });
   });
 });

@@ -107,6 +107,31 @@ Tailwind-class-level sizing or focus-style analysis).
   anywhere in the parent rather than adjacent to the target — was caught in
   review as the same shape-not-meaning failure class noted below, just at
   the sibling level instead of the token level.
+- **Touch target: `checkTouchTargets(checks, strict?)` has two thresholds,
+  both enforced by resolving against the same closed `spacingScale` lookup
+  table** (see the "real bug pattern" section below for why that lookup-
+  table design has no shape-not-meaning risk to begin with, regardless of
+  which threshold is active): the default 24×24px is WCAG 2.5.8 (Level AA);
+  opt-in `strict` raises it to WCAG **2.5.5** (Level AAA), 44×44px — verified
+  against the W3C Understanding doc that 2.5.5 has the same "target in a
+  sentence/text block" exemption as 2.5.8, so `isInlineInText()` above
+  applies unchanged to both thresholds; this only changes the number being
+  compared against, never how targets are found or exempted. Every adapter
+  exposes it the same opt-in, default-off way: CLI `--strict`, ESLint
+  `["error", { strict: true }]` rule option (the first rule option this
+  plugin has ever needed — `configPath` deliberately lives in
+  `settings["tailwind-a11y"]` instead, since it's cross-cutting across all
+  three rules and `strict` isn't), VS Code `tailwind-a11y.strict` setting,
+  GitHub Action `strict` input. `TouchTargetViolation` carries the active
+  threshold on the violation itself now (`required: number`, `level: "AA" |
+  "AAA"`), mirroring `ContrastViolation`'s existing shape — every formatter
+  (`cli.ts`, the ESLint rule's message, `vscode-tailwind-a11y/src/format.ts`,
+  `github-action-tailwind-a11y/src/annotations.ts`) reads this dynamically
+  rather than hardcoding "WCAG 2.5.8"/"24×24px", which is what all four
+  formatters did before `strict` existed (a real, if latent, bug — those
+  strings would have been silently wrong for any consumer using a stricter
+  threshold, so this was fixed alongside adding the option rather than left
+  for later).
 - **Focus indicator: `focus:` and `focus-visible:` are merged** for the
   removal-vs-replacement comparison, since the standard accessible pattern
   (`focus:outline-none focus-visible:ring-2`) spans both variants.

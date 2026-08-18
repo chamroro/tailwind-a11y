@@ -30,6 +30,7 @@ found (configurable below).
 | `patterns` | `**/*.{jsx,tsx}` | Whitespace/newline-separated glob pattern(s) to scan |
 | `config` | auto-detect | Path to a `tailwind.config.js`/`.cjs` (v3) or CSS `@theme` file (v4) for custom theme colors/spacing |
 | `fail-on-violations` | `"true"` | Set `"false"` to annotate without failing the job |
+| `strict` | `"false"` | Set `"true"` to enforce WCAG 2.5.5 (AAA, 44x44px) touch targets instead of the default 2.5.8 (AA, 24x24px) |
 
 ```yaml
 - uses: chamroro/tailwind-a11y@v0
@@ -39,15 +40,16 @@ found (configurable below).
       app/**/*.jsx
     config: ./tailwind.config.cjs
     fail-on-violations: "false"
+    strict: "true"
 ```
 
 ## Notes
 
 - `node_modules`, `dist`, `build`, and `.git` directories are always excluded
   from scanning.
-- GitHub renders roughly 10 inline annotations per step — beyond that, the
-  full list is still in the job log and the job summary table, and the exit
-  code always reflects every violation found.
+- GitHub renders roughly 10 inline annotations per type per step (and ~50 per
+  job) — beyond that, the full list is still in the job log and the job
+  summary table, and the exit code always reflects every violation found.
 - Pin a commit SHA instead of `@v0` if you want fully immutable behavior:
   `uses: chamroro/tailwind-a11y@<sha>`.
 - Checks and known limitations are the engine's:

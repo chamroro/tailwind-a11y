@@ -49780,8 +49780,11 @@ function extractTouchTargetChecks(code, filePath, spacing = spacingScale) {
 
 // ../tailwind-a11y/dist/rules/checkTouchTarget.js
 var MIN_TARGET_PX = 24;
-function checkTouchTargets(checks) {
-  return checks.filter((c) => c.widthPx < MIN_TARGET_PX || c.heightPx < MIN_TARGET_PX).map((c) => ({ type: "touch-target", ...c }));
+var MIN_TARGET_PX_STRICT = 44;
+function checkTouchTargets(checks, strict = false) {
+  const required = strict ? MIN_TARGET_PX_STRICT : MIN_TARGET_PX;
+  const level = strict ? "AAA" : "AA";
+  return checks.filter((c) => c.widthPx < required || c.heightPx < required).map((c) => ({ type: "touch-target", ...c, required, level }));
 }
 
 // ../tailwind-a11y/dist/parser/extractFocusIndicators.js
@@ -50135,12 +50138,17 @@ function parseInputs(env) {
   const patternsRaw = env["INPUT_PATTERNS"]?.trim();
   const configRaw = env["INPUT_CONFIG"]?.trim();
   const failRaw = env["INPUT_FAIL-ON-VIOLATIONS"]?.trim().toLowerCase();
+  const strictRaw = env["INPUT_STRICT"]?.trim().toLowerCase();
   return {
     patterns: patternsRaw ? patternsRaw.split(/\s+/).filter(Boolean) : ["**/*.{jsx,tsx}"],
     config: configRaw || null,
     // Anything other than an explicit "false" keeps the safe default of
     // failing the job on violations.
-    failOnViolations: failRaw !== "false"
+    failOnViolations: failRaw !== "false",
+    // Opposite direction from failOnViolations above: strict is opt-in, so
+    // anything other than an explicit "true" keeps the safe default of the
+    // existing WCAG 2.5.8 (AA) 24px threshold.
+    strict: strictRaw === "true"
   };
 }
 
@@ -50158,8 +50166,10 @@ function formatViolation(v) {
       const base = `${v.textClass} on ${v.bgClass} \u2014 ratio ${v.ratio.toFixed(2)}, needs ${v.required} (${v.level})`;
       return v.suggestion ? `${base}; try ${v.suggestion} (${v.suggestedRatio.toFixed(2)})` : base;
     }
-    case "touch-target":
-      return `<${v.tagName}> is ${v.widthPx}\xD7${v.heightPx}px (${v.widthClass} ${v.heightClass}) \u2014 WCAG 2.5.8 requires >= 24\xD724px`;
+    case "touch-target": {
+      const sc = v.level === "AAA" ? "2.5.5" : "2.5.8";
+      return `<${v.tagName}> is ${v.widthPx}\xD7${v.heightPx}px (${v.widthClass} ${v.heightClass}) \u2014 WCAG ${sc} requires >= ${v.required}\xD7${v.required}px`;
+    }
     case "focus-indicator":
       return `<${v.tagName}> removes the focus outline (${v.removalClass}) with no visible replacement (focus:ring-*/border-*/shadow-*/bg-*/outline-*)`;
   }
@@ -50182,7 +50192,7 @@ function groupByFile(violations) {
   return byFile;
 }
 async function main() {
-  const { patterns, config, failOnViolations } = parseInputs(process.env);
+  const { patterns, config, failOnViolations, strict } = parseInputs(process.env);
   const cwd = process.cwd();
   const { palette, spacing, configError } = resolveTheme({
     rootDir: cwd,
@@ -50203,7 +50213,7 @@ async function main() {
       const code = (0, import_node_fs2.readFileSync)(absPath, "utf8");
       violations.push(
         ...checkContrast(extractChecks(code, file), palette),
-        ...checkTouchTargets(extractTouchTargetChecks(code, file, spacing)),
+        ...checkTouchTargets(extractTouchTargetChecks(code, file, spacing), strict),
         ...checkFocusIndicators(extractFocusIndicatorChecks(code, file))
       );
     } catch (err) {

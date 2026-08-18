@@ -40,6 +40,17 @@ ruleTester.run("touch-target", rule, {
       filename: "Small.jsx",
       code: `export const Small = () => <button className="w-5.5 h-5.5" onClick={() => {}}>x</button>;`,
     },
+    {
+      name: "40x40 passes by default (strict option not set)",
+      filename: "Ok40.jsx",
+      code: `export const Ok = () => <button className="w-10 h-10" onClick={() => {}}>x</button>;`,
+    },
+    {
+      name: "exactly 44x44 passes under strict (minimum is inclusive, same as the default 24px)",
+      filename: "Ok44.jsx",
+      code: `export const Ok = () => <button className="w-11 h-11" onClick={() => {}}>x</button>;`,
+      options: [{ strict: true }],
+    },
   ],
   invalid: [
     {
@@ -74,6 +85,19 @@ ruleTester.run("touch-target", rule, {
       errors: [
         {
           message: "<button> is 16×16px (w-4 h-4) — WCAG 2.5.8 requires >= 24×24px",
+          line: 1,
+          column: 1,
+        },
+      ],
+    },
+    {
+      name: "40x40 fails under strict, reporting WCAG 2.5.5 and the 44px threshold",
+      filename: "Strict40.jsx",
+      code: `export const B = () => <button className="w-10 h-10" onClick={() => {}}>x</button>;`,
+      options: [{ strict: true }],
+      errors: [
+        {
+          message: "<button> is 40×40px (w-10 h-10) — WCAG 2.5.5 requires >= 44×44px",
           line: 1,
           column: 1,
         },

@@ -42,8 +42,26 @@ describe("formatViolation", () => {
       heightClass: "h-4",
       widthPx: 16,
       heightPx: 16,
+      required: 24,
+      level: "AA",
     });
     expect(message).toBe("<button> is 16×16px (w-4 h-4) — WCAG 2.5.8 requires >= 24×24px");
+  });
+
+  it("formats a strict-mode touch-target violation with WCAG 2.5.5 and the 44px threshold", () => {
+    const message = formatViolation({
+      type: "touch-target",
+      file: "f.tsx",
+      line: 2,
+      tagName: "button",
+      widthClass: "w-10",
+      heightClass: "h-10",
+      widthPx: 40,
+      heightPx: 40,
+      required: 44,
+      level: "AAA",
+    });
+    expect(message).toBe("<button> is 40×40px (w-10 h-10) — WCAG 2.5.5 requires >= 44×44px");
   });
 
   it("formats a focus-indicator violation", () => {

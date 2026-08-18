@@ -27,7 +27,7 @@ function groupByFile(violations: AnyViolation[]): Map<string, AnyViolation[]> {
 }
 
 async function main(): Promise<void> {
-  const { patterns, config, failOnViolations } = parseInputs(process.env);
+  const { patterns, config, failOnViolations, strict } = parseInputs(process.env);
 
   // The runner launches this process with cwd = GITHUB_WORKSPACE (the
   // consumer's checkout), so process.cwd() is the right root for globbing,
@@ -60,7 +60,7 @@ async function main(): Promise<void> {
       const code = readFileSync(absPath, "utf8");
       violations.push(
         ...checkContrast(extractChecks(code, file), palette),
-        ...checkTouchTargets(extractTouchTargetChecks(code, file, spacing)),
+        ...checkTouchTargets(extractTouchTargetChecks(code, file, spacing), strict),
         ...checkFocusIndicators(extractFocusIndicatorChecks(code, file))
       );
     } catch (err) {

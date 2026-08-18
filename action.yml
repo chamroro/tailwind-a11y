@@ -28,6 +28,12 @@ inputs:
       report annotations without failing.
     required: false
     default: "true"
+  strict:
+    description: >-
+      Enforce WCAG 2.5.5 (AAA, 44x44px) touch targets instead of the default
+      2.5.8 (AA, 24x24px).
+    required: false
+    default: "false"
 
 runs:
   using: "node24"
