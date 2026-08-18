@@ -2,6 +2,7 @@ export interface ActionInputs {
   patterns: string[];
   config: string | null;
   failOnViolations: boolean;
+  strict: boolean;
 }
 
 // The Actions runner exposes inputs as INPUT_<NAME> env vars, uppercased but
@@ -16,6 +17,7 @@ export function parseInputs(env: Record<string, string | undefined>): ActionInpu
   const patternsRaw = env["INPUT_PATTERNS"]?.trim();
   const configRaw = env["INPUT_CONFIG"]?.trim();
   const failRaw = env["INPUT_FAIL-ON-VIOLATIONS"]?.trim().toLowerCase();
+  const strictRaw = env["INPUT_STRICT"]?.trim().toLowerCase();
 
   return {
     patterns: patternsRaw ? patternsRaw.split(/\s+/).filter(Boolean) : ["**/*.{jsx,tsx}"],
@@ -23,5 +25,9 @@ export function parseInputs(env: Record<string, string | undefined>): ActionInpu
     // Anything other than an explicit "false" keeps the safe default of
     // failing the job on violations.
     failOnViolations: failRaw !== "false",
+    // Opposite direction from failOnViolations above: strict is opt-in, so
+    // anything other than an explicit "true" keeps the safe default of the
+    // existing WCAG 2.5.8 (AA) 24px threshold.
+    strict: strictRaw === "true",
   };
 }

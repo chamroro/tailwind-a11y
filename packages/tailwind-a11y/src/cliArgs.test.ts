@@ -7,6 +7,7 @@ describe("parseArgs", () => {
       help: false,
       version: false,
       verbose: false,
+      strict: false,
       config: null,
       configError: null,
       patterns: [],
@@ -16,6 +17,15 @@ describe("parseArgs", () => {
   it("recognizes --verbose and its short form -v", () => {
     expect(parseArgs(["--verbose"]).verbose).toBe(true);
     expect(parseArgs(["-v"]).verbose).toBe(true);
+  });
+
+  it("recognizes --strict", () => {
+    expect(parseArgs(["--strict"]).strict).toBe(true);
+    expect(parseArgs([]).strict).toBe(false);
+  });
+
+  it("does not treat --strict as a glob pattern", () => {
+    expect(parseArgs(["--strict"]).patterns).toEqual([]);
   });
 
   it("recognizes --version and its short form -V (uppercase, distinct from -v)", () => {
@@ -74,6 +84,7 @@ describe("getHelpText", () => {
     expect(text).toContain("--verbose");
     expect(text).toContain("--version");
     expect(text).toContain("--help");
+    expect(text).toContain("--strict");
     expect(text).toContain("--config");
   });
 });

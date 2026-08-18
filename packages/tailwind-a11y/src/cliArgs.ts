@@ -5,6 +5,7 @@ export interface ParsedArgs {
   help: boolean;
   version: boolean;
   verbose: boolean;
+  strict: boolean;
   config: string | null;
   configError: string | null;
   patterns: string[];
@@ -19,6 +20,8 @@ Options:
   -v, --verbose      Also report what couldn't be checked, and why
   -V, --version      Print the version number
   -h, --help         Print this help message
+      --strict       Touch targets must meet WCAG 2.5.5 (AAA, 44x44px)
+                      instead of the default 2.5.8 (AA, 24x24px)
       --config <path>  Path to a tailwind.config.js/.cjs (v3) or a CSS
                         @theme file like app/globals.css (v4) to read
                         custom theme colors/spacing from (default:
@@ -28,6 +31,7 @@ Examples:
   tailwind-a11y                    Scan **/*.{jsx,tsx} from the current directory
   tailwind-a11y "src/**/*.tsx"     Scan a custom glob pattern
   tailwind-a11y --verbose          Also report skipped/unresolvable cases
+  tailwind-a11y --strict           Enforce the stricter 44x44px touch target minimum
   tailwind-a11y --config ./tailwind.config.cjs
 `;
 
@@ -37,7 +41,7 @@ export function getHelpText(): string {
 
 // -v/--verbose already existed before --version was added; -V (uppercase)
 // avoids colliding with it, matching a common CLI convention.
-const FLAGS = new Set(["--verbose", "-v", "--version", "-V", "--help", "-h"]);
+const FLAGS = new Set(["--verbose", "-v", "--version", "-V", "--help", "-h", "--strict"]);
 
 export function parseArgs(argv: string[]): ParsedArgs {
   let config: string | null = null;
@@ -67,6 +71,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     help: argv.includes("--help") || argv.includes("-h"),
     version: argv.includes("--version") || argv.includes("-V"),
     verbose: argv.includes("--verbose") || argv.includes("-v"),
+    strict: argv.includes("--strict"),
     config,
     configError,
     patterns,

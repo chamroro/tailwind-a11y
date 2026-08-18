@@ -7,6 +7,7 @@ describe("parseInputs", () => {
       patterns: ["**/*.{jsx,tsx}"],
       config: null,
       failOnViolations: true,
+      strict: false,
     });
   });
 
@@ -42,5 +43,22 @@ describe("parseInputs", () => {
     expect(parseInputs({ INPUT_CONFIG: "./tailwind.config.cjs" }).config).toBe("./tailwind.config.cjs");
     expect(parseInputs({ INPUT_CONFIG: "" }).config).toBeNull();
     expect(parseInputs({ INPUT_CONFIG: "  " }).config).toBeNull();
+  });
+
+  it("reads the strict input, opt-in (opposite default direction from fail-on-violations)", () => {
+    expect(parseInputs({ INPUT_STRICT: "true" }).strict).toBe(true);
+    expect(parseInputs({ INPUT_STRICT: "false" }).strict).toBe(false);
+    expect(parseInputs({}).strict).toBe(false);
+  });
+
+  it("treats anything other than an explicit 'true' as false for strict (safe default)", () => {
+    expect(parseInputs({ INPUT_STRICT: "yes" }).strict).toBe(false);
+    expect(parseInputs({ INPUT_STRICT: "1" }).strict).toBe(false);
+    expect(parseInputs({ INPUT_STRICT: "" }).strict).toBe(false);
+  });
+
+  it("is case-insensitive for strict", () => {
+    expect(parseInputs({ INPUT_STRICT: "TRUE" }).strict).toBe(true);
+    expect(parseInputs({ INPUT_STRICT: "True" }).strict).toBe(true);
   });
 });

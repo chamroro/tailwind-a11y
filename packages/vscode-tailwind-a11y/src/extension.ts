@@ -77,8 +77,10 @@ function analyze(doc: vscode.TextDocument): vscode.Diagnostic[] {
   // onDidChangeConfiguration listener needed, the next debounced/save-
   // triggered refresh() just picks up a changed setting on its own.
   const rootDir = vscode.workspace.getWorkspaceFolder(doc.uri)?.uri.fsPath ?? null;
-  const rawConfigPath = vscode.workspace.getConfiguration("tailwind-a11y", doc.uri).get<string>("configPath");
+  const settings = vscode.workspace.getConfiguration("tailwind-a11y", doc.uri);
+  const rawConfigPath = settings.get<string>("configPath");
   const configPath = resolveConfigPathSetting(rawConfigPath, rootDir);
+  const strict = settings.get<boolean>("strict") ?? false;
   const { palette, spacing, configError } = resolveTheme({ rootDir, configPath });
   // configError only ever fires for an explicit configPath that failed to
   // load -- auto-detection failure stays silent by design (see
@@ -89,7 +91,7 @@ function analyze(doc: vscode.TextDocument): vscode.Diagnostic[] {
 
   const violations: AnyViolation[] = [
     ...checkContrast(extractChecks(text, file), palette),
-    ...checkTouchTargets(extractTouchTargetChecks(text, file, spacing)),
+    ...checkTouchTargets(extractTouchTargetChecks(text, file, spacing), strict),
     ...checkFocusIndicators(extractFocusIndicatorChecks(text, file)),
   ];
 

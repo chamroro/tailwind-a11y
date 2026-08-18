@@ -42,7 +42,7 @@ export default [
 | Rule | WCAG | Detects |
 |---|---|---|
 | `contrast` | 1.4.3 (AA) | Low-contrast `text-*`/`bg-*` pairs — suggests the nearest passing shade |
-| `touch-target` | 2.5.8 (AA) | Interactive elements under 24×24px |
+| `touch-target` | 2.5.8 (AA) | Interactive elements under 24×24px — or 44×44px with `{ strict: true }` (2.5.5, AAA) |
 | `focus-indicator` | 2.4.7 (AA) | `focus:outline-none` with no visible replacement |
 
 Exact scope and known limitations: [engine README](https://github.com/chamroro/tailwind-a11y/tree/main/packages/tailwind-a11y#scope).
@@ -57,6 +57,23 @@ file instead via `settings`:
 export default [
   ...tailwindA11y.configs.recommended,
   { settings: { "tailwind-a11y": { configPath: "./tailwind.config.cjs" } } },
+];
+```
+
+## Stricter touch targets
+
+`touch-target` defaults to WCAG 2.5.8 (AA, 24×24px). Pass `{ strict: true }`
+as a rule option to enforce 2.5.5 (AAA, 44×44px) instead:
+
+```js
+export default [
+  {
+    files: ["**/*.jsx", "**/*.tsx"],
+    plugins: { "tailwind-a11y": tailwindA11y },
+    rules: {
+      "tailwind-a11y/touch-target": ["warn", { strict: true }],
+    },
+  },
 ];
 ```
 

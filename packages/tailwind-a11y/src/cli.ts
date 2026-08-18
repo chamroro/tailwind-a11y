@@ -30,8 +30,10 @@ function formatViolation(v: AnyViolation): string {
       const base = `${v.line}: ${v.textClass} on ${v.bgClass} — ratio ${v.ratio.toFixed(2)}, needs ${v.required} (${v.level})`;
       return v.suggestion ? `${base}; try ${v.suggestion} (${v.suggestedRatio!.toFixed(2)})` : base;
     }
-    case "touch-target":
-      return `${v.line}: <${v.tagName}> is ${v.widthPx}×${v.heightPx}px (${v.widthClass} ${v.heightClass}) — WCAG 2.5.8 requires >= 24×24px`;
+    case "touch-target": {
+      const sc = v.level === "AAA" ? "2.5.5" : "2.5.8";
+      return `${v.line}: <${v.tagName}> is ${v.widthPx}×${v.heightPx}px (${v.widthClass} ${v.heightClass}) — WCAG ${sc} requires >= ${v.required}×${v.required}px`;
+    }
     case "focus-indicator":
       return `${v.line}: <${v.tagName}> removes the focus outline (${v.removalClass}) with no visible replacement (focus:ring-*/border-*/shadow-*/bg-*/outline-*)`;
   }
@@ -51,7 +53,7 @@ function groupByFile<T extends { file: string }>(items: T[]): Map<string, T[]> {
 }
 
 async function main(): Promise<void> {
-  const { help, version, verbose, config, configError: usageError, patterns } = parseArgs(process.argv.slice(2));
+  const { help, version, verbose, strict, config, configError: usageError, patterns } = parseArgs(process.argv.slice(2));
 
   if (help) {
     console.log(getHelpText());
@@ -98,7 +100,7 @@ async function main(): Promise<void> {
 
       violations.push(
         ...checkContrast(contrastChecks, palette),
-        ...checkTouchTargets(extractTouchTargetChecks(code, file, spacing)),
+        ...checkTouchTargets(extractTouchTargetChecks(code, file, spacing), strict),
         ...checkFocusIndicators(extractFocusIndicatorChecks(code, file))
       );
 
