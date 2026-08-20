@@ -32,6 +32,7 @@ export default [
       "tailwind-a11y/contrast": "error",
       "tailwind-a11y/touch-target": "warn",
       "tailwind-a11y/focus-indicator": "error",
+      "tailwind-a11y/focus-contrast": "error",
     },
   },
 ];
@@ -44,6 +45,7 @@ export default [
 | `contrast` | 1.4.3 (AA) | Low-contrast `text-*`/`bg-*` pairs — suggests the nearest passing shade |
 | `touch-target` | 2.5.8 (AA) | Interactive elements under 24×24px — or 44×44px with `{ strict: true }` (2.5.5, AAA) |
 | `focus-indicator` | 2.4.7 (AA) | `focus:outline-none` with no visible replacement |
+| `focus-contrast` | 1.4.11 (AA) | A present `outline-*`/`ring-*` focus indicator below 3:1 contrast — or also below the 2px minimum thickness with `{ strict: true }` (2.4.13, AAA) |
 
 Exact scope and known limitations: [engine README](https://github.com/chamroro/tailwind-a11y/tree/main/packages/tailwind-a11y#scope).
 
@@ -60,10 +62,15 @@ export default [
 ];
 ```
 
-## Stricter touch targets
+## Stricter (AAA) mode
 
-`touch-target` defaults to WCAG 2.5.8 (AA, 24×24px). Pass `{ strict: true }`
-as a rule option to enforce 2.5.5 (AAA, 44×44px) instead:
+`touch-target` and `focus-contrast` each default to their AA tier. Pass
+`{ strict: true }` as each rule's own option to hold it to its AAA tier
+instead — `touch-target` to 2.5.5 (44×44px), `focus-contrast` to also
+require 2.4.13's minimum indicator thickness on top of its always-on 3:1
+contrast check. Each rule's `strict` option is independent — there's no
+single flag that turns both on at once in ESLint, unlike the CLI/VS
+Code/GitHub Action, which do share one:
 
 ```js
 export default [
@@ -72,6 +79,7 @@ export default [
     plugins: { "tailwind-a11y": tailwindA11y },
     rules: {
       "tailwind-a11y/touch-target": ["warn", { strict: true }],
+      "tailwind-a11y/focus-contrast": ["warn", { strict: true }],
     },
   },
 ];

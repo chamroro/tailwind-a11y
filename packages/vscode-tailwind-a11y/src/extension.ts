@@ -6,6 +6,7 @@ import {
   checkTouchTargets,
   extractFocusIndicatorChecks,
   checkFocusIndicators,
+  checkFocusContrast,
   resolveTheme,
 } from "tailwind-a11y";
 import { formatViolation, type AnyViolation } from "./format.js";
@@ -89,10 +90,12 @@ function analyze(doc: vscode.TextDocument): vscode.Diagnostic[] {
   // log is the same low-key channel the catch block below already uses.
   if (configError) console.error(`tailwind-a11y: ${configError}`);
 
+  const focusChecks = extractFocusIndicatorChecks(text, file);
   const violations: AnyViolation[] = [
     ...checkContrast(extractChecks(text, file), palette),
     ...checkTouchTargets(extractTouchTargetChecks(text, file, spacing), strict),
-    ...checkFocusIndicators(extractFocusIndicatorChecks(text, file)),
+    ...checkFocusIndicators(focusChecks),
+    ...checkFocusContrast(focusChecks, strict, palette),
   ];
 
   return violations.map((v) => {

@@ -1,6 +1,6 @@
 {
   "name": "eslint-plugin-tailwind-a11y",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "ESLint rules that catch WCAG accessibility violations — color contrast, touch target size, and focus indicator removal — in Tailwind CSS class combinations.",
   "type": "module",
   "main": "./dist/index.js",
@@ -49,7 +49,7 @@
   },
   "homepage": "https://github.com/chamroro/tailwind-a11y/tree/main/packages/eslint-plugin-tailwind-a11y#readme",
   "dependencies": {
-    "tailwind-a11y": "^0.9.0"
+    "tailwind-a11y": "^0.10.0"
   },
   "peerDependencies": {
     "eslint": "^9.0.0 || ^10.0.0"

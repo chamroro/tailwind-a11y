@@ -8,7 +8,12 @@ import { checkContrast, checkContrastValueSkips, type ContrastViolation } from "
 import { extractTouchTargetChecks, extractTouchTargetSkips } from "./parser/extractTouchTargets.js";
 import { checkTouchTargets, type TouchTargetViolation } from "./rules/checkTouchTarget.js";
 import { extractFocusIndicatorChecks } from "./parser/extractFocusIndicators.js";
-import { checkFocusIndicators, type FocusIndicatorViolation } from "./rules/checkFocusIndicator.js";
+import {
+  checkFocusContrast,
+  checkFocusIndicators,
+  type FocusContrastViolation,
+  type FocusIndicatorViolation,
+} from "./rules/checkFocusIndicator.js";
 import { parseArgs, getHelpText } from "./cliArgs.js";
 import { resolveTheme } from "./theme/loadCustomTheme.js";
 
@@ -16,7 +21,7 @@ import { resolveTheme } from "./theme/loadCustomTheme.js";
 const require = createRequire(import.meta.url);
 const { version: packageVersion } = require("../package.json") as { version: string };
 
-type AnyViolation = ContrastViolation | TouchTargetViolation | FocusIndicatorViolation;
+type AnyViolation = ContrastViolation | TouchTargetViolation | FocusIndicatorViolation | FocusContrastViolation;
 
 interface Skip {
   file: string;
@@ -36,6 +41,13 @@ function formatViolation(v: AnyViolation): string {
     }
     case "focus-indicator":
       return `${v.line}: <${v.tagName}> removes the focus outline (${v.removalClass}) with no visible replacement (focus:ring-*/border-*/shadow-*/bg-*/outline-*)`;
+    case "focus-contrast": {
+      const sc = v.level === "AAA" ? "2.4.13" : "1.4.11";
+      const base = `${v.line}: <${v.tagName}> focus indicator ${v.indicatorClass} on ${v.bgClass} — ratio ${v.ratio.toFixed(2)}, needs ${v.required} (WCAG ${sc})`;
+      return v.thicknessPx !== undefined
+        ? `${base}; also only ${v.thicknessPx}px thick, needs >= ${v.requiredThicknessPx}px`
+        : base;
+    }
   }
 }
 
@@ -97,11 +109,13 @@ async function main(): Promise<void> {
     try {
       const code = readFileSync(absPath, "utf8");
       const contrastChecks = extractChecks(code, file);
+      const focusChecks = extractFocusIndicatorChecks(code, file);
 
       violations.push(
         ...checkContrast(contrastChecks, palette),
         ...checkTouchTargets(extractTouchTargetChecks(code, file, spacing), strict),
-        ...checkFocusIndicators(extractFocusIndicatorChecks(code, file))
+        ...checkFocusIndicators(focusChecks),
+        ...checkFocusContrast(focusChecks, strict, palette)
       );
 
       if (verbose) {

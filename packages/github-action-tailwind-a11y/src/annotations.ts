@@ -1,6 +1,6 @@
-import type { ContrastViolation, TouchTargetViolation, FocusIndicatorViolation } from "tailwind-a11y";
+import type { ContrastViolation, TouchTargetViolation, FocusIndicatorViolation, FocusContrastViolation } from "tailwind-a11y";
 
-export type AnyViolation = ContrastViolation | TouchTargetViolation | FocusIndicatorViolation;
+export type AnyViolation = ContrastViolation | TouchTargetViolation | FocusIndicatorViolation | FocusContrastViolation;
 
 // GitHub renders roughly 10 annotations per type per step (and ~50 per job) --
 // undocumented, observed limits. Correctness never rides on annotations:
@@ -35,6 +35,13 @@ export function formatViolation(v: AnyViolation): string {
     }
     case "focus-indicator":
       return `<${v.tagName}> removes the focus outline (${v.removalClass}) with no visible replacement (focus:ring-*/border-*/shadow-*/bg-*/outline-*)`;
+    case "focus-contrast": {
+      const sc = v.level === "AAA" ? "2.4.13" : "1.4.11";
+      const base = `<${v.tagName}> focus indicator ${v.indicatorClass} on ${v.bgClass} — ratio ${v.ratio.toFixed(2)}, needs ${v.required} (WCAG ${sc})`;
+      return v.thicknessPx !== undefined
+        ? `${base}; also only ${v.thicknessPx}px thick, needs >= ${v.requiredThicknessPx}px`
+        : base;
+    }
   }
 }
 

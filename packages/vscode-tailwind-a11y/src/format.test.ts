@@ -76,4 +76,38 @@ describe("formatViolation", () => {
       "<button> removes the focus outline (focus:outline-none) with no visible replacement (focus:ring-*/border-*/shadow-*/bg-*/outline-*)"
     );
   });
+
+  it("formats a focus-contrast violation (contrast only, AA)", () => {
+    const message = formatViolation({
+      type: "focus-contrast",
+      file: "f.tsx",
+      line: 1,
+      tagName: "button",
+      indicatorClass: "focus:ring-blue-400",
+      bgClass: "bg-blue-500",
+      ratio: 1.45,
+      required: 3,
+      level: "AA",
+    });
+    expect(message).toBe("<button> focus indicator focus:ring-blue-400 on bg-blue-500 — ratio 1.45, needs 3 (WCAG 1.4.11)");
+  });
+
+  it("formats a strict-mode focus-contrast violation with a thickness failure (AAA)", () => {
+    const message = formatViolation({
+      type: "focus-contrast",
+      file: "f.tsx",
+      line: 1,
+      tagName: "button",
+      indicatorClass: "focus:ring-white",
+      bgClass: "bg-blue-500",
+      ratio: 3.68,
+      required: 3,
+      level: "AAA",
+      thicknessPx: 1,
+      requiredThicknessPx: 2,
+    });
+    expect(message).toBe(
+      "<button> focus indicator focus:ring-white on bg-blue-500 — ratio 3.68, needs 3 (WCAG 2.4.13); also only 1px thick, needs >= 2px"
+    );
+  });
 });

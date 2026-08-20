@@ -3,6 +3,7 @@ import type { ESLint } from "eslint";
 import contrast from "./rules/contrast.js";
 import touchTarget from "./rules/touch-target.js";
 import focusIndicator from "./rules/focus-indicator.js";
+import focusContrast from "./rules/focus-contrast.js";
 
 // `../package.json` resolves correctly from both `src/` (dev) and `dist/`
 // (published), so the plugin version can't drift from the package version.
@@ -19,6 +20,7 @@ const plugin: ESLint.Plugin = {
     contrast,
     "touch-target": touchTarget,
     "focus-indicator": focusIndicator,
+    "focus-contrast": focusContrast,
   },
   configs: {},
 };
@@ -42,6 +44,7 @@ Object.assign(plugin.configs!, {
         "tailwind-a11y/contrast": "error",
         "tailwind-a11y/touch-target": "error",
         "tailwind-a11y/focus-indicator": "error",
+        "tailwind-a11y/focus-contrast": "error",
       },
     },
   ],

@@ -18,7 +18,10 @@ export interface ContrastViolation {
 }
 
 export function resolveColorValue(utilityClass: string, palette: Palette = defaultPalette): string | null {
-  const match = /^(?:text|bg)-(.+)$/.exec(utilityClass);
+  // outline/ring are here for checkFocusIndicator.ts's non-text-contrast
+  // check (WCAG 1.4.11/2.4.13) -- same palette/arbitrary-hex/semantic-color
+  // resolution as text/bg, just a different utility prefix.
+  const match = /^(?:text|bg|outline|ring)-(.+)$/.exec(utilityClass);
   if (!match) return null;
   const token = match[1];
 
