@@ -6,8 +6,36 @@ describe("extractFocusIndicatorChecks", () => {
     const code = `const C = () => <button className="p-2 focus:outline-none focus:ring-2">x</button>;`;
     const checks = extractFocusIndicatorChecks(code, "fake.tsx");
     expect(checks).toEqual([
-      { file: "fake.tsx", line: 1, tagName: "button", focusClasses: ["focus:outline-none", "focus:ring-2"] },
+      {
+        file: "fake.tsx",
+        line: 1,
+        tagName: "button",
+        focusClasses: ["focus:outline-none", "focus:ring-2"],
+        bgClass: null,
+        bgSource: null,
+      },
     ]);
+  });
+
+  it("resolves bg from the element's own class", () => {
+    const code = `const C = () => <button className="bg-blue-500 focus:ring-2 focus:ring-white">x</button>;`;
+    const [check] = extractFocusIndicatorChecks(code, "fake.tsx");
+    expect(check.bgClass).toBe("bg-blue-500");
+    expect(check.bgSource).toBe("self");
+  });
+
+  it("falls back to the immediate parent's bg", () => {
+    const code = `const C = () => <div className="bg-blue-500"><button className="focus:ring-2 focus:ring-white">x</button></div>;`;
+    const [check] = extractFocusIndicatorChecks(code, "fake.tsx");
+    expect(check.bgClass).toBe("bg-blue-500");
+    expect(check.bgSource).toBe("parent");
+  });
+
+  it("leaves bgClass null when neither the element nor its parent has one", () => {
+    const code = `const C = () => <button className="focus:ring-2 focus:ring-white">x</button>;`;
+    const [check] = extractFocusIndicatorChecks(code, "fake.tsx");
+    expect(check.bgClass).toBeNull();
+    expect(check.bgSource).toBeNull();
   });
 
   it("collects focus-visible: classes too", () => {

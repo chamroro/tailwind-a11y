@@ -1,6 +1,6 @@
 # Tailwind a11y
 
-Live WCAG diagnostics for Tailwind CSS, in the editor — the same three checks as
+Live WCAG diagnostics for Tailwind CSS, in the editor — the same checks as
 [`tailwind-a11y`](https://github.com/chamroro/tailwind-a11y/tree/main/packages/tailwind-a11y),
 its [ESLint plugin](https://github.com/chamroro/tailwind-a11y/tree/main/packages/eslint-plugin-tailwind-a11y),
 and its [GitHub Action](https://github.com/chamroro/tailwind-a11y/tree/main/packages/github-action-tailwind-a11y),
@@ -14,6 +14,7 @@ reimplemented here.
 | Contrast | 1.4.3 (AA) | Low-contrast `text-*`/`bg-*` pairs — with a suggested nearby shade |
 | Touch target | 2.5.8 (AA) | Interactive elements under 24×24px — or 44×44px with `tailwind-a11y.strict` (2.5.5, AAA) |
 | Focus indicator | 2.4.7 (AA) | `focus:outline-none` with no visible replacement |
+| Focus indicator contrast | 1.4.11 (AA) | A present `outline-*`/`ring-*` focus indicator below 3:1 contrast — or also below the 2px minimum thickness with `tailwind-a11y.strict` (2.4.13, AAA) |
 
 Diagnostics appear as warnings in `.jsx`/`.tsx` files, updating on open, save, and
 (debounced) as you type. For CI enforcement, use the [CLI](https://github.com/chamroro/tailwind-a11y/tree/main/packages/tailwind-a11y)
@@ -31,7 +32,9 @@ setting:
 ```
 
 Set `tailwind-a11y.strict` to enforce the stricter 44×44px touch target
-minimum (WCAG 2.5.5, AAA) instead of the default 24×24px (2.5.8, AA):
+minimum (WCAG 2.5.5, AAA) instead of the default 24×24px (2.5.8, AA), and to
+also require focus indicators to meet WCAG 2.4.13's minimum thickness
+alongside the always-on 3:1 contrast check (1.4.11):
 
 ```json
 { "tailwind-a11y.strict": true }

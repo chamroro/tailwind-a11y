@@ -12,7 +12,7 @@ published consumers, not free pre-launch churn.)
 
 A static analysis CLI that catches WCAG accessibility violations in Tailwind
 CSS class combinations before they ship: color contrast, touch target size,
-and focus indicator removal. Existing contrast tools (e.g.
+and focus indicator removal/contrast. Existing contrast tools (e.g.
 `tailwindcss-contrast-checker`) only catch `text-*`/`bg-*` on the *same*
 element; this tool also catches the much more common **direct-parent**
 pattern:
@@ -160,6 +160,50 @@ Tailwind-class-level sizing or focus-style analysis).
     (they style child elements via a `> * + *` selector, not the element
     carrying the `focus:` class itself, so they're structurally inapplicable
     here regardless of visibility).
+- **Focus indicator contrast: `checkFocusContrast(checks, strict?)` is a
+  second, independent check on the same `focus:`/`focus-visible:` classes** —
+  `checkFocusIndicators` above only asks "was the outline removed with
+  nothing put back"; it never looks at whether a present indicator is
+  actually *visible*. `focus:outline focus:outline-2 focus:outline-blue-400`
+  on `bg-blue-500` reported zero violations before this check existed, even
+  though `blue-400`-on-`blue-500` is nowhere near visible. WCAG **1.4.11**
+  Non-text Contrast (AA) requires 3:1 for UI-component state indicators —
+  explicitly including focus indicators, per the W3C Understanding doc — and
+  is always enforced. **2.4.13** Focus Appearance (AAA, opt-in `strict`) does
+  **not** raise that 3:1 the way touch-target's AA→AAA does; it adds a
+  second, independent minimum-thickness requirement (>= a 2 CSS pixel
+  perimeter). A pure-contrast failure is always reported as `level: "AA"`
+  even under `strict`; only a thickness failure is `"AAA"` — the violation's
+  `level` reflects which SC actually failed, not just whether `strict` is on.
+  - Deliberately narrow scope: only an explicit `outline-{color}`/`ring-
+    {color}` under `focus:`/`focus-visible:` counts as "the indicator" —
+    `border-*`/`bg-*`/`shadow-*` replacements (valid for the 2.4.7 removal
+    check above) aren't resolved for contrast. Background resolution reuses
+    `extractClasses.ts`'s same-element-or-immediate-parent walk; unresolvable
+    → skipped, not guessed.
+  - Verified against a real `tailwindcss@4.3.3` compile: bare `ring`/
+    `outline` (no width digit) both resolve to `1px` in Tailwind v4, but
+    v3's bare `ring` default is documented elsewhere as `3px` — a real
+    cross-version difference this tool can't currently distinguish. So only
+    an explicit `outline-{0,1,2,4,8}`/`ring-{0,1,2,4,8}` or an arbitrary
+    `[Npx]` resolves a thickness value; bare `ring`/`outline` contributes
+    color (if paired with an explicit color utility) but the thickness
+    dimension is silently left unassessed for it under `strict`, never
+    asserted a false pass or fail.
+  - The 3:1 threshold is a flat local constant (`NON_TEXT_MIN_RATIO`), not
+    `luminance.ts`'s `requiredRatio()`/`meetsWCAG()` — those model the
+    text-specific large-text/small-text AA/AAA table, which doesn't apply to
+    UI-component contrast. `resolveColorValue()` (`checkContrast.ts`) is
+    generalized from its `text`/`bg` prefix union to also accept `outline`/
+    `ring` — same palette/arbitrary-hex/semantic-color resolution, reused
+    rather than duplicated.
+  - Exposed the same opt-in way as touch-target's `strict`, reusing the
+    exact same flag: CLI `--strict`, VS Code `tailwind-a11y.strict` setting,
+    GitHub Action `strict` input all now affect both checks from one toggle.
+    ESLint is the one exception — `tailwind-a11y/focus-contrast` has its own,
+    independently-configurable `strict` rule option (own file, own schema),
+    since ESLint has no plugin-wide toggle and each rule's options are
+    already independently set.
 - **Contrast: opacity modifiers (`text-gray-400/50`) are resolved on the
   *text* side only**, composited against the already-resolved (fully opaque)
   background — see `resolveTextColorWithOpacity()`/`applyAlpha()` in
@@ -218,9 +262,12 @@ src/
                                      suggestContrastFix() — nearest passing
                                      shade in the same color scale (text side
                                      only, bg and any opacity held fixed)
-  rules/checkTouchTarget.ts       — touch target violations (WCAG 2.5.8, AA)
-  rules/checkFocusIndicator.ts    — focus indicator violations (WCAG 2.4.7, AA)
-  cli.ts                         — fast-glob scan, run all three checkers,
+  rules/checkTouchTarget.ts       — touch target violations (WCAG 2.5.8 AA /
+                                     2.5.5 AAA under strict)
+  rules/checkFocusIndicator.ts    — focus indicator removal (WCAG 2.4.7, AA)
+                                     and focus indicator contrast (WCAG
+                                     1.4.11 AA / 2.4.13 AAA under strict)
+  cli.ts                         — fast-glob scan, run all four checkers,
                                     print report, exit 1 on any violations (CI)
   cliArgs.ts                     — flag parsing, including --config <path>
 ```

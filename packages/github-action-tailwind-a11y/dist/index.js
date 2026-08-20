@@ -5970,7 +5970,7 @@ var require_generated = __commonJS({
     exports2.isJSXAttribute = isJSXAttribute3;
     exports2.isJSXClosingElement = isJSXClosingElement;
     exports2.isJSXClosingFragment = isJSXClosingFragment;
-    exports2.isJSXElement = isJSXElement3;
+    exports2.isJSXElement = isJSXElement4;
     exports2.isJSXEmptyExpression = isJSXEmptyExpression;
     exports2.isJSXExpressionContainer = isJSXExpressionContainer;
     exports2.isJSXFragment = isJSXFragment2;
@@ -6939,7 +6939,7 @@ var require_generated = __commonJS({
       if (node.type !== "JSXClosingElement") return false;
       return opts == null || (0, _shallowEqual.default)(node, opts);
     }
-    function isJSXElement3(node, opts) {
+    function isJSXElement4(node, opts) {
       if (!node) return false;
       if (node.type !== "JSXElement") return false;
       return opts == null || (0, _shallowEqual.default)(node, opts);
@@ -49565,7 +49565,7 @@ var semanticColors = {
 
 // ../tailwind-a11y/dist/rules/checkContrast.js
 function resolveColorValue(utilityClass, palette = defaultPalette) {
-  const match = /^(?:text|bg)-(.+)$/.exec(utilityClass);
+  const match = /^(?:text|bg|outline|ring)-(.+)$/.exec(utilityClass);
   if (!match)
     return null;
   const token = match[1];
@@ -49812,11 +49812,27 @@ function extractFocusIndicatorChecks(code, filePath) {
       const focusClasses = focusScopedClasses(className);
       if (focusClasses.length === 0)
         return;
+      const ownBg = lastColorToken(className, "bg");
+      let bgClass = ownBg;
+      let bgSource = ownBg ? "self" : null;
+      if (!bgClass) {
+        const parentNode = path.parentPath?.node;
+        if (parentNode && t5.isJSXElement(parentNode)) {
+          const parentClassName = getStaticClassName(parentNode.openingElement.attributes);
+          const parentBg = parentClassName ? lastColorToken(parentClassName, "bg") : null;
+          if (parentBg) {
+            bgClass = parentBg;
+            bgSource = "parent";
+          }
+        }
+      }
       checks.push({
         file: filePath,
         line: opening.loc?.start.line ?? 0,
         tagName: t5.isJSXIdentifier(opening.name) ? opening.name.name : "onClick-element",
-        focusClasses
+        focusClasses,
+        bgClass,
+        bgSource
       });
     }
   });
@@ -49906,6 +49922,84 @@ function checkFocusIndicators(checks) {
       line: check.line,
       tagName: check.tagName,
       removalClass: removal
+    });
+  }
+  return violations;
+}
+var NON_TEXT_MIN_RATIO = 3;
+var FOCUS_INDICATOR_MIN_THICKNESS_PX = 2;
+var WIDTH_SCALE = { "0": 0, "1": 1, "2": 2, "4": 4, "8": 8 };
+function lastIndicatorColorToken(focusClasses) {
+  let found = null;
+  for (const raw of focusClasses) {
+    const base = raw.slice(raw.lastIndexOf(":") + 1);
+    const match = /^(?:outline|ring)-(.+)$/.exec(base);
+    if (!match)
+      continue;
+    const rest = match[1];
+    if (!COLOR_TOKEN.test(rest))
+      continue;
+    const scaleName = /^([a-z]+)-\d/.exec(rest)?.[1];
+    if (scaleName === "opacity")
+      continue;
+    found = base;
+  }
+  return found;
+}
+function lastIndicatorThicknessPx(focusClasses) {
+  let found = null;
+  for (const raw of focusClasses) {
+    const base = raw.slice(raw.lastIndexOf(":") + 1);
+    const match = /^(?:outline|ring)-(.+)$/.exec(base);
+    if (!match)
+      continue;
+    const token = match[1];
+    if (token in WIDTH_SCALE) {
+      found = WIDTH_SCALE[token];
+      continue;
+    }
+    const arbitrary = /^\[(\d+(?:\.\d+)?)px\]$/.exec(token);
+    if (arbitrary)
+      found = Number(arbitrary[1]);
+  }
+  return found;
+}
+function checkFocusContrast(checks, strict = false, palette = defaultPalette) {
+  const violations = [];
+  for (const check of checks) {
+    if (!check.bgClass)
+      continue;
+    const indicatorBase = lastIndicatorColorToken(check.focusClasses);
+    if (!indicatorBase)
+      continue;
+    const indicatorHex = resolveColorValue(indicatorBase, palette);
+    const bgHex = resolveColorValue(check.bgClass, palette);
+    if (!indicatorHex || !bgHex)
+      continue;
+    const indicatorRgb = hexToRgb(indicatorHex);
+    const bgRgb = hexToRgb(bgHex);
+    if (!indicatorRgb || !bgRgb)
+      continue;
+    const ratio = contrastRatio(indicatorRgb, bgRgb);
+    const contrastFails = ratio < NON_TEXT_MIN_RATIO;
+    let thicknessPx = null;
+    if (strict)
+      thicknessPx = lastIndicatorThicknessPx(check.focusClasses);
+    const thicknessFails = strict && thicknessPx !== null && thicknessPx < FOCUS_INDICATOR_MIN_THICKNESS_PX;
+    if (!contrastFails && !thicknessFails)
+      continue;
+    const rawIndicatorClass = check.focusClasses.find((raw) => raw.slice(raw.lastIndexOf(":") + 1) === indicatorBase);
+    violations.push({
+      type: "focus-contrast",
+      file: check.file,
+      line: check.line,
+      tagName: check.tagName,
+      indicatorClass: rawIndicatorClass,
+      bgClass: check.bgClass,
+      ratio,
+      required: NON_TEXT_MIN_RATIO,
+      level: thicknessFails ? "AAA" : "AA",
+      ...thicknessFails && thicknessPx !== null ? { thicknessPx, requiredThicknessPx: FOCUS_INDICATOR_MIN_THICKNESS_PX } : {}
     });
   }
   return violations;
@@ -50172,6 +50266,11 @@ function formatViolation(v) {
     }
     case "focus-indicator":
       return `<${v.tagName}> removes the focus outline (${v.removalClass}) with no visible replacement (focus:ring-*/border-*/shadow-*/bg-*/outline-*)`;
+    case "focus-contrast": {
+      const sc = v.level === "AAA" ? "2.4.13" : "1.4.11";
+      const base = `<${v.tagName}> focus indicator ${v.indicatorClass} on ${v.bgClass} \u2014 ratio ${v.ratio.toFixed(2)}, needs ${v.required} (WCAG ${sc})`;
+      return v.thicknessPx !== void 0 ? `${base}; also only ${v.thicknessPx}px thick, needs >= ${v.requiredThicknessPx}px` : base;
+    }
   }
 }
 function toAnnotationCommand(v) {
@@ -50211,10 +50310,12 @@ async function main() {
     const file = (0, import_node_path2.relative)(cwd, absPath).split(import_node_path2.sep).join("/");
     try {
       const code = (0, import_node_fs2.readFileSync)(absPath, "utf8");
+      const focusChecks = extractFocusIndicatorChecks(code, file);
       violations.push(
         ...checkContrast(extractChecks(code, file), palette),
         ...checkTouchTargets(extractTouchTargetChecks(code, file, spacing), strict),
-        ...checkFocusIndicators(extractFocusIndicatorChecks(code, file))
+        ...checkFocusIndicators(focusChecks),
+        ...checkFocusContrast(focusChecks, strict, palette)
       );
     } catch (err) {
       console.log(`tailwind-a11y: skipping unreadable file ${file}: ${err.message}`);

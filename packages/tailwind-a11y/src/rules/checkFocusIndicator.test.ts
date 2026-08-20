@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { checkFocusIndicators } from "./checkFocusIndicator.js";
+import { checkFocusContrast, checkFocusIndicators } from "./checkFocusIndicator.js";
 import { extractFocusIndicatorChecks } from "../parser/extractFocusIndicators.js";
+import { defaultPalette } from "../theme/defaultPalette.js";
+import { mergePalette } from "../theme/loadCustomTheme.js";
 
 describe("checkFocusIndicators", () => {
   it("flags a bare focus:outline-none with nothing else", () => {
@@ -178,5 +180,262 @@ describe("checkFocusIndicators", () => {
     const violations = checkFocusIndicators(extractFocusIndicatorChecks(code, "fake.tsx"));
     expect(violations).toHaveLength(1);
     expect(violations[0].type).toBe("focus-indicator");
+  });
+});
+
+describe("checkFocusContrast", () => {
+  it("flags a low-contrast ring (blue-400 on blue-500, ~1.3:1) — the case checkFocusIndicators misses entirely", () => {
+    const violations = checkFocusContrast([
+      {
+        file: "f.tsx",
+        line: 1,
+        tagName: "button",
+        focusClasses: ["focus:outline-none", "focus:ring-2", "focus:ring-blue-400"],
+        bgClass: "bg-blue-500",
+        bgSource: "self",
+      },
+    ]);
+    expect(violations).toHaveLength(1);
+    expect(violations[0]).toMatchObject({
+      type: "focus-contrast",
+      indicatorClass: "focus:ring-blue-400",
+      bgClass: "bg-blue-500",
+      required: 3,
+      level: "AA",
+    });
+    expect(violations[0].ratio).toBeLessThan(3);
+    expect(violations[0].thicknessPx).toBeUndefined();
+  });
+
+  it("passes a high-contrast ring (white on blue-500) by default", () => {
+    const violations = checkFocusContrast([
+      {
+        file: "f.tsx",
+        line: 1,
+        tagName: "button",
+        focusClasses: ["focus:outline-none", "focus:ring-2", "focus:ring-white"],
+        bgClass: "bg-blue-500",
+        bgSource: "self",
+      },
+    ]);
+    expect(violations).toEqual([]);
+  });
+
+  it("passes a high-contrast ring-2 under strict too (contrast and thickness both meet AAA)", () => {
+    const violations = checkFocusContrast(
+      [
+        {
+          file: "f.tsx",
+          line: 1,
+          tagName: "button",
+          focusClasses: ["focus:outline-none", "focus:ring-2", "focus:ring-white"],
+          bgClass: "bg-blue-500",
+          bgSource: "self",
+        },
+      ],
+      true
+    );
+    expect(violations).toEqual([]);
+  });
+
+  it("flags ring-1 under strict even though contrast passes — thickness is an independent requirement, not a stricter ratio", () => {
+    const violations = checkFocusContrast(
+      [
+        {
+          file: "f.tsx",
+          line: 1,
+          tagName: "button",
+          focusClasses: ["focus:outline-none", "focus:ring-1", "focus:ring-white"],
+          bgClass: "bg-blue-500",
+          bgSource: "self",
+        },
+      ],
+      true
+    );
+    expect(violations).toHaveLength(1);
+    expect(violations[0].ratio).toBeGreaterThanOrEqual(3); // contrast genuinely passes
+    expect(violations[0]).toMatchObject({
+      level: "AAA",
+      thicknessPx: 1,
+      requiredThicknessPx: 2,
+    });
+  });
+
+  it("does not flag ring-1 the same case by default (thickness is only assessed under strict)", () => {
+    const violations = checkFocusContrast([
+      {
+        file: "f.tsx",
+        line: 1,
+        tagName: "button",
+        focusClasses: ["focus:outline-none", "focus:ring-1", "focus:ring-white"],
+        bgClass: "bg-blue-500",
+        bgSource: "self",
+      },
+    ]);
+    expect(violations).toEqual([]);
+  });
+
+  it("resolves contrast for a bare `ring` (no width digit) under strict, but never fabricates a thickness value", () => {
+    const violations = checkFocusContrast(
+      [
+        {
+          file: "f.tsx",
+          line: 1,
+          tagName: "button",
+          focusClasses: ["focus:outline-none", "focus:ring", "focus:ring-blue-400"],
+          bgClass: "bg-blue-500",
+          bgSource: "self",
+        },
+      ],
+      true
+    );
+    // contrast still fails (blue-400 on blue-500) and is reported; thickness
+    // is unresolvable for a bare `ring` (version-dependent, see
+    // checkFocusIndicator.ts) so it's simply absent, never asserted.
+    expect(violations).toHaveLength(1);
+    expect(violations[0].level).toBe("AA");
+    expect(violations[0].thicknessPx).toBeUndefined();
+    expect(violations[0].requiredThicknessPx).toBeUndefined();
+  });
+
+  it("skips when there's no resolvable background", () => {
+    const violations = checkFocusContrast([
+      {
+        file: "f.tsx",
+        line: 1,
+        tagName: "button",
+        focusClasses: ["focus:outline-none", "focus:ring-2", "focus:ring-blue-400"],
+        bgClass: null,
+        bgSource: null,
+      },
+    ]);
+    expect(violations).toEqual([]);
+  });
+
+  it("skips when there's no explicit outline-*/ring-* color (out of scope, not a false pass)", () => {
+    const violations = checkFocusContrast([
+      {
+        file: "f.tsx",
+        line: 1,
+        tagName: "button",
+        focusClasses: ["focus:outline-none", "focus:border-4", "focus:border-blue-400"],
+        bgClass: "bg-blue-500",
+        bgSource: "self",
+      },
+    ]);
+    expect(violations).toEqual([]);
+  });
+
+  it("does not mistake ring-offset-* for the ring's own color or width", () => {
+    const violations = checkFocusContrast(
+      [
+        {
+          file: "f.tsx",
+          line: 1,
+          tagName: "button",
+          focusClasses: [
+            "focus:outline-none",
+            "focus:ring-2",
+            "focus:ring-white",
+            "focus:ring-offset-2",
+            "focus:ring-offset-blue-400",
+          ],
+          bgClass: "bg-blue-500",
+          bgSource: "self",
+        },
+      ],
+      true
+    );
+    // ring-white/ring-2 (the real indicator) is well above 3:1 and exactly
+    // 2px -- passes. If ring-offset-blue-400 or ring-offset-2 were
+    // mistakenly read as the indicator's own color/width, this would either
+    // false-flag or resolve the wrong values.
+    expect(violations).toEqual([]);
+  });
+
+  it("last-token-wins across outline-* and ring-* together, not per-prefix", () => {
+    const violations = checkFocusContrast([
+      {
+        file: "f.tsx",
+        line: 1,
+        tagName: "button",
+        // outline-blue-400 (low contrast) written first, ring-white (high
+        // contrast) written after -- the later one in source order is what
+        // actually renders, so it should win over the ignored one.
+        focusClasses: ["focus:outline-none", "focus:outline-blue-400", "focus:ring-2", "focus:ring-white"],
+        bgClass: "bg-blue-500",
+        bgSource: "self",
+      },
+    ]);
+    expect(violations).toEqual([]);
+  });
+
+  it("composes end-to-end with extractFocusIndicatorChecks", () => {
+    const code = `const C = () => <button className="bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400">x</button>;`;
+    const violations = checkFocusContrast(extractFocusIndicatorChecks(code, "fake.tsx"));
+    expect(violations).toHaveLength(1);
+    expect(violations[0].type).toBe("focus-contrast");
+  });
+
+  describe("with a custom palette", () => {
+    // Same hex as the stock blue-400 (#60a5fa), so an invisible custom-
+    // themed ring must be caught the same way the stock blue-400 case is
+    // above -- a default-palette-only call would silently see "brand-400"
+    // as unresolvable and report nothing (a real gap this project's
+    // checkContrast/checkTouchTargets siblings already close via their own
+    // palette param).
+    const customPalette = mergePalette(defaultPalette, { brand: { "400": "#60a5fa" } });
+
+    it("resolves a custom-theme indicator color that a default-palette-only call would skip entirely", () => {
+      const noPalette = checkFocusContrast([
+        {
+          file: "f.tsx",
+          line: 1,
+          tagName: "button",
+          focusClasses: ["focus:outline-none", "focus:ring-2", "focus:ring-brand-400"],
+          bgClass: "bg-blue-500",
+          bgSource: "self",
+        },
+      ]);
+      expect(noPalette).toEqual([]); // unresolvable without the custom palette -- silent skip, not a false pass
+
+      const withPalette = checkFocusContrast(
+        [
+          {
+            file: "f.tsx",
+            line: 1,
+            tagName: "button",
+            focusClasses: ["focus:outline-none", "focus:ring-2", "focus:ring-brand-400"],
+            bgClass: "bg-blue-500",
+            bgSource: "self",
+          },
+        ],
+        false,
+        customPalette
+      );
+      expect(withPalette).toHaveLength(1);
+      expect(withPalette[0].ratio).toBeLessThan(3);
+    });
+
+    it("resolves a custom-theme background the same way", () => {
+      const customBgPalette = mergePalette(defaultPalette, { brand: { "500": "#1e3a8a" } }); // dark navy
+      const violations = checkFocusContrast(
+        [
+          {
+            file: "f.tsx",
+            line: 1,
+            tagName: "button",
+            focusClasses: ["focus:outline-none", "focus:ring-2", "focus:ring-blue-400"],
+            bgClass: "bg-brand-500",
+            bgSource: "self",
+          },
+        ],
+        false,
+        customBgPalette
+      );
+      // blue-400 on a dark navy custom background is a real pass -- would be
+      // wrongly skipped (bg unresolvable) without the custom palette.
+      expect(violations).toEqual([]);
+    });
   });
 });

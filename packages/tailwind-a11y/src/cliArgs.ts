@@ -14,14 +14,16 @@ export interface ParsedArgs {
 const HELP_TEXT = `Usage: tailwind-a11y [options] [<glob>...]
 
 Static analysis for Tailwind CSS accessibility violations -- color contrast,
-touch target size, and focus indicator removal.
+touch target size, and focus indicator removal/contrast.
 
 Options:
   -v, --verbose      Also report what couldn't be checked, and why
   -V, --version      Print the version number
   -h, --help         Print this help message
       --strict       Touch targets must meet WCAG 2.5.5 (AAA, 44x44px)
-                      instead of the default 2.5.8 (AA, 24x24px)
+                      instead of the default 2.5.8 (AA, 24x24px); focus
+                      indicators are also held to 2.4.13 (AAA, minimum
+                      thickness) alongside the default 1.4.11 (AA, contrast)
       --config <path>  Path to a tailwind.config.js/.cjs (v3) or a CSS
                         @theme file like app/globals.css (v4) to read
                         custom theme colors/spacing from (default:
