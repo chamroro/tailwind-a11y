@@ -15,8 +15,8 @@ packages/
 ```
 
 All adapters call the engine's `extract*`/`check*` functions directly —
-none of them reimplement detection logic. Adding another adapter (or a
-fourth check) should follow the same pattern.
+none of them reimplement detection logic. Adding another adapter (or
+another check) should follow the same pattern.
 
 ## Rules specific to the monorepo layout
 

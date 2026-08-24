@@ -120,8 +120,9 @@ Tailwind-class-level sizing or focus-style analysis).
   exposes it the same opt-in, default-off way: CLI `--strict`, ESLint
   `["error", { strict: true }]` rule option (the first rule option this
   plugin has ever needed — `configPath` deliberately lives in
-  `settings["tailwind-a11y"]` instead, since it's cross-cutting across all
-  three rules and `strict` isn't), VS Code `tailwind-a11y.strict` setting,
+  `settings["tailwind-a11y"]` instead, since it's shared by whichever rules
+  need theme resolution (contrast, touch-target, and now focus-contrast — see
+  below) and `strict` isn't), VS Code `tailwind-a11y.strict` setting,
   GitHub Action `strict` input. `TouchTargetViolation` carries the active
   threshold on the violation itself now (`required: number`, `level: "AA" |
   "AAA"`), mirroring `ContrastViolation`'s existing shape — every formatter

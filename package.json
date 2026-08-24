@@ -2,7 +2,7 @@
   "name": "tailwind-a11y-monorepo",
   "version": "0.0.0",
   "private": true,
-  "description": "Monorepo for tailwind-a11y (WCAG static-analysis CLI for Tailwind class combinations) and its ESLint + VS Code adapters.",
+  "description": "Monorepo for tailwind-a11y (WCAG static-analysis CLI for Tailwind class combinations) and its ESLint, VS Code, and GitHub Action adapters.",
   "author": "chamroro",
   "license": "MIT",
   "repository": {
