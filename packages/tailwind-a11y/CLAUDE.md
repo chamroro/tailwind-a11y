@@ -78,13 +78,33 @@ Tailwind-class-level sizing or focus-style analysis).
     CSS). `--config` (CLI) / `settings["tailwind-a11y"].configPath` (ESLint) /
     `INPUT_CONFIG` (GitHub Action) exist as explicit overrides, and accept
     either a `.js`/`.cjs` or a `.css` path.
-  - Per color entry (both paths): only a plain hex-string value is accepted
-    (validated with the existing `hexToRgb`) — CSS `oklch()`/`rgb()`/`hsl()`/
-    `var()` etc. are skipped, same "not a hex value -- skip, don't guess"
-    precedent, even though Tailwind v4's own ecosystem leans OKLCH for brand
-    colors. A flat string color (`colors: { brand: '#3490dc' }`) or a
-    `DEFAULT` key is skipped on the JS path — no class syntax
-    (`bg-brand-DEFAULT` isn't real Tailwind) would ever resolve to it.
+  - Per color entry (both paths): a plain hex-string value or a CSS
+    `oklch(L C H)` value is accepted — `themeValueParsers.ts`'s
+    `parseColorScale()` tries `hexToRgb` first, then `oklchToRgb`
+    (`contrast/oklch.ts`), converting an accepted `oklch()` to hex once at
+    ingestion via `rgbToHex` so nothing downstream (`checkContrast.ts`,
+    `checkFocusIndicator.ts`, every adapter) ever needs to know a color
+    started life as OKLCH. Added specifically because Tailwind v4's own
+    default palette and most of its ecosystem (shadcn/ui, v4 starters)
+    define brand colors as `oklch()`, not hex — before this, those colors
+    were silently unresolvable, not "checked and passed." The OKLab
+    conversion matrices were verified against a real headless Chrome
+    (`playwright-core`, canvas + `getImageData` pixel readback — not
+    `getComputedStyle().color`, which modern Chrome now serializes back out
+    as `oklch()` rather than converting to `rgb()`) across in-gamut,
+    out-of-gamut (confirms clamping matches the browser, not just rejection
+    of the in-gamut cases), and percentage-`L`/percentage-`C`/`deg`-suffix
+    syntax variants — 0 channel difference in every case, same "verify
+    against the real tool's actual output, not memory" discipline as the
+    focus-indicator audit below. An alpha component (`oklch(L C H / A)`) or
+    the `none` keyword is unsupported and falls through to skip — the
+    palette only ever stores opaque colors (`HEX_RE` doesn't accept
+    4/8-digit hex with alpha either), so this mirrors an existing limit
+    rather than a new one. `rgb()`/`hsl()`/`var()`/etc. remain skipped, same
+    "not a resolvable value -- skip, don't guess" precedent as before. A
+    flat string color (`colors: { brand: '#3490dc' }`) or a `DEFAULT` key is
+    skipped on the JS path — no class syntax (`bg-brand-DEFAULT` isn't real
+    Tailwind) would ever resolve to it.
   - Per spacing entry (both paths): only `rem`/`px` string values are
     accepted (rem × 16, matching `spacingScale.ts`'s own 16px-root
     assumption).

@@ -155,6 +155,15 @@ describe("loadCustomTheme", () => {
     expect(loadCustomTheme(configPath)).toEqual({});
   });
 
+  it("resolves an oklch() color value to its hex equivalent", () => {
+    const configPath = join(dir, "tailwind.config.js");
+    writeFileSync(
+      configPath,
+      `module.exports = { theme: { extend: { colors: { brand: { 500: "oklch(0.7 0.15 180)" } } } } };`
+    );
+    expect(loadCustomTheme(configPath)).toEqual({ colors: { brand: { "500": "#00bca2" } } });
+  });
+
   it("skips a non-rem/px spacing value", () => {
     const configPath = join(dir, "tailwind.config.js");
     writeFileSync(configPath, `module.exports = { theme: { extend: { spacing: { "18": "50%" } } } };`);

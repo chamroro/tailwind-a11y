@@ -49236,6 +49236,10 @@ function hexToRgb(hex) {
     b: parseInt(digits.slice(4, 6), 16)
   };
 }
+function rgbToHex(rgb) {
+  const channel = (c) => Math.round(Math.min(255, Math.max(0, c))).toString(16).padStart(2, "0");
+  return `#${channel(rgb.r)}${channel(rgb.g)}${channel(rgb.b)}`;
+}
 function applyAlpha(fg2, alpha, bg) {
   return {
     r: Math.round(alpha * fg2.r + (1 - alpha) * bg.r),
@@ -50010,6 +50014,42 @@ var import_node_fs = require("node:fs");
 var import_node_path = require("node:path");
 var import_node_module = require("node:module");
 
+// ../tailwind-a11y/dist/contrast/oklch.js
+var NUM = String.raw`\d+(?:\.\d+)?|\.\d+`;
+var OKLCH_RE = new RegExp(`^oklch\\(\\s*(${NUM})(%)?\\s+(${NUM})(%)?\\s+(${NUM})(deg)?\\s*\\)$`);
+function gammaEncode(linear) {
+  const clamped = Math.min(1, Math.max(0, linear));
+  return clamped <= 31308e-7 ? 12.92 * clamped : 1.055 * clamped ** (1 / 2.4) - 0.055;
+}
+function oklchToRgb(value) {
+  const match = OKLCH_RE.exec(value.trim());
+  if (!match)
+    return null;
+  const [, lRaw, lPct, cRaw, cPct, hRaw] = match;
+  const L = lPct ? Number(lRaw) / 100 : Number(lRaw);
+  const C = cPct ? Number(cRaw) / 100 * 0.4 : Number(cRaw);
+  const H = Number(hRaw);
+  if (!Number.isFinite(L) || !Number.isFinite(C) || !Number.isFinite(H))
+    return null;
+  const hRad = H * Math.PI / 180;
+  const a = C * Math.cos(hRad);
+  const b = C * Math.sin(hRad);
+  const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+  const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+  const s_ = L - 0.0894841775 * a - 1.291485548 * b;
+  const l = l_ ** 3;
+  const m = m_ ** 3;
+  const s = s_ ** 3;
+  const rLin = 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
+  const gLin = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
+  const bLin = -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s;
+  return {
+    r: Math.round(gammaEncode(rLin) * 255),
+    g: Math.round(gammaEncode(gLin) * 255),
+    b: Math.round(gammaEncode(bLin) * 255)
+  };
+}
+
 // ../tailwind-a11y/dist/theme/themeValueParsers.js
 var SPACING_RE = /^-?[\d.]+(rem|px)$/;
 function parseSpacingValue(value) {
@@ -50021,6 +50061,12 @@ function parseSpacingValue(value) {
   const num = parseFloat(value);
   return match[1] === "rem" ? num * 16 : num;
 }
+function resolveShadeHex(shadeValue) {
+  if (hexToRgb(shadeValue) !== null)
+    return shadeValue;
+  const oklchRgb = oklchToRgb(shadeValue);
+  return oklchRgb ? rgbToHex(oklchRgb) : null;
+}
 function parseColorScale(value) {
   if (typeof value !== "object" || value === null || Array.isArray(value))
     return null;
@@ -50030,9 +50076,10 @@ function parseColorScale(value) {
       continue;
     if (typeof shadeValue !== "string")
       continue;
-    if (hexToRgb(shadeValue) === null)
+    const hex = resolveShadeHex(shadeValue);
+    if (hex === null)
       continue;
-    shades[shade] = shadeValue;
+    shades[shade] = hex;
   }
   return Object.keys(shades).length > 0 ? shades : null;
 }

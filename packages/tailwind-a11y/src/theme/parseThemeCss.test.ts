@@ -85,8 +85,8 @@ describe("parseThemeCss", () => {
     });
   });
 
-  it.each(["oklch(0.6 0.2 250)", "rgb(52 144 220)", "var(--some-other-var)"])(
-    "skips a non-hex color value %s",
+  it.each(["rgb(52 144 220)", "var(--some-other-var)"])(
+    "skips a non-hex, non-oklch color value %s",
     (value) => {
       const css = `
         @theme {
@@ -96,6 +96,17 @@ describe("parseThemeCss", () => {
       expect(parseThemeCss(css)).toEqual({});
     }
   );
+
+  it("resolves an oklch() color value (Tailwind v4's own default palette uses this)", () => {
+    const css = `
+      @theme {
+        --color-brand-500: oklch(0.7 0.15 180);
+      }
+    `;
+    expect(parseThemeCss(css)).toEqual({
+      colors: { brand: { "500": "#00bca2" } },
+    });
+  });
 
   it("skips a non-rem/px spacing value", () => {
     const css = `
