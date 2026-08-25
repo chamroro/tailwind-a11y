@@ -30,7 +30,7 @@ found (configurable below).
 | `patterns` | `**/*.{jsx,tsx}` | Whitespace/newline-separated glob pattern(s) to scan |
 | `config` | auto-detect | Path to a `tailwind.config.js`/`.cjs` (v3) or CSS `@theme` file (v4) for custom theme colors/spacing |
 | `fail-on-violations` | `"true"` | Set `"false"` to annotate without failing the job |
-| `strict` | `"false"` | Set `"true"` to enforce WCAG 2.5.5 (AAA, 44x44px) touch targets instead of the default 2.5.8 (AA, 24x24px), and WCAG 2.4.13's minimum focus-indicator thickness alongside the always-on 1.4.11 (AA) contrast check |
+| `strict` | `"false"` | Set `"true"` to enforce WCAG 2.5.5 (AAA, 44x44px) touch targets instead of the default 2.5.8 (AA, 24x24px), WCAG 2.4.13's minimum focus-indicator thickness alongside the always-on 1.4.11 (AA) contrast check, and the reduced-motion check (WCAG 2.3.3, AAA-only, off by default) |
 
 ```yaml
 - uses: chamroro/tailwind-a11y@v0

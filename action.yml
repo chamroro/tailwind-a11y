@@ -31,7 +31,9 @@ inputs:
   strict:
     description: >-
       Enforce WCAG 2.5.5 (AAA, 44x44px) touch targets instead of the default
-      2.5.8 (AA, 24x24px).
+      2.5.8 (AA, 24x24px), WCAG 2.4.13's minimum focus-indicator thickness
+      alongside the always-on 1.4.11 (AA) contrast check, and the
+      reduced-motion check (WCAG 2.3.3, AAA-only, off by default).
     required: false
     default: "false"
 

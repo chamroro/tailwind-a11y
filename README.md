@@ -13,11 +13,12 @@ they ship, instead of at a Lighthouse audit or QA pass.
 | [`vscode-tailwind-a11y`](./packages/vscode-tailwind-a11y) | Live editor diagnostics |
 | [`github-action-tailwind-a11y`](./packages/github-action-tailwind-a11y) | Inline PR annotations (`uses: chamroro/tailwind-a11y@v0`) |
 
-All four run the same four checks — color contrast (WCAG 1.4.3), touch target size
-(WCAG 2.5.8, or 2.5.5 in strict mode), focus indicator removal (WCAG 2.4.7), and focus
-indicator contrast (WCAG 1.4.11, or also 2.4.13 in strict mode) — through one shared
-engine, so results never disagree between them. See each package's README for install
-and usage.
+All four run the same five checks — color contrast (WCAG 1.4.3), touch target size
+(WCAG 2.5.8, or 2.5.5 in strict mode), focus indicator removal (WCAG 2.4.7), focus
+indicator contrast (WCAG 1.4.11, or also 2.4.13 in strict mode), and reduced motion for
+interaction-triggered animation (WCAG 2.3.3, strict-mode only — no AA tier exists) —
+through one shared engine, so results never disagree between them. See each package's
+README for install and usage.
 
 ## Development
 

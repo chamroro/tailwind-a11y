@@ -46,6 +46,7 @@ export default [
 | `touch-target` | 2.5.8 (AA) | Interactive elements under 24×24px — or 44×44px with `{ strict: true }` (2.5.5, AAA) |
 | `focus-indicator` | 2.4.7 (AA) | `focus:outline-none` with no visible replacement |
 | `focus-contrast` | 1.4.11 (AA) | A present `outline-*`/`ring-*` focus indicator below 3:1 contrast — or also below the 2px minimum thickness with `{ strict: true }` (2.4.13, AAA) |
+| `reduced-motion` | 2.3.3 (AAA-only) | A `hover:`/`focus:`/`focus-visible:`/`active:`-scoped `scale-*`/`rotate-*`/`translate-*`/`skew-*` change with an unscoped `transition`/`transition-all`/`transition-transform` and no `motion-reduce:`/`motion-safe:` handling — **not** included in `configs.recommended`, see below |
 
 Exact scope and known limitations: [engine README](https://github.com/chamroro/tailwind-a11y/tree/main/packages/tailwind-a11y#scope).
 
@@ -84,6 +85,26 @@ export default [
   },
 ];
 ```
+
+## Reduced motion (AAA-only, opt-in)
+
+`reduced-motion` has no AA tier to fall back to, so it isn't part of
+`configs.recommended` the way the other three rules are — enable it
+explicitly if you want it:
+
+```js
+export default [
+  ...tailwindA11y.configs.recommended,
+  {
+    files: ["**/*.jsx", "**/*.tsx"],
+    plugins: { "tailwind-a11y": tailwindA11y },
+    rules: { "tailwind-a11y/reduced-motion": "warn" },
+  },
+];
+```
+
+No `strict` option here (unlike `touch-target`/`focus-contrast`) — enabling
+the rule at all is already the opt-in gesture.
 
 ## Notes
 
