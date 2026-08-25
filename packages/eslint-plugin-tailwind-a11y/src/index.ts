@@ -4,6 +4,7 @@ import contrast from "./rules/contrast.js";
 import touchTarget from "./rules/touch-target.js";
 import focusIndicator from "./rules/focus-indicator.js";
 import focusContrast from "./rules/focus-contrast.js";
+import reducedMotion from "./rules/reduced-motion.js";
 
 // `../package.json` resolves correctly from both `src/` (dev) and `dist/`
 // (published), so the plugin version can't drift from the package version.
@@ -21,6 +22,7 @@ const plugin: ESLint.Plugin = {
     "touch-target": touchTarget,
     "focus-indicator": focusIndicator,
     "focus-contrast": focusContrast,
+    "reduced-motion": reducedMotion,
   },
   configs: {},
 };
@@ -40,6 +42,12 @@ Object.assign(plugin.configs!, {
       // README for the TS-parser caveat.
       languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
       plugins: { "tailwind-a11y": plugin },
+      // reduced-motion is deliberately not included here: every other rule
+      // has an AA baseline `recommended` can reasonably assume most
+      // projects want, but WCAG 2.3.3 (what reduced-motion enforces) is
+      // AAA-only with no AA fallback -- silently bundling an AAA-only rule
+      // into "recommended" would surprise users who added this plugin
+      // expecting an AA floor. See README for enabling it explicitly.
       rules: {
         "tailwind-a11y/contrast": "error",
         "tailwind-a11y/touch-target": "error",

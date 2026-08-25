@@ -9,6 +9,8 @@ export {
   type FocusIndicatorViolation,
   type FocusContrastViolation,
 } from "./rules/checkFocusIndicator.js";
+export { extractReducedMotionChecks, type ReducedMotionCheck } from "./parser/extractReducedMotion.js";
+export { checkReducedMotion, type ReducedMotionViolation } from "./rules/checkReducedMotion.js";
 export { hexToRgb, contrastRatio, meetsWCAG, requiredRatio, type RGB } from "./contrast/luminance.js";
 export {
   resolveTheme,

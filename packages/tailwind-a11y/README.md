@@ -25,7 +25,7 @@ npm install --save-dev tailwind-a11y
 npx tailwind-a11y                              # scans **/*.{jsx,tsx}
 npx tailwind-a11y "src/**/*.tsx"               # custom glob
 npx tailwind-a11y --verbose                    # also reports what couldn't be checked, and why
-npx tailwind-a11y --strict                     # touch targets: WCAG 2.5.5 (AAA, 44x44px); focus indicators: also WCAG 2.4.13 (AAA, min thickness)
+npx tailwind-a11y --strict                     # AAA tier: touch targets 2.5.5, focus indicators also 2.4.13, and enables the reduced-motion check (2.3.3)
 npx tailwind-a11y --config ./tw.config.cjs     # use a specific config instead of auto-detecting
 npx tailwind-a11y --version                    # print the installed version
 npx tailwind-a11y --help                       # usage and all options
@@ -57,6 +57,7 @@ Exits `1` on violations — safe to use as a CI gate.
 | Touch target | 2.5.8 (AA) | Interactive elements under 24×24px — or 44×44px with `--strict` (2.5.5, AAA) |
 | Focus indicator | 2.4.7 (AA) | `focus:outline-none` with no visible replacement |
 | Focus indicator contrast | 1.4.11 (AA) | A present `outline-*`/`ring-*` focus indicator below 3:1 contrast — or also below the 2px minimum thickness with `--strict` (2.4.13, AAA) |
+| Reduced motion | 2.3.3 (AAA, `--strict` only) | A `hover:`/`focus:`/`focus-visible:`/`active:`-scoped `scale-*`/`rotate-*`/`translate-*`/`skew-*` change with an unscoped `transition`/`transition-all`/`transition-transform` and no `motion-reduce:`/`motion-safe:` handling |
 
 ## Scope
 

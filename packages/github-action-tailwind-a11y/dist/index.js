@@ -2647,8 +2647,8 @@ var require_parse2 = __commonJS({
             brace.value = brace.output = "\\{";
             value = output = "\\}";
             state.output = out;
-            for (const t6 of toks) {
-              state.output += t6.output || t6.value;
+            for (const t7 of toks) {
+              state.output += t7.output || t7.value;
             }
           }
           push({ type: "brace", value, output });
@@ -5974,7 +5974,7 @@ var require_generated = __commonJS({
     exports2.isJSXEmptyExpression = isJSXEmptyExpression;
     exports2.isJSXExpressionContainer = isJSXExpressionContainer;
     exports2.isJSXFragment = isJSXFragment2;
-    exports2.isJSXIdentifier = isJSXIdentifier5;
+    exports2.isJSXIdentifier = isJSXIdentifier6;
     exports2.isJSXMemberExpression = isJSXMemberExpression;
     exports2.isJSXNamespacedName = isJSXNamespacedName;
     exports2.isJSXOpeningElement = isJSXOpeningElement;
@@ -6959,7 +6959,7 @@ var require_generated = __commonJS({
       if (node.type !== "JSXSpreadChild") return false;
       return opts == null || (0, _shallowEqual.default)(node, opts);
     }
-    function isJSXIdentifier5(node, opts) {
+    function isJSXIdentifier6(node, opts) {
       if (!node) return false;
       if (node.type !== "JSXIdentifier") return false;
       return opts == null || (0, _shallowEqual.default)(node, opts);
@@ -19848,12 +19848,12 @@ var require_lib4 = __commonJS({
     });
     function _objectWithoutPropertiesLoose(r, e) {
       if (null == r) return {};
-      var t6 = {};
+      var t7 = {};
       for (var n in r) if ({}.hasOwnProperty.call(r, n)) {
         if (-1 !== e.indexOf(n)) continue;
-        t6[n] = r[n];
+        t7[n] = r[n];
       }
-      return t6;
+      return t7;
     }
     var Position = class {
       constructor(line, col, index) {
@@ -28456,7 +28456,7 @@ var require_lib4 = __commonJS({
       }
       tsParseTypeOrTypePredicateAnnotation(returnToken) {
         return this.tsInType(() => {
-          const t6 = this.startNode();
+          const t7 = this.startNode();
           this.expect(returnToken);
           const node = this.startNode();
           const asserts = !!this.tsTryParse(this.tsParseTypePredicateAsserts.bind(this));
@@ -28471,26 +28471,26 @@ var require_lib4 = __commonJS({
               this.resetStartLocationFromNode(thisTypePredicate, node);
               thisTypePredicate.asserts = true;
             }
-            t6.typeAnnotation = thisTypePredicate;
-            return this.finishNode(t6, "TSTypeAnnotation");
+            t7.typeAnnotation = thisTypePredicate;
+            return this.finishNode(t7, "TSTypeAnnotation");
           }
           const typePredicateVariable = this.tsIsIdentifier() && this.tsTryParse(this.tsParseTypePredicatePrefix.bind(this));
           if (!typePredicateVariable) {
             if (!asserts) {
-              return this.tsParseTypeAnnotation(false, t6);
+              return this.tsParseTypeAnnotation(false, t7);
             }
             node.parameterName = this.parseIdentifier();
             node.asserts = asserts;
             node.typeAnnotation = null;
-            t6.typeAnnotation = this.finishNode(node, "TSTypePredicate");
-            return this.finishNode(t6, "TSTypeAnnotation");
+            t7.typeAnnotation = this.finishNode(node, "TSTypePredicate");
+            return this.finishNode(t7, "TSTypeAnnotation");
           }
           const type = this.tsParseTypeAnnotation(false);
           node.parameterName = typePredicateVariable;
           node.typeAnnotation = type;
           node.asserts = asserts;
-          t6.typeAnnotation = this.finishNode(node, "TSTypePredicate");
-          return this.finishNode(t6, "TSTypeAnnotation");
+          t7.typeAnnotation = this.finishNode(node, "TSTypePredicate");
+          return this.finishNode(t7, "TSTypeAnnotation");
         });
       }
       tsTryParseTypeOrTypePredicateAnnotation() {
@@ -28529,12 +28529,12 @@ var require_lib4 = __commonJS({
         }
         return true;
       }
-      tsParseTypeAnnotation(eatColon = true, t6 = this.startNode()) {
+      tsParseTypeAnnotation(eatColon = true, t7 = this.startNode()) {
         this.tsInType(() => {
           if (eatColon) this.expect(14);
-          t6.typeAnnotation = this.tsParseType();
+          t7.typeAnnotation = this.tsParseType();
         });
-        return this.finishNode(t6, "TSTypeAnnotation");
+        return this.finishNode(t7, "TSTypeAnnotation");
       }
       tsParseType() {
         assert(this.state.inType);
@@ -30515,7 +30515,7 @@ var require_lib4 = __commonJS({
           }
           const topicToken = pluginsMap.get("pipelineOperator").topicToken;
           if (!TOPIC_TOKENS.includes(topicToken)) {
-            const tokenList = TOPIC_TOKENS.map((t6) => `"${t6}"`).join(", ");
+            const tokenList = TOPIC_TOKENS.map((t7) => `"${t7}"`).join(", ");
             throw new Error(`"pipelineOperator" in "proposal": "hack" mode also requires a "topicToken" option whose value must be one of: ${tokenList}.`);
           }
           if (topicToken === "#" && ((_pluginsMap$get = pluginsMap.get("recordAndTuple")) == null ? void 0 : _pluginsMap$get.syntaxType) === "hash") {
@@ -35241,7 +35241,7 @@ var require_virtual_types_validator = __commonJS({
       isIdentifier,
       isImportDeclaration,
       isImportSpecifier,
-      isJSXIdentifier: isJSXIdentifier5,
+      isJSXIdentifier: isJSXIdentifier6,
       isJSXMemberExpression,
       isMemberExpression,
       isRestElement: nodeIsRestElement,
@@ -35263,7 +35263,7 @@ var require_virtual_types_validator = __commonJS({
       } = this;
       if (isIdentifier(node, opts)) {
         return nodeIsReferenced(node, parent, this.parentPath.parent);
-      } else if (isJSXIdentifier5(node, opts)) {
+      } else if (isJSXIdentifier6(node, opts)) {
         if (!isJSXMemberExpression(parent) && isCompatTag(node.name)) return false;
         return nodeIsReferenced(node, parent, this.parentPath.parent);
       } else {
@@ -35634,8 +35634,8 @@ var require_renamer = __commonJS({
       value: true
     });
     exports2.default = void 0;
-    var t6 = require_lib3();
-    var _t = t6;
+    var t7 = require_lib3();
+    var _t = t7;
     var _traverseNode = require_traverse_node();
     var _visitors = require_visitors();
     var _context = require_context2();
@@ -35701,7 +35701,7 @@ var require_renamer = __commonJS({
           const {
             declaration
           } = maybeExportDeclar.node;
-          if (t6.isDeclaration(declaration) && !declaration.id) {
+          if (t7.isDeclaration(declaration) && !declaration.id) {
             return;
           }
         }
@@ -35737,11 +35737,11 @@ var require_renamer = __commonJS({
         const skipKeys = {
           discriminant: true
         };
-        if (t6.isMethod(blockToTraverse)) {
+        if (t7.isMethod(blockToTraverse)) {
           if (blockToTraverse.computed) {
             skipKeys.key = true;
           }
-          if (!t6.isObjectMethod(blockToTraverse)) {
+          if (!t7.isObjectMethod(blockToTraverse)) {
             skipKeys.decorators = true;
           }
         }
@@ -36048,7 +36048,7 @@ var require_scope = __commonJS({
     var _traverseForScope = require_traverseForScope();
     var _binding = require_binding();
     var _t = require_lib3();
-    var t6 = _t;
+    var t7 = _t;
     var _cache = require_cache();
     var globalsBuiltinLower = require_builtin_lower();
     var globalsBuiltinUpper = require_builtin_upper();
@@ -36253,7 +36253,7 @@ var require_scope = __commonJS({
         parent.registerDeclaration(path);
       },
       ReferencedIdentifier(path, state) {
-        if (t6.isTSQualifiedName(path.parent) && path.parent.right === path.node) {
+        if (t7.isTSQualifiedName(path.parent) && path.parent.right === path.node) {
           return;
         }
         if (path.parentPath.isTSImportEqualsDeclaration()) return;
@@ -36673,7 +36673,7 @@ var require_scope = __commonJS({
         } else if (isCallExpression(node)) {
           return matchesPattern(node.callee, "Symbol.for") && !this.hasBinding("Symbol", {
             noGlobals: true
-          }) && node.arguments.length === 1 && t6.isStringLiteral(node.arguments[0]);
+          }) && node.arguments.length === 1 && t7.isStringLiteral(node.arguments[0]);
         } else {
           return isPureish(node);
         }
@@ -40179,7 +40179,7 @@ var require_typescript2 = __commonJS({
       this.tokenChar(60);
       let printTrailingSeparator = parent.type === "ArrowFunctionExpression" && node.params.length === 1;
       if (this.tokenMap && node.start != null && node.end != null) {
-        printTrailingSeparator && (printTrailingSeparator = !!this.tokenMap.find(node, (t6) => this.tokenMap.matchesOriginal(t6, ",")));
+        printTrailingSeparator && (printTrailingSeparator = !!this.tokenMap.find(node, (t7) => this.tokenMap.matchesOriginal(t7, ",")));
         printTrailingSeparator || (printTrailingSeparator = this.shouldPrintTrailingComma(">"));
       }
       this.printList(node.params, printTrailingSeparator);
@@ -45141,7 +45141,7 @@ var require_removal = __commonJS({
     var _cache = require_cache();
     var _replacement = require_replacement();
     var _index = require_path2();
-    var t6 = require_lib3();
+    var t7 = require_lib3();
     var _modification = require_modification();
     var _context = require_context2();
     function remove() {
@@ -45160,7 +45160,7 @@ var require_removal = __commonJS({
       _markRemoved.call(this);
     }
     function _removeFromScope() {
-      const bindings = t6.getBindingIdentifiers(this.node, false, false, true);
+      const bindings = t7.getBindingIdentifiers(this.node, false, false, true);
       Object.keys(bindings).forEach((name) => this.scope.removeBinding(name));
     }
     function _callRemovalHooks() {
@@ -46326,12 +46326,12 @@ var require_options = __commonJS({
     var _excluded = ["placeholderWhitelist", "placeholderPattern", "preserveComments", "syntacticPlaceholders"];
     function _objectWithoutPropertiesLoose(r, e) {
       if (null == r) return {};
-      var t6 = {};
+      var t7 = {};
       for (var n in r) if ({}.hasOwnProperty.call(r, n)) {
         if (-1 !== e.indexOf(n)) continue;
-        t6[n] = r[n];
+        t7[n] = r[n];
       }
-      return t6;
+      return t7;
     }
     function merge(a, b) {
       const {
@@ -46411,7 +46411,7 @@ var require_parse3 = __commonJS({
       isExpressionStatement,
       isFunction,
       isIdentifier,
-      isJSXIdentifier: isJSXIdentifier5,
+      isJSXIdentifier: isJSXIdentifier6,
       isNewExpression,
       isPlaceholder,
       isStatement,
@@ -46462,7 +46462,7 @@ var require_parse3 = __commonJS({
         hasSyntacticPlaceholders = true;
       } else if (hasSyntacticPlaceholders || state.syntacticPlaceholders) {
         return;
-      } else if (isIdentifier(node) || isJSXIdentifier5(node)) {
+      } else if (isIdentifier(node) || isJSXIdentifier6(node)) {
         name = node.name;
       } else if (isStringLiteral2(node)) {
         name = node.value;
@@ -48325,7 +48325,7 @@ var require_path2 = __commonJS({
     var _index = require_lib8();
     var _index2 = require_scope();
     var _t = require_lib3();
-    var t6 = _t;
+    var t7 = _t;
     var cache = require_cache();
     var _generator = require_lib5();
     var NodePath_ancestry = require_ancestry();
@@ -48586,9 +48586,9 @@ var require_path2 = __commonJS({
       _getKey: NodePath_family._getKey,
       _getPattern: NodePath_family._getPattern
     });
-    for (const type of t6.TYPES) {
+    for (const type of t7.TYPES) {
       const typeKey = `is${type}`;
-      const fn = t6[typeKey];
+      const fn = t7[typeKey];
       NodePath_Final.prototype[typeKey] = function(opts) {
         return fn(this.node, opts);
       };
@@ -48601,7 +48601,7 @@ var require_path2 = __commonJS({
     Object.assign(NodePath_Final.prototype, NodePath_virtual_types_validator);
     for (const type of Object.keys(virtualTypes)) {
       if (type.startsWith("_")) continue;
-      if (!t6.TYPES.includes(type)) t6.TYPES.push(type);
+      if (!t7.TYPES.includes(type)) t7.TYPES.push(type);
     }
   }
 });
@@ -48824,7 +48824,7 @@ var require_context2 = __commonJS({
     var _traverseNode = require_traverse_node();
     var _index = require_path2();
     var _removal = require_removal();
-    var t6 = require_lib3();
+    var t7 = require_lib3();
     function call(key) {
       const opts = this.opts;
       this.debug(key);
@@ -49027,7 +49027,7 @@ var require_context2 = __commonJS({
         context,
         node
       } = this;
-      if (!t6.isPrivate(node) && node.computed) {
+      if (!t7.isPrivate(node) && node.computed) {
         context.maybeQueue(this.get("key"));
       }
       if (node.decorators) {
@@ -50009,6 +50009,114 @@ function checkFocusContrast(checks, strict = false, palette = defaultPalette) {
   return violations;
 }
 
+// ../tailwind-a11y/dist/parser/extractReducedMotion.js
+var t6 = __toESM(require_lib3(), 1);
+var TRANSITION_BASES = /* @__PURE__ */ new Set(["transition", "transition-all", "transition-transform"]);
+var INTERACTION_VARIANTS = /* @__PURE__ */ new Set(["hover", "focus", "focus-visible", "focus-within", "active"]);
+function baseUtility2(raw) {
+  return raw.slice(raw.lastIndexOf(":") + 1);
+}
+function variantSegments(raw) {
+  return raw.split(":").slice(0, -1);
+}
+function extractReducedMotionChecks(code, filePath) {
+  const ast = parseJSX(code, filePath);
+  if (!ast)
+    return [];
+  const checks = [];
+  traverse(ast, {
+    JSXElement(path) {
+      const opening = path.node.openingElement;
+      const className = getStaticClassName(opening.attributes);
+      if (!className)
+        return;
+      const classes = className.split(/\s+/).filter(Boolean);
+      const hasTransitionBase = classes.some((raw) => TRANSITION_BASES.has(baseUtility2(raw)));
+      const hasInteractionClass = classes.some((raw) => variantSegments(raw).some((v) => INTERACTION_VARIANTS.has(v)));
+      if (!hasTransitionBase || !hasInteractionClass)
+        return;
+      checks.push({
+        file: filePath,
+        line: opening.loc?.start.line ?? 0,
+        tagName: t6.isJSXIdentifier(opening.name) ? opening.name.name : "unknown-element",
+        classes
+      });
+    }
+  });
+  return checks;
+}
+
+// ../tailwind-a11y/dist/rules/checkReducedMotion.js
+var TRANSITION_BASES2 = /* @__PURE__ */ new Set(["transition", "transition-all", "transition-transform"]);
+var INTERACTION_VARIANTS2 = /* @__PURE__ */ new Set(["hover", "focus", "focus-visible", "focus-within", "active"]);
+function baseUtility3(raw) {
+  return raw.slice(raw.lastIndexOf(":") + 1);
+}
+function variantSegments2(raw) {
+  return raw.split(":").slice(0, -1);
+}
+var SCALE_RE = /^(scale|scale-x|scale-y)-(\d+)$/;
+var ROTATE_RE = /^-?rotate-(\d+(?:\.\d+)?)$/;
+var TRANSLATE_RE = /^-?(translate-x|translate-y)-(\d+(?:\.\d+)?)$/;
+var SKEW_RE = /^-?(skew-x|skew-y)-(\d+(?:\.\d+)?)$/;
+function isNonIdentityMotionUtility(base) {
+  const scale = SCALE_RE.exec(base);
+  if (scale)
+    return Number(scale[2]) !== 100;
+  const rotate = ROTATE_RE.exec(base);
+  if (rotate)
+    return Number(rotate[1]) !== 0;
+  const translate = TRANSLATE_RE.exec(base);
+  if (translate)
+    return Number(translate[2]) !== 0;
+  const skew = SKEW_RE.exec(base);
+  if (skew)
+    return Number(skew[2]) !== 0;
+  return false;
+}
+function checkReducedMotion(checks, strict = false) {
+  if (!strict)
+    return [];
+  const violations = [];
+  for (const check of checks) {
+    let unscopedTransition = null;
+    let hasMotionReduceGuard = false;
+    for (const raw of check.classes) {
+      const base = baseUtility3(raw);
+      const segments = variantSegments2(raw);
+      if (segments.length === 0 && TRANSITION_BASES2.has(base))
+        unscopedTransition = raw;
+      if (segments.includes("motion-reduce") && (base === "transition-none" || base === "transform-none")) {
+        hasMotionReduceGuard = true;
+      }
+    }
+    if (!unscopedTransition)
+      continue;
+    if (hasMotionReduceGuard)
+      continue;
+    const motionClass = check.classes.find((raw) => {
+      const segments = variantSegments2(raw);
+      if (segments.includes("motion-safe"))
+        return false;
+      if (!segments.some((v) => INTERACTION_VARIANTS2.has(v)))
+        return false;
+      return isNonIdentityMotionUtility(baseUtility3(raw));
+    });
+    if (!motionClass)
+      continue;
+    violations.push({
+      type: "reduced-motion",
+      file: check.file,
+      line: check.line,
+      tagName: check.tagName,
+      transitionClass: unscopedTransition,
+      motionClass,
+      level: "AAA"
+    });
+  }
+  return violations;
+}
+
 // ../tailwind-a11y/dist/theme/loadCustomTheme.js
 var import_node_fs = require("node:fs");
 var import_node_path = require("node:path");
@@ -50318,6 +50426,8 @@ function formatViolation(v) {
       const base = `<${v.tagName}> focus indicator ${v.indicatorClass} on ${v.bgClass} \u2014 ratio ${v.ratio.toFixed(2)}, needs ${v.required} (WCAG ${sc})`;
       return v.thicknessPx !== void 0 ? `${base}; also only ${v.thicknessPx}px thick, needs >= ${v.requiredThicknessPx}px` : base;
     }
+    case "reduced-motion":
+      return `<${v.tagName}> animates ${v.motionClass} via ${v.transitionClass} with no motion-reduce:transition-none/transform-none guard \u2014 WCAG 2.3.3 requires motion animation triggered by interaction to be disableable`;
   }
 }
 function toAnnotationCommand(v) {
@@ -50362,7 +50472,8 @@ async function main() {
         ...checkContrast(extractChecks(code, file), palette),
         ...checkTouchTargets(extractTouchTargetChecks(code, file, spacing), strict),
         ...checkFocusIndicators(focusChecks),
-        ...checkFocusContrast(focusChecks, strict, palette)
+        ...checkFocusContrast(focusChecks, strict, palette),
+        ...checkReducedMotion(extractReducedMotionChecks(code, file), strict)
       );
     } catch (err) {
       console.log(`tailwind-a11y: skipping unreadable file ${file}: ${err.message}`);

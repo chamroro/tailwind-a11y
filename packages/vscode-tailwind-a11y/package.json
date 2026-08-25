@@ -2,7 +2,7 @@
   "name": "vscode-tailwind-a11y",
   "displayName": "Tailwind a11y",
   "description": "Static accessibility analysis for Tailwind CSS projects 🩵",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "private": true,
   "icon": "icon.png",
   "publisher": "HaeunKim",
@@ -41,7 +41,7 @@
           "type": "boolean",
           "default": false,
           "scope": "resource",
-          "description": "Enforce WCAG 2.5.5 (AAA, 44x44px) touch targets instead of the default 2.5.8 (AA, 24x24px), and WCAG 2.4.13's minimum focus-indicator thickness alongside the always-on 1.4.11 (AA) contrast check."
+          "description": "Enforce WCAG 2.5.5 (AAA, 44x44px) touch targets instead of the default 2.5.8 (AA, 24x24px), WCAG 2.4.13's minimum focus-indicator thickness alongside the always-on 1.4.11 (AA) contrast check, and the reduced-motion check (WCAG 2.3.3, AAA-only, off by default -- has no AA tier to fall back to)."
         }
       }
     }
@@ -66,7 +66,7 @@
     "publish:vsix": "vsce publish --no-dependencies"
   },
   "dependencies": {
-    "tailwind-a11y": "^0.11.0"
+    "tailwind-a11y": "^0.12.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

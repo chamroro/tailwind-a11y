@@ -1,6 +1,17 @@
-import type { ContrastViolation, TouchTargetViolation, FocusIndicatorViolation, FocusContrastViolation } from "tailwind-a11y";
+import type {
+  ContrastViolation,
+  TouchTargetViolation,
+  FocusIndicatorViolation,
+  FocusContrastViolation,
+  ReducedMotionViolation,
+} from "tailwind-a11y";
 
-export type AnyViolation = ContrastViolation | TouchTargetViolation | FocusIndicatorViolation | FocusContrastViolation;
+export type AnyViolation =
+  | ContrastViolation
+  | TouchTargetViolation
+  | FocusIndicatorViolation
+  | FocusContrastViolation
+  | ReducedMotionViolation;
 
 // GitHub renders roughly 10 annotations per type per step (and ~50 per job) --
 // undocumented, observed limits. Correctness never rides on annotations:
@@ -42,6 +53,8 @@ export function formatViolation(v: AnyViolation): string {
         ? `${base}; also only ${v.thicknessPx}px thick, needs >= ${v.requiredThicknessPx}px`
         : base;
     }
+    case "reduced-motion":
+      return `<${v.tagName}> animates ${v.motionClass} via ${v.transitionClass} with no motion-reduce:transition-none/transform-none guard — WCAG 2.3.3 requires motion animation triggered by interaction to be disableable`;
   }
 }
 

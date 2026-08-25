@@ -1,0 +1,130 @@
+import { describe, expect, it } from "vitest";
+import { checkReducedMotion } from "./checkReducedMotion.js";
+import { extractReducedMotionChecks } from "../parser/extractReducedMotion.js";
+
+function check(classes: string[]) {
+  return { file: "f.tsx", line: 1, tagName: "div", classes };
+}
+
+describe("checkReducedMotion", () => {
+  it("reports nothing by default (strict not passed) even for an otherwise-real violation", () => {
+    const violations = checkReducedMotion([check(["transition-transform", "hover:scale-110"])]);
+    expect(violations).toEqual([]);
+  });
+
+  it("reports nothing when strict is explicitly false", () => {
+    const violations = checkReducedMotion([check(["transition-transform", "hover:scale-110"])], false);
+    expect(violations).toEqual([]);
+  });
+
+  it("flags an unscoped transition-transform with an interaction-scoped scale and no guard, under strict", () => {
+    const violations = checkReducedMotion([check(["transition-transform", "hover:scale-110"])], true);
+    expect(violations).toEqual([
+      {
+        type: "reduced-motion",
+        file: "f.tsx",
+        line: 1,
+        tagName: "div",
+        transitionClass: "transition-transform",
+        motionClass: "hover:scale-110",
+        level: "AAA",
+      },
+    ]);
+  });
+
+  it("passes when a motion-reduce:transition-none guard is present", () => {
+    const violations = checkReducedMotion(
+      [check(["transition-transform", "hover:scale-110", "motion-reduce:transition-none"])],
+      true
+    );
+    expect(violations).toEqual([]);
+  });
+
+  it("passes when a motion-reduce:transform-none guard is present", () => {
+    const violations = checkReducedMotion(
+      [check(["transition-transform", "hover:scale-110", "motion-reduce:transform-none"])],
+      true
+    );
+    expect(violations).toEqual([]);
+  });
+
+  it("passes when the transition is scoped under motion-safe: instead of unscoped (complete alternative)", () => {
+    const violations = checkReducedMotion([check(["motion-safe:transition-transform", "hover:scale-110"])], true);
+    expect(violations).toEqual([]);
+  });
+
+  // Caught in independent review: motion-safe:hover:scale-110 and
+  // hover:motion-safe:scale-110 compile to the identical nested media query
+  // (confirmed against a real Tailwind v4 build) -- both must be treated as
+  // "this motion utility only applies when motion is already safe,"
+  // regardless of which variant was written first.
+  it.each(["motion-safe:hover:scale-110", "hover:motion-safe:scale-110"])(
+    "passes when the interaction-scoped motion utility is itself motion-safe:-guarded, in either variant order: %s",
+    (motionClass) => {
+      const violations = checkReducedMotion([check(["transition-transform", motionClass])], true);
+      expect(violations).toEqual([]);
+    }
+  );
+
+  it("still flags a plain hover:scale-110 (no motion-safe: anywhere) alongside an unrelated motion-safe:-guarded class", () => {
+    const violations = checkReducedMotion(
+      [check(["transition-transform", "hover:scale-110", "motion-safe:hover:rotate-3"])],
+      true
+    );
+    expect(violations).toHaveLength(1);
+    expect(violations[0].motionClass).toBe("hover:scale-110");
+  });
+
+  it("recognizes focus-within: as an interaction variant", () => {
+    const violations = checkReducedMotion([check(["transition-transform", "focus-within:scale-110"])], true);
+    expect(violations).toHaveLength(1);
+  });
+
+  it("does not flag transition-colors -- it doesn't animate transform/scale/rotate/translate", () => {
+    const violations = checkReducedMotion([check(["transition-colors", "hover:scale-110"])], true);
+    expect(violations).toEqual([]);
+  });
+
+  it("bare transition (the default property list) still counts -- it includes transform/scale/rotate/translate", () => {
+    const violations = checkReducedMotion([check(["transition", "hover:scale-110"])], true);
+    expect(violations).toHaveLength(1);
+  });
+
+  it("transition-all still counts", () => {
+    const violations = checkReducedMotion([check(["transition-all", "hover:rotate-45"])], true);
+    expect(violations).toHaveLength(1);
+  });
+
+  it.each(["hover:scale-100", "focus:rotate-0", "active:translate-x-0", "hover:-translate-y-0", "focus-visible:skew-x-0"])(
+    "does not flag an identity-value interaction utility: %s",
+    (identity) => {
+      const violations = checkReducedMotion([check(["transition-transform", identity])], true);
+      expect(violations).toEqual([]);
+    }
+  );
+
+  it.each(["hover:scale-110", "hover:scale-x-125", "focus:rotate-3", "active:-rotate-6", "hover:-translate-y-1", "focus-visible:skew-x-6"])(
+    "flags a real, non-identity interaction motion utility: %s",
+    (motion) => {
+      const violations = checkReducedMotion([check(["transition-transform", motion])], true);
+      expect(violations).toHaveLength(1);
+    }
+  );
+
+  it("does not flag when there's a transition but no interaction-scoped motion utility at all", () => {
+    const violations = checkReducedMotion([check(["transition-transform", "hover:bg-blue-500"])], true);
+    expect(violations).toEqual([]);
+  });
+
+  it("does not flag when the transition itself is hover-scoped (not present in the resting state)", () => {
+    const violations = checkReducedMotion([check(["hover:transition-transform", "hover:scale-110"])], true);
+    expect(violations).toEqual([]);
+  });
+
+  it("composes end-to-end with extractReducedMotionChecks", () => {
+    const code = `const C = () => <div className="transition-transform hover:scale-110">x</div>;`;
+    const violations = checkReducedMotion(extractReducedMotionChecks(code, "fake.tsx"), true);
+    expect(violations).toHaveLength(1);
+    expect(violations[0].type).toBe("reduced-motion");
+  });
+});

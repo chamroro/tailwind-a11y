@@ -7,6 +7,8 @@ import {
   extractFocusIndicatorChecks,
   checkFocusIndicators,
   checkFocusContrast,
+  extractReducedMotionChecks,
+  checkReducedMotion,
   resolveTheme,
 } from "tailwind-a11y";
 import { formatViolation, type AnyViolation } from "./format.js";
@@ -96,6 +98,7 @@ function analyze(doc: vscode.TextDocument): vscode.Diagnostic[] {
     ...checkTouchTargets(extractTouchTargetChecks(text, file, spacing), strict),
     ...checkFocusIndicators(focusChecks),
     ...checkFocusContrast(focusChecks, strict, palette),
+    ...checkReducedMotion(extractReducedMotionChecks(text, file), strict),
   ];
 
   return violations.map((v) => {

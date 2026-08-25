@@ -12,7 +12,8 @@ published consumers, not free pre-launch churn.)
 
 A static analysis CLI that catches WCAG accessibility violations in Tailwind
 CSS class combinations before they ship: color contrast, touch target size,
-and focus indicator removal/contrast. Existing contrast tools (e.g.
+focus indicator removal/contrast, and reduced motion for interaction-
+triggered animation. Existing contrast tools (e.g.
 `tailwindcss-contrast-checker`) only catch `text-*`/`bg-*` on the *same*
 element; this tool also catches the much more common **direct-parent**
 pattern:
@@ -225,6 +226,80 @@ Tailwind-class-level sizing or focus-style analysis).
     independently-configurable `strict` rule option (own file, own schema),
     since ESLint has no plugin-wide toggle and each rule's options are
     already independently set.
+- **Reduced motion: `checkReducedMotion(checks, strict?)` is WCAG 2.3.3
+  (AAA), the first check in this project with no AA tier to fall back to at
+  all.** Verified against the W3C Understanding doc that "motion animation"
+  specifically means a change to an element's perceived size, shape, or
+  position — color/opacity/blur changes don't qualify, even though they're
+  visually "animated" in the everyday sense. This is why `animate-spin`/
+  `-ping`/`-pulse`/`-bounce` are deliberately **not** covered here: they're
+  continuous, not interaction-triggered, so they belong under 2.2.2 (Pause,
+  Stop, Hide) instead, which has a materially different, harder-to-
+  statically-verify requirement (a 5-second-or-longer duration threshold
+  this tool has no way to know) — folding them in here would misattribute
+  the wrong SC. **Known gap, not yet closed**: that reasoning only holds for
+  an *unscoped* `animate-*` (always running). An interaction-scoped one
+  (`hover:animate-bounce` — a translateY-based, genuinely position-changing
+  animation per the Understanding doc's own definition, triggered only by
+  hover) is squarely 2.3.3's territory per the doc's own "not in response to
+  an intentional user activation" distinction for 2.2.2 — caught in
+  independent review, not yet implemented. The extractor's candidacy gate
+  requires a `transition`/`transition-all`/`transition-transform` base,
+  which `animate-*` isn't, so `hover:animate-bounce` alone currently
+  produces zero checks in any mode, not by deliberate design for this
+  specific case. Would need its own detection path (`animate-*` utilities
+  don't need a `transition-*` base to animate — they carry their own
+  `animation` property), not an extension of the transition-based logic
+  here.
+  - Because there's no AA tier, this is gated behind `strict` in every
+    scan-everything-by-default adapter (CLI, VS Code, GitHub Action) — an
+    AAA-only check running unconditionally would silently start failing
+    existing users' CI on a routine upgrade, unlike the genuinely-AA
+    `checkFocusIndicators` (2.4.7), the one other check in this file with no
+    strict tier. The ESLint rule is the one exception: enabling
+    `tailwind-a11y/reduced-motion` in a config is itself the opt-in
+    gesture, so it always checks for real (`schema: []`, no option, same as
+    `focus-indicator.ts`) — and it's deliberately **not** included in
+    `configs.recommended` either, for the same "AAA shouldn't silently ride
+    along with an AA baseline" reason.
+  - Not scoped to `isInteractiveElement()` — the Understanding doc's own
+    examples aren't limited to buttons/links (a plain hover-animated `<div>`
+    card is exactly the target case), so it walks every JSX element with a
+    static `className`, same as `extractClasses.ts`'s contrast check.
+    Interaction variants recognized: `hover`/`focus`/`focus-visible`/
+    `focus-within`/`active`.
+  - Variant detection scans **every** segment of a stacked variant class
+    (`variantSegments()`), not just the one immediately before the base
+    utility — caught in independent review: `motion-safe:hover:scale-110`
+    and `hover:motion-safe:scale-110` compile to the identical nested media
+    query (verified against a real v4 build), so checking only the
+    innermost segment made the original implementation order-dependent —
+    it recognized the interaction variant, or a `motion-safe:` self-guard on
+    the motion utility itself, only when written last, silently missing the
+    equally valid reverse ordering. Fixed by checking membership across the
+    whole variant stack instead of a single position, in both the extractor
+    and the rule.
+  - Only `transition`/`transition-all`/`transition-transform` count as a
+    qualifying transition base — verified against a real Tailwind v4 build
+    that these three are the only ones whose `transition-property` list
+    includes `transform`/`translate`/`scale`/`rotate`; `transition-colors`/
+    `-opacity`/`-shadow` don't, so a `scale-*` change under `hover:` on an
+    element with only one of those never actually animates (nothing tells
+    the browser to transition that property), and correctly isn't flagged.
+    The transition must be **unscoped** (not itself behind `hover:`/etc.) —
+    a variant-scoped transition isn't present in the resting state, so the
+    browser has nothing to transition from when the interaction begins.
+  - `motion-safe:`-scoping the transition instead of leaving it unscoped is
+    treated as a complete, alternative way of satisfying 2.3.3 (one of the
+    three approaches the Understanding doc names), not a partial one — the
+    transition simply doesn't exist unless motion is already safe.
+  - Each transform utility's identity value is excluded (`scale-100`,
+    `rotate-0`, `translate-x-0`/`-y-0`, `skew-x-0`/`-y-0`, either sign) —
+    real utilities that move nothing, the same "shape looks real but isn't"
+    failure class noted below. Arbitrary bracket values (`scale-[1.5]`) and
+    3D transform utilities (`rotate-x-*`, `translate-z-*`, confirmed to
+    exist in a real v4 build) are out of scope for v1 — unmatched, so
+    silently not considered "motion" rather than guessed at.
 - **Contrast: opacity modifiers (`text-gray-400/50`) are resolved on the
   *text* side only**, composited against the already-resolved (fully opaque)
   background — see `resolveTextColorWithOpacity()`/`applyAlpha()` in
@@ -277,6 +352,7 @@ src/
   parser/extractClasses.ts        — text-*/bg-* pairs per element (contrast)
   parser/extractTouchTargets.ts   — w-*/h-* pairs on interactive elements
   parser/extractFocusIndicators.ts— focus:/focus-visible: classes on interactive elements
+  parser/extractReducedMotion.ts  — transition + hover:/focus:/active: classes on any element
   rules/checkContrast.ts          — contrast violations (WCAG 1.4.3, AA);
                                      resolves a text-side opacity modifier
                                      against the resolved (opaque) bg; also
@@ -288,7 +364,9 @@ src/
   rules/checkFocusIndicator.ts    — focus indicator removal (WCAG 2.4.7, AA)
                                      and focus indicator contrast (WCAG
                                      1.4.11 AA / 2.4.13 AAA under strict)
-  cli.ts                         — fast-glob scan, run all four checkers,
+  rules/checkReducedMotion.ts     — reduced motion violations (WCAG 2.3.3,
+                                     AAA-only, gated behind strict)
+  cli.ts                         — fast-glob scan, run all five checkers,
                                     print report, exit 1 on any violations (CI)
   cliArgs.ts                     — flag parsing, including --config <path>
 ```
