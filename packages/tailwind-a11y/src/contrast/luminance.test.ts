@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyAlpha, contrastRatio, hexToRgb, meetsWCAG, relativeLuminance, requiredRatio } from "./luminance.js";
+import { applyAlpha, contrastRatio, hexToRgb, meetsWCAG, relativeLuminance, requiredRatio, rgbToHex } from "./luminance.js";
 
 describe("hexToRgb", () => {
   it("parses 6-digit hex with #", () => {
@@ -18,6 +18,22 @@ describe("hexToRgb", () => {
     expect(hexToRgb("not-a-color")).toBeNull();
     expect(hexToRgb("#12345")).toBeNull();
     expect(hexToRgb("")).toBeNull();
+  });
+});
+
+describe("rgbToHex", () => {
+  it("is the exact inverse of hexToRgb for round-trippable values", () => {
+    expect(rgbToHex({ r: 255, g: 255, b: 255 })).toBe("#ffffff");
+    expect(rgbToHex({ r: 0, g: 0, b: 0 })).toBe("#000000");
+    expect(rgbToHex({ r: 0xaa, g: 0xbb, b: 0xcc })).toBe("#aabbcc");
+  });
+
+  it("pads single-digit hex channels with a leading zero", () => {
+    expect(rgbToHex({ r: 5, g: 0, b: 250 })).toBe("#0500fa");
+  });
+
+  it("clamps out-of-range channels rather than producing invalid hex", () => {
+    expect(rgbToHex({ r: 300, g: -10, b: 128 })).toBe("#ff0080");
   });
 });
 

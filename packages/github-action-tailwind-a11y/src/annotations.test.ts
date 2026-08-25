@@ -110,6 +110,21 @@ describe("formatViolation", () => {
       "<a> focus indicator focus:ring-white on bg-blue-500 — ratio 3.68, needs 3 (WCAG 2.4.13); also only 1px thick, needs >= 2px"
     );
   });
+
+  it("formats a reduced-motion violation", () => {
+    const message = formatViolation({
+      type: "reduced-motion",
+      file: "src/Card.tsx",
+      line: 3,
+      tagName: "div",
+      transitionClass: "transition-transform",
+      motionClass: "hover:scale-110",
+      level: "AAA",
+    });
+    expect(message).toBe(
+      "<div> animates hover:scale-110 via transition-transform with no motion-reduce:transition-none/transform-none guard — WCAG 2.3.3 requires motion animation triggered by interaction to be disableable"
+    );
+  });
 });
 
 describe("toAnnotationCommand", () => {

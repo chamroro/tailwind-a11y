@@ -25,6 +25,16 @@ export function hexToRgb(hex: string): RGB | null {
   };
 }
 
+// Inverse of hexToRgb -- used once, by themeValueParsers.ts's
+// parseColorScale(), to turn an accepted oklch() value back into the plain
+// hex string every downstream consumer already expects a palette shade to
+// be. Channels are clamped and rounded rather than assumed already valid,
+// since a caller could in principle pass an out-of-range value.
+export function rgbToHex(rgb: RGB): string {
+  const channel = (c: number) => Math.round(Math.min(255, Math.max(0, c))).toString(16).padStart(2, "0");
+  return `#${channel(rgb.r)}${channel(rgb.g)}${channel(rgb.b)}`;
+}
+
 // Standard "src-over" compositing of a foreground at `alpha` opacity over an
 // opaque background, in gamma-encoded sRGB space (0-255 channels) -- matches
 // how browsers actually composite CSS opacity, no linear-light conversion

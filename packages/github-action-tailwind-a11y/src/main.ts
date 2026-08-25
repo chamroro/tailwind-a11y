@@ -9,6 +9,8 @@ import {
   extractFocusIndicatorChecks,
   checkFocusIndicators,
   checkFocusContrast,
+  extractReducedMotionChecks,
+  checkReducedMotion,
   resolveTheme,
 } from "tailwind-a11y";
 import { parseInputs } from "./inputs.js";
@@ -64,7 +66,8 @@ async function main(): Promise<void> {
         ...checkContrast(extractChecks(code, file), palette),
         ...checkTouchTargets(extractTouchTargetChecks(code, file, spacing), strict),
         ...checkFocusIndicators(focusChecks),
-        ...checkFocusContrast(focusChecks, strict, palette)
+        ...checkFocusContrast(focusChecks, strict, palette),
+        ...checkReducedMotion(extractReducedMotionChecks(code, file), strict)
       );
     } catch (err) {
       console.log(`tailwind-a11y: skipping unreadable file ${file}: ${(err as Error).message}`);

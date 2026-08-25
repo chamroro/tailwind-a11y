@@ -14,6 +14,8 @@ import {
   type FocusContrastViolation,
   type FocusIndicatorViolation,
 } from "./rules/checkFocusIndicator.js";
+import { extractReducedMotionChecks } from "./parser/extractReducedMotion.js";
+import { checkReducedMotion, type ReducedMotionViolation } from "./rules/checkReducedMotion.js";
 import { parseArgs, getHelpText } from "./cliArgs.js";
 import { resolveTheme } from "./theme/loadCustomTheme.js";
 
@@ -21,7 +23,12 @@ import { resolveTheme } from "./theme/loadCustomTheme.js";
 const require = createRequire(import.meta.url);
 const { version: packageVersion } = require("../package.json") as { version: string };
 
-type AnyViolation = ContrastViolation | TouchTargetViolation | FocusIndicatorViolation | FocusContrastViolation;
+type AnyViolation =
+  | ContrastViolation
+  | TouchTargetViolation
+  | FocusIndicatorViolation
+  | FocusContrastViolation
+  | ReducedMotionViolation;
 
 interface Skip {
   file: string;
@@ -48,6 +55,8 @@ function formatViolation(v: AnyViolation): string {
         ? `${base}; also only ${v.thicknessPx}px thick, needs >= ${v.requiredThicknessPx}px`
         : base;
     }
+    case "reduced-motion":
+      return `${v.line}: <${v.tagName}> animates ${v.motionClass} via ${v.transitionClass} with no motion-reduce:transition-none/transform-none guard — WCAG 2.3.3 requires motion animation triggered by interaction to be disableable`;
   }
 }
 
@@ -115,7 +124,8 @@ async function main(): Promise<void> {
         ...checkContrast(contrastChecks, palette),
         ...checkTouchTargets(extractTouchTargetChecks(code, file, spacing), strict),
         ...checkFocusIndicators(focusChecks),
-        ...checkFocusContrast(focusChecks, strict, palette)
+        ...checkFocusContrast(focusChecks, strict, palette),
+        ...checkReducedMotion(extractReducedMotionChecks(code, file), strict)
       );
 
       if (verbose) {
