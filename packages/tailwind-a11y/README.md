@@ -34,7 +34,7 @@ npx tailwind-a11y --help                       # usage and all options
 Custom theme colors/spacing are read automatically, so colors and spacing outside
 Tailwind's defaults resolve too — not just the built-in palette. Both config formats
 are supported: `theme.extend.colors`/`theme.extend.spacing` in a Tailwind v3
-`tailwind.config.js`/`.cjs`, and `--color-*`/`--spacing-*` custom properties in a
+`tailwind.config.js`/`.cjs`/`.mjs`, and `--color-*`/`--spacing-*` custom properties in a
 Tailwind v4 CSS `@theme { ... }` block (auto-detected from common paths like
 `app/globals.css`, or passed via `--config`).
 

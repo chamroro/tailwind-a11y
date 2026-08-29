@@ -7,7 +7,10 @@ import { parseColorScale, parseSpacingValue } from "./themeValueParsers.js";
 import { parseThemeCss } from "./parseThemeCss.js";
 import type { Palette } from "./defaultPalette.js";
 
-const CONFIG_FILENAMES = ["tailwind.config.js", "tailwind.config.cjs"];
+// .mjs appended last (lowest priority) -- the newly-supported format behind
+// the two established ones, same "most established first" ordering
+// CSS_THEME_CANDIDATES below already uses for its own list.
+const CONFIG_FILENAMES = ["tailwind.config.js", "tailwind.config.cjs", "tailwind.config.mjs"];
 
 // v1 only looks in the given directory itself -- no ancestor-directory search.
 // --config (CLI) / settings["tailwind-a11y"].configPath (ESLint) exist as
@@ -51,14 +54,45 @@ export interface RawCustomTheme {
   spacing?: Record<string, number>;
 }
 
-// Loads a Tailwind v3-style tailwind.config.js/.cjs and extracts only
+// Loads a Tailwind v3-style tailwind.config.js/.cjs/.mjs and extracts only
 // `theme.extend.colors`/`theme.extend.spacing` -- v1 does not read a full
-// `theme.colors`/`theme.spacing` replacement, or .mjs/.ts configs (no
-// config-transpiling dependency exists in this package). Tailwind v4's
+// `theme.colors`/`theme.spacing` replacement, or .ts configs. Tailwind v4's
 // CSS-based `@theme` config is a separate format entirely, handled by
 // loadThemeFromCssFile()/parseThemeCss() below, not by this function.
 // `configPath` must be an absolute path (require() resolves relative paths
 // against this module's own location, not the caller's cwd).
+//
+// .mjs works via plain require() -- verified this session that Node
+// 20.19+/22.13+ can require() an ESM module synchronously, no import(), no
+// async refactor. On an older Node this throws ERR_REQUIRE_ESM, already
+// caught below and treated as "no config found," so this degrades exactly
+// as gracefully as it did before .mjs was supported. Every adapter's actual
+// runtime already clears the threshold: the GitHub Action runs on Node 24
+// (action.yml), eslint-plugin-tailwind-a11y's own engines.node already
+// excludes every version that lacks this, and the CLI's broad >=18 floor
+// just falls back safely on anything older.
+//
+// .ts is a deliberate non-goal, not a "not yet": Node's native TypeScript
+// type-stripping only activates when the *host* process is launched with
+// --experimental-strip-types (verified this session -- a library can't
+// turn this on for the user), so the only way to support .ts transparently
+// would be promoting esbuild from a devDependency to a real runtime
+// dependency of this package purely to transpile config files, a real
+// native-binary weight increase. Also verified this session: a fresh
+// `create-next-app --typescript --tailwind` no longer generates a JS/TS
+// config file at all -- Tailwind v4 projects put theme customization in a
+// CSS `@theme` block instead (see loadThemeFromCssFile() below), so .ts
+// config support would only help a shrinking population of legacy
+// v3-plus-TypeScript projects, not worth the dependency.
+//
+// Known limitation, not fixed: bustRequireCache() below does NOT work for
+// a .mjs config. Node's synchronous require(esm) caches the module in its
+// own internal ESM registry, not (only) in `require.cache` -- deleting the
+// `require.cache` entry doesn't force a reload, confirmed with a real
+// edit-and-reload test this session. CLI and GitHub Action are unaffected
+// (fresh process per run either way); the VS Code extension's live-reload
+// guarantee, which does work correctly for .js/.cjs/.css configs, does NOT
+// extend to .mjs -- editing a .mjs config requires reloading the window.
 //
 // Node's require() cache is busted before loading -- recursively, for the
 // config file *and* everything it required (e.g. a config that factors
@@ -90,7 +124,20 @@ export function loadCustomTheme(configPath: string): RawCustomTheme | null {
     const resolved = require.resolve(configPath);
     const cached = require.cache[resolved];
     if (cached) bustRequireCache(require, cached, new Set());
-    const config = require(resolved);
+    const loaded = require(resolved);
+    // Node's require() of an ESM module returns the module namespace object
+    // (`{ __esModule: true, default: <the actual export>, ...named exports
+    // }`), not the export itself. Gated strictly on the .mjs extension --
+    // caught in independent review: a structural check ("does it have a
+    // `default` key") instead of this would silently misfire on a genuine
+    // CJS config that happens to export its own top-level `default` key
+    // (e.g. `module.exports = { default: "unrelated", theme: {...} }`),
+    // discarding the real theme with no error. .mjs is the only path that
+    // can ever produce this wrapped shape here: a `.js`/`.cjs` require()
+    // either returns the CJS export as-is, or -- inside a "type": "module"
+    // package -- throws ERR_REQUIRE_ESM before this line is ever reached
+    // (already handled by the catch block below, and already tested).
+    const config = resolved.endsWith(".mjs") && loaded && typeof loaded === "object" ? loaded.default : loaded;
     const extend = config?.theme?.extend ?? {};
 
     const result: RawCustomTheme = {};
