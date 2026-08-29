@@ -41,7 +41,24 @@ describe("findTailwindConfig", () => {
     expect(findTailwindConfig(dir)).toBe(join(dir, "tailwind.config.js"));
   });
 
-  it("returns null when neither exists", () => {
+  it("finds tailwind.config.mjs when .js and .cjs are both absent", () => {
+    writeFileSync(join(dir, "tailwind.config.mjs"), "export default {};");
+    expect(findTailwindConfig(dir)).toBe(join(dir, "tailwind.config.mjs"));
+  });
+
+  it("prefers .js over .mjs when both are present (lowest priority)", () => {
+    writeFileSync(join(dir, "tailwind.config.js"), "module.exports = {};");
+    writeFileSync(join(dir, "tailwind.config.mjs"), "export default {};");
+    expect(findTailwindConfig(dir)).toBe(join(dir, "tailwind.config.js"));
+  });
+
+  it("prefers .cjs over .mjs when both are present (lowest priority, transitively)", () => {
+    writeFileSync(join(dir, "tailwind.config.cjs"), "module.exports = {};");
+    writeFileSync(join(dir, "tailwind.config.mjs"), "export default {};");
+    expect(findTailwindConfig(dir)).toBe(join(dir, "tailwind.config.cjs"));
+  });
+
+  it("returns null when none exist", () => {
     expect(findTailwindConfig(dir)).toBeNull();
   });
 });
@@ -168,6 +185,50 @@ describe("loadCustomTheme", () => {
     const configPath = join(dir, "tailwind.config.js");
     writeFileSync(configPath, `module.exports = { theme: { extend: { spacing: { "18": "50%" } } } };`);
     expect(loadCustomTheme(configPath)).toEqual({});
+  });
+
+  it("resolves theme.extend.colors/spacing from a real .mjs (ESM) config", () => {
+    const configPath = join(dir, "tailwind.config.mjs");
+    writeFileSync(
+      configPath,
+      `export default { theme: { extend: {
+        colors: { brand: { 500: "#3490dc" } },
+        spacing: { "18": "4.5rem" },
+      } } };`
+    );
+    expect(loadCustomTheme(configPath)).toEqual({
+      colors: { brand: { "500": "#3490dc" } },
+      spacing: { "18": 72 },
+    });
+  });
+
+  // Caught in independent review: a structural check ("does this object
+  // have a `default` key") instead of gating strictly on the .mjs
+  // extension would silently misfire here, discarding the real theme with
+  // no error -- a .cjs config's own top-level `default` key is unrelated
+  // to Node's ESM interop shape and must never be unwrapped.
+  it("does not mistake a CJS config's own top-level `default` key for ESM interop", () => {
+    const configPath = join(dir, "tailwind.config.cjs");
+    writeFileSync(
+      configPath,
+      `module.exports = { default: "unrelated string", theme: { extend: { colors: { brand: { 500: "#3490dc" } } } } };`
+    );
+    expect(loadCustomTheme(configPath)).toEqual({ colors: { brand: { "500": "#3490dc" } } });
+  });
+
+  it("does not throw when busting the cache for a .mjs config on a second load", () => {
+    // Documented limitation, not a regression to fix here: Node's
+    // synchronous require(esm) caches the module in its own internal ESM
+    // registry, not (only) require.cache, so deleting the require.cache
+    // entry doesn't force a reload the way it does for .js/.cjs -- this
+    // only asserts the second load doesn't crash, not that it picks up
+    // the edit.
+    const configPath = join(dir, "tailwind.config.mjs");
+    writeFileSync(configPath, `export default { theme: { extend: { colors: { brand: { 500: "#111111" } } } } };`);
+    expect(loadCustomTheme(configPath)).toEqual({ colors: { brand: { "500": "#111111" } } });
+
+    writeFileSync(configPath, `export default { theme: { extend: { colors: { brand: { 500: "#222222" } } } } };`);
+    expect(() => loadCustomTheme(configPath)).not.toThrow();
   });
 
   it("reflects an edit to the same path (require cache is busted)", () => {

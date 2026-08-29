@@ -51,13 +51,45 @@ Tailwind-class-level sizing or focus-style analysis).
 - **Custom theme extension *is* implemented for both Tailwind v3 JS configs
   and v4 CSS `@theme` configs** (see `theme/loadCustomTheme.ts` and
   `theme/parseThemeCss.ts`), but narrowly:
-  - JS path: `tailwind.config.js`/`.cjs` only, reads only
+  - JS path: `tailwind.config.js`/`.cjs`/`.mjs`, reads only
     `theme.extend.colors`/`theme.extend.spacing` — never a full
-    `theme.colors`/`theme.spacing` replacement. No `.mjs`/`.ts` config files
-    (no config-transpiling dependency exists in this package, and none is
-    being added just for this). A `.js` config inside a `"type": "module"`
-    project throws `ERR_REQUIRE_ESM` on `require()` — caught, treated the
-    same as "no config found," not a crash.
+    `theme.colors`/`theme.spacing` replacement. A `.js` config inside a
+    `"type": "module"` project throws `ERR_REQUIRE_ESM` on `require()` —
+    caught, treated the same as "no config found," not a crash.
+  - `.mjs` support (added after initially being ruled out) works via plain
+    `require()` — verified that Node 20.19+/22.13+ can `require()` an ESM
+    module **synchronously**, no `import()`, no async refactor needed.
+    `require()` returns the module namespace object
+    (`{ __esModule: true, default: <export>, ... }`), unwrapped with a
+    one-line check in `loadCustomTheme.ts` before reading `theme.extend`
+    that a plain `module.exports = {...}` CJS config never accidentally
+    matches. On an older Node this throws `ERR_REQUIRE_ESM`, already caught
+    above — the same graceful "no config found" fallback, not a crash.
+    Every adapter's actual runtime already clears the threshold: the
+    GitHub Action runs on Node 24 (`action.yml`), the ESLint plugin's own
+    `engines.node` already excludes every version that lacks this, and the
+    CLI's broad `>=18` floor just degrades safely on anything older.
+    **Known limitation, not fixed**: `bustRequireCache()`'s cache-busting,
+    which is what lets a long-lived process (the VS Code extension host)
+    pick up a `.js`/`.cjs`/`.css` config edit without restarting, does
+    **not** work for `.mjs` — Node caches a synchronously-required ESM
+    module in its own internal registry, not (only) `require.cache`,
+    confirmed with a real edit-and-reload test. CLI/GitHub Action are
+    unaffected (fresh process per run); editing a `.mjs` config in VS Code
+    requires reloading the window.
+  - `.ts` config files are a deliberate non-goal, not a "not yet." Node's
+    native TypeScript type-stripping only activates when the *host* process
+    itself is launched with `--experimental-strip-types` — verified this
+    session that a library has no way to turn this on for the user, so the
+    only way to support `.ts` transparently would be promoting `esbuild`
+    from a devDependency to a genuine runtime dependency of this package, a
+    real native-binary weight increase. Also verified: a fresh
+    `create-next-app --typescript --tailwind` no longer generates any
+    JS/TS config file at all — current Tailwind v4 projects put theme
+    customization in a CSS `@theme` block instead (already fully supported,
+    see the CSS path below), so `.ts` config support would only help a
+    shrinking population of legacy v3-plus-TypeScript projects — declined
+    as not worth the dependency.
   - CSS path: reads `--color-{name}-{shade}`/`--spacing-{token}` custom
     properties out of `@theme { ... }` blocks (any modifier keyword, e.g.
     `@theme inline { ... }`, is accepted — the declaration syntax inside is

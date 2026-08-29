@@ -52,7 +52,7 @@ Exact scope and known limitations: [engine README](https://github.com/chamroro/t
 
 ## Custom theme
 
-A `tailwind.config.js`/`.cjs` (Tailwind v3) or a CSS `@theme` file like
+A `tailwind.config.js`/`.cjs`/`.mjs` (Tailwind v3) or a CSS `@theme` file like
 `app/globals.css` (Tailwind v4) in ESLint's cwd is auto-detected; point at a specific
 file instead via `settings`:
 

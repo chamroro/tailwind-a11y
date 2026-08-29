@@ -22,11 +22,14 @@ Diagnostics appear as warnings in `.jsx`/`.tsx` files, updating on open, save, a
 or [ESLint plugin](https://github.com/chamroro/tailwind-a11y/tree/main/packages/eslint-plugin-tailwind-a11y)
 instead — both treat the same findings as errors.
 
-A `tailwind.config.js`/`.cjs` (Tailwind v3) or a CSS `@theme` file like
+A `tailwind.config.js`/`.cjs`/`.mjs` (Tailwind v3) or a CSS `@theme` file like
 `app/globals.css` (Tailwind v4) in the open file's workspace folder is picked up
 automatically, so custom theme colors/spacing resolve the same way they do in the CLI
-and ESLint plugin. Point at a specific file instead via the `tailwind-a11y.configPath`
-setting:
+and ESLint plugin. Editing a `.js`/`.cjs`/`.css` config is picked up live, same as
+editing any other file — a `.mjs` config is the one exception: Node caches it in a
+way this extension can't invalidate, so an edit to a `.mjs` config needs a window
+reload (Developer: Reload Window) to take effect. Point at a specific file instead
+via the `tailwind-a11y.configPath` setting:
 
 ```json
 { "tailwind-a11y.configPath": "./app/globals.css" }

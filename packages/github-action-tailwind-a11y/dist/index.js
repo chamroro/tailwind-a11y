@@ -50275,7 +50275,7 @@ function parseThemeCss(cssText) {
 }
 
 // ../tailwind-a11y/dist/theme/loadCustomTheme.js
-var CONFIG_FILENAMES = ["tailwind.config.js", "tailwind.config.cjs"];
+var CONFIG_FILENAMES = ["tailwind.config.js", "tailwind.config.cjs", "tailwind.config.mjs"];
 function findTailwindConfig(rootDir) {
   for (const filename of CONFIG_FILENAMES) {
     const candidate = (0, import_node_path.join)(rootDir, filename);
@@ -50315,7 +50315,8 @@ function loadCustomTheme(configPath) {
     const cached = require2.cache[resolved];
     if (cached)
       bustRequireCache(require2, cached, /* @__PURE__ */ new Set());
-    const config = require2(resolved);
+    const loaded = require2(resolved);
+    const config = resolved.endsWith(".mjs") && loaded && typeof loaded === "object" ? loaded.default : loaded;
     const extend = config?.theme?.extend ?? {};
     const result = {};
     if (extend.colors && typeof extend.colors === "object") {
