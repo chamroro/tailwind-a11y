@@ -214,6 +214,26 @@ Tailwind-class-level sizing or focus-style analysis).
     the outline is genuinely visible) and any border-*width* utility alone,
     e.g. `border-t-4` (border-color defaults to `currentColor`, not
     transparent, so a width-only utility is genuinely visible).
+  - `inset-shadow-*`/`inset-ring-*` (Tailwind v4's inset box-shadow family)
+    are their own prefix, not `shadow`/`ring` with a suffix — missed by the
+    original audit (these utilities either didn't exist yet or weren't
+    considered) and found later via independent adversarial testing, in the
+    *opposite* direction from every other case here: a real
+    `inset-shadow-sm`/`inset-ring-2` replacement was being **rejected**,
+    since a string starting with `inset-` never matched the `shadow`/`ring`
+    prefix alternatives at all — a false positive on the overall check
+    (reported the outline as removed with nothing put back, when something
+    real was there). Fixed by adding `inset-shadow`/`inset-ring` as their
+    own alternatives. Once added, the same two decoy shapes as their
+    outer-ring/shadow counterparts apply and were verified against a real
+    build: `inset-shadow-none`/`inset-ring-0` are degenerate (zero-value,
+    real but invisible, added to `DEGENERATE_BASES`), and
+    `inset-shadow-{color}`/`inset-ring-{color}` alone are color-only
+    (extended `isColorOnlyShadowOrRing`'s existing regexes with an optional
+    `inset-` prefix rather than a third copy). `inset-ring-offset-*`
+    doesn't exist as a real Tailwind utility (confirmed via the same real
+    build — it compiles to nothing), so no equivalent of
+    `isColorOnlyRingOffset` was needed for the inset family.
   - Out of scope for this and future audits of this check: arbitrary
     variants (`[&:hover]`-style), first-party plugin utilities
     (`@tailwindcss/forms`, `@tailwindcss/typography` — not installed or
