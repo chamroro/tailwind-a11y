@@ -83,6 +83,22 @@ function isColorOnlyShadowOrRing(base: string): boolean {
   return false;
 }
 
+// ring-offset-{color} (e.g. ring-offset-blue-500) sets only the
+// --tw-ring-offset-color CSS variable -- the offset ring itself is only
+// ever drawn when a real ring width is *also* present (ring-2, etc.),
+// verified against a real Tailwind v4 build. MODIFIER_ONLY above already
+// excludes the numeric width form (ring-offset-4), but its regex requires
+// digits after "offset-", so it never matched this color-shaped form --
+// caught in independent adversarial testing (a real false negative: this
+// fell through to the generic ring-* prefix match at the bottom of
+// isReplacement and was silently accepted as a real replacement). One
+// level deeper than isColorOnlyShadowOrRing above, so a separate check
+// rather than folding into it.
+function isColorOnlyRingOffset(base: string): boolean {
+  const match = /^ring-offset-(.+)$/.exec(base);
+  return !!match && COLOR_TOKEN.test(match[1]);
+}
+
 function baseUtility(raw: string): string {
   return raw.slice(raw.lastIndexOf(":") + 1);
 }
@@ -92,6 +108,7 @@ function isReplacement(raw: string): boolean {
   if (DEGENERATE_BASES.has(base) || MODIFIER_ONLY.test(base)) return false;
   if (NON_VISUAL_BASES.has(base) || NON_VISUAL_PATTERN.test(base)) return false;
   if (isColorOnlyShadowOrRing(base)) return false;
+  if (isColorOnlyRingOffset(base)) return false;
   return /^(ring|border|shadow|bg|outline)(-|$)/.test(base);
 }
 
