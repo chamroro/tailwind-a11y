@@ -394,7 +394,14 @@ Tailwind-class-level sizing or focus-style analysis).
   - The *background* side (`bg-white/50` as the actual background) stays
     unresolvable. Compositing it correctly requires knowing what's rendered
     behind it (grandparent-or-beyond) — the same ancestor-walk this file
-    already scopes out for plain (non-opacity) backgrounds.
+    already scopes out for plain (non-opacity) backgrounds. `--verbose`'s
+    skip reason for this (`checkContrastValueSkips`'s `bgSkipReason()`)
+    distinguishes it from a genuinely unresolvable color: `bg-gray-800/50`
+    reports "a recognized color, but background-side opacity isn't
+    resolved," not "not a recognized color" — caught in independent
+    adversarial testing, since `gray-800` is a real default-palette color
+    and the old generic message would send a developer looking for a theme
+    entry to add, which was never the actual problem.
   - `scale-shade/NN` (`text-gray-400/50`), semantic-word/NN (`text-white/50`,
     `text-black/50`), and arbitrary-hex/NN (`text-[#eee]/50`) all resolve —
     `COLOR_TOKEN` in `extractClasses.ts` extracts all three shapes with the

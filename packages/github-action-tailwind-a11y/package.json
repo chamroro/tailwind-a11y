@@ -1,6 +1,6 @@
 {
   "name": "github-action-tailwind-a11y",
-  "version": "0.13.4",
+  "version": "0.13.5",
   "description": "GitHub Action that reports WCAG accessibility violations in Tailwind CSS class combinations as inline PR annotations.",
   "private": true,
   "license": "MIT",
@@ -21,7 +21,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "tailwind-a11y": "^0.13.4",
+    "tailwind-a11y": "^0.13.5",
     "fast-glob": "^3.3.2"
   },
   "devDependencies": {

@@ -167,6 +167,25 @@ export interface ContrastValueSkip {
   reason: string;
 }
 
+// resolveColorValue() bails out on any bg-side opacity modifier before ever
+// checking whether the underlying color is real (background-side opacity
+// compositing is out of scope -- see CLAUDE.md -- since it depends on
+// knowing what's rendered behind an already-semi-transparent background).
+// Caught in independent adversarial testing: this made checkContrastValueSkips
+// report `bg-gray-800/50 is not a recognized color`, even though gray-800
+// is a perfectly recognized default-palette color -- a developer reading
+// that message would reasonably (and pointlessly) try adding a theme entry
+// for it. Distinguishes the two cases by re-resolving the color with the
+// opacity suffix stripped off: if that succeeds, the real reason is the
+// out-of-scope opacity, not an unrecognized color.
+function bgSkipReason(bgColorClass: string, palette: Palette): string {
+  const { base, alpha } = splitOpacityModifier(bgColorClass);
+  if (alpha < 1 && resolveColorValue(base, palette) !== null) {
+    return `${bgColorClass} is a recognized color, but background-side opacity isn't resolved (compositing it correctly requires knowing what's rendered behind it) — skipped`;
+  }
+  return `${bgColorClass} is not a recognized color (custom theme color or unsupported arbitrary value) — skipped`;
+}
+
 // A candidate that extractChecks *did* find a background for, but whose
 // text or bg utility didn't resolve to a known value (custom theme color,
 // non-hex arbitrary value, background-side opacity shorthand) — surfaced
@@ -190,11 +209,7 @@ export function checkContrastValueSkips(
     const bgHex = resolveColorValue(check.bgColorClass, palette);
     const bgRgb = bgHex ? hexToRgb(bgHex) : null;
     if (!bgRgb) {
-      skips.push({
-        file: check.file,
-        line: check.line,
-        reason: `${check.bgColorClass} is not a recognized color (custom theme color or unsupported arbitrary value) — skipped`,
-      });
+      skips.push({ file: check.file, line: check.line, reason: bgSkipReason(check.bgColorClass, palette) });
       continue;
     }
 

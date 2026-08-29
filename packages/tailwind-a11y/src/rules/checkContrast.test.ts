@@ -220,6 +220,28 @@ describe("checkContrastValueSkips", () => {
     expect(skips[0].reason).toContain("bg-white/50");
   });
 
+  // Caught in independent adversarial testing: this used to report
+  // "bg-gray-800/50 is not a recognized color," even though gray-800 is a
+  // perfectly recognized default-palette color -- the real, distinct
+  // reason is that background-side opacity compositing is out of scope,
+  // not that the color itself is unknown. A developer reading the old
+  // message would reasonably (and pointlessly) try defining a theme entry
+  // for a color that was never the problem.
+  it("distinguishes a recognized color with an unresolved bg-side opacity from a genuinely unrecognized color", () => {
+    const [recognizedSkip] = checkContrastValueSkips([
+      { file: "f.tsx", line: 1, textColorClass: "text-gray-500", bgColorClass: "bg-gray-800/50", bgSource: "self" },
+    ]);
+    expect(recognizedSkip.reason).toContain("bg-gray-800/50");
+    expect(recognizedSkip.reason).toContain("recognized color");
+    expect(recognizedSkip.reason).not.toContain("not a recognized color");
+
+    const [unrecognizedSkip] = checkContrastValueSkips([
+      { file: "f.tsx", line: 1, textColorClass: "text-gray-500", bgColorClass: "bg-brand-500/50", bgSource: "self" },
+    ]);
+    expect(unrecognizedSkip.reason).toContain("bg-brand-500/50");
+    expect(unrecognizedSkip.reason).toContain("not a recognized color");
+  });
+
   it("does not report a skip for a fully resolvable pair", () => {
     const skips = checkContrastValueSkips([
       { file: "f.tsx", line: 1, textColorClass: "text-gray-400", bgColorClass: "bg-white", bgSource: "self" },
