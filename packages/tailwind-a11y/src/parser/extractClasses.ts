@@ -38,13 +38,24 @@ const NON_COLOR_SCALE_NAMES = new Set(["opacity", "linear", "conic"]);
 export function lastColorToken(className: string, prefix: "text" | "bg"): string | null {
   let found: string | null = null;
   for (const raw of className.split(/\s+/).filter(Boolean)) {
-    const base = raw.slice(raw.lastIndexOf(":") + 1); // strip hover:/dark:/md: variants
-    if (!base.startsWith(`${prefix}-`)) continue;
-    const rest = base.slice(prefix.length + 1);
+    // Variant-scoped classes (hover:/dark:/md:/...) are skipped entirely,
+    // not stripped down to their base utility -- fixed after independent
+    // testing found a real false negative: `bg-white dark:bg-gray-900`
+    // with `text-gray-300` silently passed, because stripping the `dark:`
+    // prefix let it participate in last-token-wins as if it were the real,
+    // always-rendered resting-state background, when `dark:bg-gray-900`
+    // only ever applies under a completely different condition. Mirrors
+    // `extractTouchTargets.ts`'s `lastSizeToken`, which already excludes
+    // any variant-scoped size token from resting-state resolution the same
+    // way (`if (raw.includes(":")) continue;`) -- this had no equivalent
+    // guard for colors.
+    if (raw.includes(":")) continue;
+    if (!raw.startsWith(`${prefix}-`)) continue;
+    const rest = raw.slice(prefix.length + 1);
     if (!COLOR_TOKEN.test(rest)) continue;
     const scaleName = /^([a-z]+)-\d/.exec(rest)?.[1];
     if (scaleName && NON_COLOR_SCALE_NAMES.has(scaleName)) continue;
-    found = base;
+    found = raw;
   }
   return found;
 }

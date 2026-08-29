@@ -429,15 +429,44 @@ systematic one-time audit walked the focus-indicator check's entire risk
 surface against a real Tailwind v4 build (see the "Focus indicator" bullet
 above) and found five more in one pass: `border-none`/`border-hidden`,
 `border-spacing-*`, and color-only `shadow-*`/`ring-*`. That audit also
-confirmed the *other* two checks in this file have no equivalent risk: the
-touch-target check resolves against a closed, enumerated lookup table
-(`spacingScale`) rather than a permissive regex, so there's no same-shape-
-different-meaning token possible there; the contrast check's `bg-*`
-namespace was re-walked against every real `bg-*` utility category and
-turned up nothing beyond what was already fixed (`opacity`/`linear`/
-`conic`). If a new regex/token-matching check is ever added, prefer this
-same approach — verify against the real tool's actual output, not memory —
-over waiting for bugs to surface one at a time.
+claimed the contrast check's `bg-*` namespace had been re-walked and turned
+up nothing beyond `opacity`/`linear`/`conic` — **this later turned out to be
+incomplete**: the audit only checked for same-shape *base utility names*
+that could mask a color, not the orthogonal case of a *variant-scoped*
+color masking the real resting-state one. `lastColorToken()` (and the
+near-duplicate `lastIndicatorColorToken` this used to be, now
+`lastColorTokenForIndicator`) stripped `hover:`/`dark:`/`md:`/etc. prefixes
+*before* last-token-wins, so `bg-white dark:bg-gray-900` on an element with
+`text-gray-300` silently reported nothing at all — `dark:bg-gray-900` won
+last-token-wins purely by being written later, `gray-300`-on-`gray-900`
+happens to pass, and the real 1.47:1 `gray-300`-on-`bg-white` resting-state
+failure was never even attempted. Independent adversarial testing found
+this (not the original audit). Fixed the same way `extractTouchTargets.ts`'s
+`lastSizeToken` already handled it (`if (raw.includes(":")) continue;` —
+skip a variant-scoped token entirely, don't let it participate in
+resting-state resolution at all) — a guard `lastColorToken` never had.
+
+A second, related bug found the same way: `checkFocusContrast` used to race
+`outline-*` against `ring-*` in one shared last-token-wins slot, even though
+both are independent CSS mechanisms (outline-color/-width vs. box-shadow)
+that render *simultaneously* regardless of which is written first (verified
+against a real v4 build) — so an element with a passing `outline-*` and a
+failing `ring-*` got a verdict that flipped purely based on class order.
+Fixed by evaluating each present indicator independently and only flagging
+when *all* present indicators fail (a user only needs one sufficiently
+visible indicator to perceive the focus state) — see
+`lastColorTokenForIndicator`/`thicknessTokenForIndicator` in
+`checkFocusIndicator.ts`.
+
+Lesson for future audits: "does a same-shape token mask a real one" isn't
+just about base-utility-name decoys — variant scope and cross-mechanism
+racing are two more axes of the same last-token-wins risk, and a one-time
+audit checking only the first axis will still miss the other two. If a new
+regex/token-matching check is ever added, prefer verifying against the real
+tool's actual output, not memory, over waiting for bugs to surface one at a
+time — but also explicitly check all three axes (decoy names, variant
+scope, cross-mechanism racing), not just whichever one motivated the
+original audit.
 
 ## Stack
 
