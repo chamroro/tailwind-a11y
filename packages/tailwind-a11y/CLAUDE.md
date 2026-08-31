@@ -200,7 +200,14 @@ Tailwind-class-level sizing or focus-style analysis).
     `shadow-{color}`/`ring-{color}` alone, e.g. `shadow-red-500` (only sets
     the `--tw-shadow-color`/`--tw-ring-color` CSS variable — the actual
     `box-shadow` comes from a separate *size* utility like `shadow-lg`/
-    `ring-2` that references it, so the color alone renders nothing).
+    `ring-2` that references it, so the color alone renders nothing);
+    `ring-offset-{color}` alone, e.g. `ring-offset-blue-500` (one level
+    deeper than plain `ring-{color}` — sets only `--tw-ring-offset-color`,
+    same "no box-shadow without a real ring width" mechanism — missed by
+    the original one-time audit and only found later via independent
+    adversarial testing, since `isColorOnlyShadowOrRing`'s `ring-(.+)`
+    match doesn't recurse into the `offset-` sub-shape; needed its own
+    `isColorOnlyRingOffset` check).
     Confirmed *not* decoys, deliberately left alone: `outline-dashed`/
     `-dotted`/`-solid`/`-double` alone (unlike border-width, preflight does
     not reset `outline-width`, so the browser's default ~3px applies and

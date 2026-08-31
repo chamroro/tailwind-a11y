@@ -49899,6 +49899,10 @@ function isColorOnlyShadowOrRing(base) {
     return true;
   return false;
 }
+function isColorOnlyRingOffset(base) {
+  const match = /^ring-offset-(.+)$/.exec(base);
+  return !!match && COLOR_TOKEN.test(match[1]);
+}
 function baseUtility(raw) {
   return raw.slice(raw.lastIndexOf(":") + 1);
 }
@@ -49909,6 +49913,8 @@ function isReplacement(raw) {
   if (NON_VISUAL_BASES.has(base) || NON_VISUAL_PATTERN.test(base))
     return false;
   if (isColorOnlyShadowOrRing(base))
+    return false;
+  if (isColorOnlyRingOffset(base))
     return false;
   return /^(ring|border|shadow|bg|outline)(-|$)/.test(base);
 }

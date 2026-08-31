@@ -137,6 +137,47 @@ describe("checkFocusIndicators", () => {
     expect(violations).toHaveLength(1);
   });
 
+  // Caught in independent adversarial testing: ring-offset-{color} only
+  // sets the --tw-ring-offset-color CSS variable and never draws anything
+  // on its own (verified against a real Tailwind v4 build) -- it fell
+  // through the color-only-shadow/ring check above (that one only matches
+  // bare ring-{color}, not the one-level-deeper ring-offset-{color} shape)
+  // and was wrongly accepted as a real replacement via the generic ring-*
+  // prefix match.
+  it.each(["focus:ring-offset-blue-500", "focus:ring-offset-red-500/50", "focus:ring-offset-[#fff]"])(
+    "still flags when the only 'replacement' is a color-only ring-offset decoy %s (regression)",
+    (decoy) => {
+      const violations = checkFocusIndicators([
+        { file: "f.tsx", line: 1, tagName: "button", focusClasses: ["focus:outline-none", decoy] },
+      ]);
+      expect(violations).toHaveLength(1);
+    }
+  );
+
+  it("still flags when ring-offset-4 (width) and ring-offset-blue-500 (color) are combined with no real ring width", () => {
+    const violations = checkFocusIndicators([
+      {
+        file: "f.tsx",
+        line: 1,
+        tagName: "button",
+        focusClasses: ["focus:outline-none", "focus:ring-offset-4", "focus:ring-offset-blue-500"],
+      },
+    ]);
+    expect(violations).toHaveLength(1);
+  });
+
+  it("passes when ring-offset-{color} is paired with a real ring width", () => {
+    const violations = checkFocusIndicators([
+      {
+        file: "f.tsx",
+        line: 1,
+        tagName: "button",
+        focusClasses: ["focus:outline-none", "focus:ring-2", "focus:ring-offset-4", "focus:ring-offset-blue-500"],
+      },
+    ]);
+    expect(violations).toEqual([]);
+  });
+
   it("still passes when a shadow/ring color is paired with a real size utility", () => {
     const violations = checkFocusIndicators([
       { file: "f.tsx", line: 1, tagName: "button", focusClasses: ["focus:outline-none", "focus:shadow-lg", "focus:shadow-red-500"] },
