@@ -178,6 +178,61 @@ describe("checkFocusIndicators", () => {
     expect(violations).toEqual([]);
   });
 
+  // Caught in independent adversarial testing: inset-shadow-*/inset-ring-*
+  // (Tailwind v4's inset box-shadow family) start with "inset-", so they
+  // never matched the ring/border/shadow/bg/outline prefix alternatives at
+  // all -- a real inset-shadow-sm/inset-ring-2 replacement was rejected
+  // outright, a false positive on the overall check (it reported the
+  // outline as removed with nothing put back, when something real was).
+  it.each(["focus:inset-shadow-sm", "focus:inset-shadow-md", "focus:inset-shadow-[0_2px_4px_#000]"])(
+    "passes for a real inset-shadow-* size utility alone (confirmed real: sets box-shadow directly)",
+    (real) => {
+      const violations = checkFocusIndicators([
+        { file: "f.tsx", line: 1, tagName: "button", focusClasses: ["focus:outline-none", real] },
+      ]);
+      expect(violations).toEqual([]);
+    }
+  );
+
+  it("passes for a real inset-ring-* size utility, even with no explicit color (defaults to currentColor)", () => {
+    const violations = checkFocusIndicators([
+      { file: "f.tsx", line: 1, tagName: "button", focusClasses: ["focus:outline-none", "focus:inset-ring-2"] },
+    ]);
+    expect(violations).toEqual([]);
+  });
+
+  it("passes when inset-ring-* size and color are combined", () => {
+    const violations = checkFocusIndicators([
+      {
+        file: "f.tsx",
+        line: 1,
+        tagName: "button",
+        focusClasses: ["focus:outline-none", "focus:inset-ring-2", "focus:inset-ring-blue-500"],
+      },
+    ]);
+    expect(violations).toEqual([]);
+  });
+
+  it.each(["focus:inset-shadow-none", "focus:inset-ring-0"])(
+    "still flags when the only 'replacement' is a degenerate inset-shadow/inset-ring decoy %s (regression)",
+    (decoy) => {
+      const violations = checkFocusIndicators([
+        { file: "f.tsx", line: 1, tagName: "button", focusClasses: ["focus:outline-none", decoy] },
+      ]);
+      expect(violations).toHaveLength(1);
+    }
+  );
+
+  it.each(["focus:inset-shadow-blue-500", "focus:inset-ring-blue-500"])(
+    "still flags when the only 'replacement' is a color-only inset-shadow/inset-ring decoy %s (regression)",
+    (decoy) => {
+      const violations = checkFocusIndicators([
+        { file: "f.tsx", line: 1, tagName: "button", focusClasses: ["focus:outline-none", decoy] },
+      ]);
+      expect(violations).toHaveLength(1);
+    }
+  );
+
   it("still passes when a shadow/ring color is paired with a real size utility", () => {
     const violations = checkFocusIndicators([
       { file: "f.tsx", line: 1, tagName: "button", focusClasses: ["focus:outline-none", "focus:shadow-lg", "focus:shadow-red-500"] },

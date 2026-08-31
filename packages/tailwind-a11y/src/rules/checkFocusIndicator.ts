@@ -23,9 +23,15 @@ const REMOVAL_BASE = "outline-none";
 // resets every element to `border: 0 solid`, so border-width stays 0
 // regardless of style and no border is ever drawn, same failure mode as
 // border-0.
+// inset-shadow-none/inset-ring-0 (Tailwind v4's inset-* box-shadow family,
+// missed by the original one-time audit -- these utilities didn't exist,
+// or weren't considered, at the time) are the exact same failure mode as
+// shadow-none/ring-0: verified against a real build that inset-shadow-none
+// computes to a fully transparent shadow and inset-ring-0 computes to a
+// 0px-wide inset ring, both real but invisible.
 const DEGENERATE_BASES = new Set([
   "outline-none", "ring-0", "border-0", "shadow-none", "bg-transparent",
-  "border-none", "border-hidden",
+  "border-none", "border-hidden", "inset-shadow-none", "inset-ring-0",
 ]);
 
 // Modifier-only utilities (opacity/offset/inset) don't set a concrete value
@@ -74,11 +80,15 @@ const NON_VISUAL_PATTERN = /^bg-blend-|^border-spacing(-[xy])?-/;
 // offset cases above, but shaped like a color token rather than a fixed
 // suffix, so it reuses COLOR_TOKEN (the exact same "is this a color value"
 // test extractClasses.ts uses) instead of a third, drifting definition of
-// what a color looks like.
+// what a color looks like. inset-shadow-{color}/inset-ring-{color} are the
+// same mechanism one prefix-family over (verified against a real build:
+// inset-shadow-blue-500 alone only sets --tw-inset-shadow-color,
+// inset-ring-blue-500 alone only sets --tw-inset-ring-color -- neither
+// produces a box-shadow without a companion size utility).
 function isColorOnlyShadowOrRing(base: string): boolean {
-  const shadowMatch = /^shadow-(.+)$/.exec(base);
+  const shadowMatch = /^(?:inset-)?shadow-(.+)$/.exec(base);
   if (shadowMatch && COLOR_TOKEN.test(shadowMatch[1])) return true;
-  const ringMatch = /^ring-(.+)$/.exec(base);
+  const ringMatch = /^(?:inset-)?ring-(.+)$/.exec(base);
   if (ringMatch && COLOR_TOKEN.test(ringMatch[1])) return true;
   return false;
 }
@@ -109,7 +119,14 @@ function isReplacement(raw: string): boolean {
   if (NON_VISUAL_BASES.has(base) || NON_VISUAL_PATTERN.test(base)) return false;
   if (isColorOnlyShadowOrRing(base)) return false;
   if (isColorOnlyRingOffset(base)) return false;
-  return /^(ring|border|shadow|bg|outline)(-|$)/.test(base);
+  // inset-shadow-*/inset-ring-* (Tailwind v4) are their own prefix
+  // families, not `ring`/`shadow` with a suffix -- a string starting with
+  // "inset-" doesn't match the "shadow"/"ring" alternatives below at all,
+  // so a real inset-shadow-sm/inset-ring-2 replacement was previously
+  // rejected outright (a false positive on the overall check: it reported
+  // the outline as removed with nothing put back, when something real
+  // was). Caught in independent adversarial testing.
+  return /^(ring|border|shadow|bg|outline|inset-shadow|inset-ring)(-|$)/.test(base);
 }
 
 export function checkFocusIndicators(checks: FocusIndicatorCheck[]): FocusIndicatorViolation[] {

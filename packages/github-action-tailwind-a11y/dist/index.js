@@ -49853,7 +49853,9 @@ var DEGENERATE_BASES = /* @__PURE__ */ new Set([
   "shadow-none",
   "bg-transparent",
   "border-none",
-  "border-hidden"
+  "border-hidden",
+  "inset-shadow-none",
+  "inset-ring-0"
 ]);
 var MODIFIER_ONLY = /^(bg|border|ring)-opacity-\d{1,3}$|^(ring|outline)-offset-\d{1,3}$|^ring-inset$/;
 var NON_VISUAL_BASES = /* @__PURE__ */ new Set([
@@ -49891,10 +49893,10 @@ var NON_VISUAL_BASES = /* @__PURE__ */ new Set([
 ]);
 var NON_VISUAL_PATTERN = /^bg-blend-|^border-spacing(-[xy])?-/;
 function isColorOnlyShadowOrRing(base) {
-  const shadowMatch = /^shadow-(.+)$/.exec(base);
+  const shadowMatch = /^(?:inset-)?shadow-(.+)$/.exec(base);
   if (shadowMatch && COLOR_TOKEN.test(shadowMatch[1]))
     return true;
-  const ringMatch = /^ring-(.+)$/.exec(base);
+  const ringMatch = /^(?:inset-)?ring-(.+)$/.exec(base);
   if (ringMatch && COLOR_TOKEN.test(ringMatch[1]))
     return true;
   return false;
@@ -49916,7 +49918,7 @@ function isReplacement(raw) {
     return false;
   if (isColorOnlyRingOffset(base))
     return false;
-  return /^(ring|border|shadow|bg|outline)(-|$)/.test(base);
+  return /^(ring|border|shadow|bg|outline|inset-shadow|inset-ring)(-|$)/.test(base);
 }
 function checkFocusIndicators(checks) {
   const violations = [];
