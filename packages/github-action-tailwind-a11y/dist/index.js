@@ -49175,16 +49175,17 @@ var NON_COLOR_SCALE_NAMES = /* @__PURE__ */ new Set(["opacity", "linear", "conic
 function lastColorToken(className, prefix) {
   let found = null;
   for (const raw of className.split(/\s+/).filter(Boolean)) {
-    const base = raw.slice(raw.lastIndexOf(":") + 1);
-    if (!base.startsWith(`${prefix}-`))
+    if (raw.includes(":"))
       continue;
-    const rest = base.slice(prefix.length + 1);
+    if (!raw.startsWith(`${prefix}-`))
+      continue;
+    const rest = raw.slice(prefix.length + 1);
     if (!COLOR_TOKEN.test(rest))
       continue;
     const scaleName = /^([a-z]+)-\d/.exec(rest)?.[1];
     if (scaleName && NON_COLOR_SCALE_NAMES.has(scaleName))
       continue;
-    found = base;
+    found = raw;
   }
   return found;
 }
@@ -49933,14 +49934,13 @@ function checkFocusIndicators(checks) {
 var NON_TEXT_MIN_RATIO = 3;
 var FOCUS_INDICATOR_MIN_THICKNESS_PX = 2;
 var WIDTH_SCALE = { "0": 0, "1": 1, "2": 2, "4": 4, "8": 8 };
-function lastIndicatorColorToken(focusClasses) {
+function lastColorTokenForIndicator(focusClasses, prefix) {
   let found = null;
   for (const raw of focusClasses) {
     const base = raw.slice(raw.lastIndexOf(":") + 1);
-    const match = /^(?:outline|ring)-(.+)$/.exec(base);
-    if (!match)
+    if (!base.startsWith(`${prefix}-`))
       continue;
-    const rest = match[1];
+    const rest = base.slice(prefix.length + 1);
     if (!COLOR_TOKEN.test(rest))
       continue;
     const scaleName = /^([a-z]+)-\d/.exec(rest)?.[1];
@@ -49950,14 +49950,13 @@ function lastIndicatorColorToken(focusClasses) {
   }
   return found;
 }
-function lastIndicatorThicknessPx(focusClasses) {
+function thicknessTokenForIndicator(focusClasses, prefix) {
   let found = null;
   for (const raw of focusClasses) {
     const base = raw.slice(raw.lastIndexOf(":") + 1);
-    const match = /^(?:outline|ring)-(.+)$/.exec(base);
-    if (!match)
+    if (!base.startsWith(`${prefix}-`))
       continue;
-    const token = match[1];
+    const token = base.slice(prefix.length + 1);
     if (token in WIDTH_SCALE) {
       found = WIDTH_SCALE[token];
       continue;
@@ -49973,26 +49972,34 @@ function checkFocusContrast(checks, strict = false, palette = defaultPalette) {
   for (const check of checks) {
     if (!check.bgClass)
       continue;
-    const indicatorBase = lastIndicatorColorToken(check.focusClasses);
-    if (!indicatorBase)
-      continue;
-    const indicatorHex = resolveColorValue(indicatorBase, palette);
     const bgHex = resolveColorValue(check.bgClass, palette);
-    if (!indicatorHex || !bgHex)
+    const bgRgb = bgHex ? hexToRgb(bgHex) : null;
+    if (!bgRgb)
       continue;
-    const indicatorRgb = hexToRgb(indicatorHex);
-    const bgRgb = hexToRgb(bgHex);
-    if (!indicatorRgb || !bgRgb)
+    const candidates = [];
+    for (const prefix of ["outline", "ring"]) {
+      const indicatorBase = lastColorTokenForIndicator(check.focusClasses, prefix);
+      if (!indicatorBase)
+        continue;
+      const indicatorHex = resolveColorValue(indicatorBase, palette);
+      const indicatorRgb = indicatorHex ? hexToRgb(indicatorHex) : null;
+      if (!indicatorRgb)
+        continue;
+      const ratio = contrastRatio(indicatorRgb, bgRgb);
+      const contrastFails = ratio < NON_TEXT_MIN_RATIO;
+      let thicknessPx = null;
+      if (strict)
+        thicknessPx = thicknessTokenForIndicator(check.focusClasses, prefix);
+      const thicknessFails = strict && thicknessPx !== null && thicknessPx < FOCUS_INDICATOR_MIN_THICKNESS_PX;
+      candidates.push({ indicatorBase, ratio, contrastFails, thicknessPx, thicknessFails });
+    }
+    if (candidates.length === 0)
       continue;
-    const ratio = contrastRatio(indicatorRgb, bgRgb);
-    const contrastFails = ratio < NON_TEXT_MIN_RATIO;
-    let thicknessPx = null;
-    if (strict)
-      thicknessPx = lastIndicatorThicknessPx(check.focusClasses);
-    const thicknessFails = strict && thicknessPx !== null && thicknessPx < FOCUS_INDICATOR_MIN_THICKNESS_PX;
-    if (!contrastFails && !thicknessFails)
+    const allFail = candidates.every((c) => c.contrastFails || c.thicknessFails);
+    if (!allFail)
       continue;
-    const rawIndicatorClass = check.focusClasses.find((raw) => raw.slice(raw.lastIndexOf(":") + 1) === indicatorBase);
+    const worst = candidates.reduce((a, b) => b.ratio < a.ratio ? b : a);
+    const rawIndicatorClass = check.focusClasses.find((raw) => raw.slice(raw.lastIndexOf(":") + 1) === worst.indicatorBase);
     violations.push({
       type: "focus-contrast",
       file: check.file,
@@ -50000,10 +50007,10 @@ function checkFocusContrast(checks, strict = false, palette = defaultPalette) {
       tagName: check.tagName,
       indicatorClass: rawIndicatorClass,
       bgClass: check.bgClass,
-      ratio,
+      ratio: worst.ratio,
       required: NON_TEXT_MIN_RATIO,
-      level: thicknessFails ? "AAA" : "AA",
-      ...thicknessFails && thicknessPx !== null ? { thicknessPx, requiredThicknessPx: FOCUS_INDICATOR_MIN_THICKNESS_PX } : {}
+      level: worst.thicknessFails ? "AAA" : "AA",
+      ...worst.thicknessFails && worst.thicknessPx !== null ? { thicknessPx: worst.thicknessPx, requiredThicknessPx: FOCUS_INDICATOR_MIN_THICKNESS_PX } : {}
     });
   }
   return violations;

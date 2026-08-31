@@ -353,21 +353,66 @@ describe("checkFocusContrast", () => {
     expect(violations).toEqual([]);
   });
 
-  it("last-token-wins across outline-* and ring-* together, not per-prefix", () => {
+  // outline-* and ring-* are evaluated as independent candidates (fixed
+  // after independent review found a real bug: an earlier version raced
+  // them against each other in one shared last-token-wins slot, so the
+  // verdict depended purely on which was written later, even though both
+  // render simultaneously regardless of order -- verified against a real
+  // Tailwind v4 build). A passing outline-* and a failing ring-* together
+  // still pass overall: a user only needs one sufficiently visible
+  // indicator to perceive the focus state.
+  it("passes when at least one of two present indicators (outline-* and ring-*) has sufficient contrast", () => {
     const violations = checkFocusContrast([
       {
         file: "f.tsx",
         line: 1,
         tagName: "button",
-        // outline-blue-400 (low contrast) written first, ring-white (high
-        // contrast) written after -- the later one in source order is what
-        // actually renders, so it should win over the ignored one.
         focusClasses: ["focus:outline-none", "focus:outline-blue-400", "focus:ring-2", "focus:ring-white"],
         bgClass: "bg-blue-500",
         bgSource: "self",
       },
     ]);
     expect(violations).toEqual([]);
+  });
+
+  it("gives the identical verdict regardless of which of outline-*/ring-* is written last", () => {
+    const swapped = checkFocusContrast([
+      {
+        file: "f.tsx",
+        line: 1,
+        tagName: "button",
+        // Same two indicators as the test above, written in the opposite
+        // order -- must produce the same passing verdict.
+        focusClasses: ["focus:outline-none", "focus:ring-2", "focus:ring-white", "focus:outline-blue-400"],
+        bgClass: "bg-blue-500",
+        bgSource: "self",
+      },
+    ]);
+    expect(swapped).toEqual([]);
+  });
+
+  it("flags a violation, naming the worse offender, when both present indicators fail", () => {
+    const violations = checkFocusContrast([
+      {
+        file: "f.tsx",
+        line: 1,
+        tagName: "button",
+        // Both fail against blue-500, but outline-blue-400 (ratio ~1.45) is
+        // the worse of the two -- ring-blue-300 (ratio ~2.04) is closer to
+        // passing, even though it's still under the 3:1 minimum.
+        focusClasses: [
+          "focus:outline-none",
+          "focus:outline-2",
+          "focus:outline-blue-400",
+          "focus:ring-2",
+          "focus:ring-blue-300",
+        ],
+        bgClass: "bg-blue-500",
+        bgSource: "self",
+      },
+    ]);
+    expect(violations).toHaveLength(1);
+    expect(violations[0].indicatorClass).toBe("focus:outline-blue-400");
   });
 
   it("composes end-to-end with extractFocusIndicatorChecks", () => {

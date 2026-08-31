@@ -106,4 +106,29 @@ describe("extractChecks", () => {
       ]);
     }
   );
+
+  // Caught in independent review: a variant-scoped background utility
+  // (dark:/hover:/etc.) written after the real resting-state one used to
+  // win last-token-wins, masking a real violation entirely (the resting-
+  // state bg-white vs the failing text color was never checked at all,
+  // since dark:bg-gray-900 -- which text-gray-300 happens to pass against
+  // -- was treated as the background instead).
+  it.each(["dark:bg-gray-900", "hover:bg-gray-900", "md:bg-gray-900"])(
+    "does not let a variant-scoped background %s override the real resting-state background (regression)",
+    (variantScoped) => {
+      const code = `const C = () => <div className="bg-white ${variantScoped}"><p className="text-gray-300">x</p></div>;`;
+      const checks = extractChecks(code, "fake.tsx");
+      expect(checks).toEqual([
+        { file: "fake.tsx", line: 1, textColorClass: "text-gray-300", bgColorClass: "bg-white", bgSource: "parent" },
+      ]);
+    }
+  );
+
+  it("does not let a variant-scoped text color override the real resting-state text color (regression)", () => {
+    const code = `const C = () => <p className="text-gray-300 dark:text-white bg-white">x</p>;`;
+    const checks = extractChecks(code, "fake.tsx");
+    expect(checks).toEqual([
+      { file: "fake.tsx", line: 1, textColorClass: "text-gray-300", bgColorClass: "bg-white", bgSource: "self" },
+    ]);
+  });
 });

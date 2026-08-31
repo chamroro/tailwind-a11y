@@ -169,22 +169,29 @@ const FOCUS_INDICATOR_MIN_THICKNESS_PX = 2;
 // paired with an explicit color utility) but never a thickness value.
 const WIDTH_SCALE: Record<string, number> = { "0": 0, "1": 1, "2": 2, "4": 4, "8": 8 };
 
-// Near-duplicate of extractClasses.ts's lastColorToken, not a call to it:
-// that function takes a single prefix ("text" | "bg") and this needs
-// last-token-wins across *two* prefixes (outline-*, ring-*) in one pass, so
-// whichever was actually written last in the class list wins regardless of
-// which utility it is. Reuses COLOR_TOKEN (the one shared "is this
-// color-shaped" test) and only excludes the "opacity" scale name locally --
-// lastColorToken's full NON_COLOR_SCALE_NAMES set also excludes
-// "linear"/"conic", but those are bg-gradient-angle utilities with no
-// outline-*/ring-* equivalent, so they can never appear here.
-function lastIndicatorColorToken(focusClasses: string[]): string | null {
+// Last-token-wins WITHIN one prefix only. Fixed after independent testing
+// found a real bug: the original version raced outline-* against ring-*
+// in one shared last-token-wins slot, so an element with BOTH a passing
+// outline-* and a failing ring-* (or vice versa) got a verdict that
+// depended purely on which was written later in the class string -- even
+// though outline-*/ring-* are two independent CSS mechanisms
+// (outline-color/-width vs. box-shadow) that both render simultaneously
+// regardless of order (verified against a real Tailwind v4 build).
+// Last-token-wins is still correct *within* a single prefix (e.g.
+// `outline-red-500 outline-blue-600` really does render as blue-600, the
+// later declaration winning in CSS) -- only racing the two prefixes
+// against each other was wrong. Reuses COLOR_TOKEN (the shared
+// "is this color-shaped" test) and only excludes the "opacity" scale name
+// locally -- extractClasses.ts's lastColorToken's full NON_COLOR_SCALE_NAMES
+// set also excludes "linear"/"conic", but those are bg-gradient-angle
+// utilities with no outline-*/ring-* equivalent, so they can never appear
+// here.
+function lastColorTokenForIndicator(focusClasses: string[], prefix: "outline" | "ring"): string | null {
   let found: string | null = null;
   for (const raw of focusClasses) {
     const base = raw.slice(raw.lastIndexOf(":") + 1);
-    const match = /^(?:outline|ring)-(.+)$/.exec(base);
-    if (!match) continue;
-    const rest = match[1];
+    if (!base.startsWith(`${prefix}-`)) continue;
+    const rest = base.slice(prefix.length + 1);
     if (!COLOR_TOKEN.test(rest)) continue;
     const scaleName = /^([a-z]+)-\d/.exec(rest)?.[1];
     if (scaleName === "opacity") continue;
@@ -193,18 +200,17 @@ function lastIndicatorColorToken(focusClasses: string[]): string | null {
   return found;
 }
 
-// Same last-token-wins-across-both-prefixes shape as above, but for width:
-// only an enumerated outline-{N}/ring-{N} or an arbitrary [Npx] sets a
-// thickness. A color token (ring-blue-400), ring-offset-*, ring-inset, etc.
-// don't match either shape and are silently ignored here -- they're a
-// different utility's job (color, offset, inset), not this one's.
-function lastIndicatorThicknessPx(focusClasses: string[]): number | null {
+// Same per-prefix last-token-wins shape as above, but for width: only an
+// enumerated outline-{N}/ring-{N} or an arbitrary [Npx] sets a thickness.
+// A color token (ring-blue-400), ring-offset-*, ring-inset, etc. don't
+// match either shape and are silently ignored here -- they're a different
+// utility's job (color, offset, inset), not this one's.
+function thicknessTokenForIndicator(focusClasses: string[], prefix: "outline" | "ring"): number | null {
   let found: number | null = null;
   for (const raw of focusClasses) {
     const base = raw.slice(raw.lastIndexOf(":") + 1);
-    const match = /^(?:outline|ring)-(.+)$/.exec(base);
-    if (!match) continue;
-    const token = match[1];
+    if (!base.startsWith(`${prefix}-`)) continue;
+    const token = base.slice(prefix.length + 1);
     if (token in WIDTH_SCALE) {
       found = WIDTH_SCALE[token];
       continue;
@@ -222,31 +228,59 @@ export function checkFocusContrast(
 ): FocusContrastViolation[] {
   const violations: FocusContrastViolation[] = [];
 
+  interface Candidate {
+    indicatorBase: string;
+    ratio: number;
+    contrastFails: boolean;
+    thicknessPx: number | null;
+    thicknessFails: boolean;
+  }
+
   for (const check of checks) {
     if (!check.bgClass) continue; // no resolvable background — skip, not a guess
 
-    const indicatorBase = lastIndicatorColorToken(check.focusClasses);
-    if (!indicatorBase) continue; // no explicit outline-*/ring-* color — out of scope, see CLAUDE.md
-
-    const indicatorHex = resolveColorValue(indicatorBase, palette);
     const bgHex = resolveColorValue(check.bgClass, palette);
-    if (!indicatorHex || !bgHex) continue; // custom theme color / unsupported arbitrary value — skip
+    const bgRgb = bgHex ? hexToRgb(bgHex) : null;
+    if (!bgRgb) continue; // custom theme color / unsupported arbitrary value — skip
 
-    const indicatorRgb = hexToRgb(indicatorHex);
-    const bgRgb = hexToRgb(bgHex);
-    if (!indicatorRgb || !bgRgb) continue;
+    // outline-* and ring-* are evaluated as independent candidates, not
+    // raced against each other -- both are real, simultaneously-rendering
+    // mechanisms (see lastColorTokenForIndicator's comment for why), so an
+    // element can have zero, one, or both present at once.
+    const candidates: Candidate[] = [];
+    for (const prefix of ["outline", "ring"] as const) {
+      const indicatorBase = lastColorTokenForIndicator(check.focusClasses, prefix);
+      if (!indicatorBase) continue; // this mechanism isn't in use on this element
 
-    const ratio = contrastRatio(indicatorRgb, bgRgb);
-    const contrastFails = ratio < NON_TEXT_MIN_RATIO;
+      const indicatorHex = resolveColorValue(indicatorBase, palette);
+      const indicatorRgb = indicatorHex ? hexToRgb(indicatorHex) : null;
+      if (!indicatorRgb) continue; // custom theme color / unsupported arbitrary value — skip this candidate
 
-    let thicknessPx: number | null = null;
-    if (strict) thicknessPx = lastIndicatorThicknessPx(check.focusClasses);
-    const thicknessFails = strict && thicknessPx !== null && thicknessPx < FOCUS_INDICATOR_MIN_THICKNESS_PX;
+      const ratio = contrastRatio(indicatorRgb, bgRgb);
+      const contrastFails = ratio < NON_TEXT_MIN_RATIO;
 
-    if (!contrastFails && !thicknessFails) continue;
+      let thicknessPx: number | null = null;
+      if (strict) thicknessPx = thicknessTokenForIndicator(check.focusClasses, prefix);
+      const thicknessFails = strict && thicknessPx !== null && thicknessPx < FOCUS_INDICATOR_MIN_THICKNESS_PX;
+
+      candidates.push({ indicatorBase, ratio, contrastFails, thicknessPx, thicknessFails });
+    }
+
+    if (candidates.length === 0) continue; // no resolvable outline-*/ring-* color at all
+
+    // A user only needs ONE sufficiently visible (and, under strict,
+    // sufficiently thick) focus indicator to perceive the focus state --
+    // if any present candidate fully passes, this element is compliant
+    // even if another present indicator independently would have failed.
+    const allFail = candidates.every((c) => c.contrastFails || c.thicknessFails);
+    if (!allFail) continue;
+
+    // More than one candidate present and both fail -- report the worst
+    // (lowest-ratio) offender.
+    const worst = candidates.reduce((a, b) => (b.ratio < a.ratio ? b : a));
 
     const rawIndicatorClass = check.focusClasses.find(
-      (raw) => raw.slice(raw.lastIndexOf(":") + 1) === indicatorBase
+      (raw) => raw.slice(raw.lastIndexOf(":") + 1) === worst.indicatorBase
     )!;
 
     violations.push({
@@ -256,11 +290,11 @@ export function checkFocusContrast(
       tagName: check.tagName,
       indicatorClass: rawIndicatorClass,
       bgClass: check.bgClass,
-      ratio,
+      ratio: worst.ratio,
       required: NON_TEXT_MIN_RATIO,
-      level: thicknessFails ? "AAA" : "AA",
-      ...(thicknessFails && thicknessPx !== null
-        ? { thicknessPx, requiredThicknessPx: FOCUS_INDICATOR_MIN_THICKNESS_PX }
+      level: worst.thicknessFails ? "AAA" : "AA",
+      ...(worst.thicknessFails && worst.thicknessPx !== null
+        ? { thicknessPx: worst.thicknessPx, requiredThicknessPx: FOCUS_INDICATOR_MIN_THICKNESS_PX }
         : {}),
     });
   }
