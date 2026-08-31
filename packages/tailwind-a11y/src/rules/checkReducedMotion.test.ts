@@ -53,6 +53,42 @@ describe("checkReducedMotion", () => {
     expect(violations).toEqual([]);
   });
 
+  // Caught in independent adversarial testing: a transition scoped by any
+  // variant other than motion-safe: was silently treated the same as
+  // motion-safe:-guarded (both fell outside the old `segments.length === 0`
+  // check), even though dark:/sm:/lg:/etc. have no relationship to
+  // prefers-reduced-motion at all -- the transition is fully live whenever
+  // that unrelated condition holds.
+  it.each(["dark:transition", "sm:transition", "lg:transition-all"])(
+    "flags a transition scoped by a variant unrelated to motion-safe: %s (regression)",
+    (transitionClass) => {
+      const violations = checkReducedMotion([check([transitionClass, "hover:scale-110"])], true);
+      expect(violations).toHaveLength(1);
+      expect(violations[0].transitionClass).toBe(transitionClass);
+    }
+  );
+
+  // Caught in independent adversarial testing: sm:motion-reduce:
+  // transition-none was accepted as a full guard even though it only
+  // suppresses the transition at/above the sm breakpoint, leaving it
+  // completely unguarded below that width -- only a bare, unconditional
+  // motion-reduce: guard is trusted.
+  it.each(["sm:motion-reduce:transition-none", "dark:motion-reduce:transform-none", "lg:motion-reduce:transition-none"])(
+    "does not accept a motion-reduce: guard nested under an unrelated variant: %s (regression)",
+    (guard) => {
+      const violations = checkReducedMotion([check(["transition-transform", "hover:scale-110", guard])], true);
+      expect(violations).toHaveLength(1);
+    }
+  );
+
+  it("still accepts a bare, unconditional motion-reduce: guard even alongside an unrelated variant on the transition", () => {
+    const violations = checkReducedMotion(
+      [check(["dark:transition", "hover:scale-110", "motion-reduce:transition-none"])],
+      true
+    );
+    expect(violations).toEqual([]);
+  });
+
   // Caught in independent review: motion-safe:hover:scale-110 and
   // hover:motion-safe:scale-110 compile to the identical nested media query
   // (confirmed against a real Tailwind v4 build) -- both must be treated as

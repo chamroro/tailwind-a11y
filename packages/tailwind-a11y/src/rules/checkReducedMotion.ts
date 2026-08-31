@@ -74,25 +74,63 @@ export function checkReducedMotion(checks: ReducedMotionCheck[], strict = false)
   const violations: ReducedMotionViolation[] = [];
 
   for (const check of checks) {
-    let unscopedTransition: string | null = null;
+    let realTransition: string | null = null;
     let hasMotionReduceGuard = false;
 
     for (const raw of check.classes) {
       const base = baseUtility(raw);
       const segments = variantSegments(raw);
 
-      if (segments.length === 0 && TRANSITION_BASES.has(base)) unscopedTransition = raw;
+      // A transition counts as "real" (needs checking) unless its variant
+      // stack makes it not actually apply at the moment the interaction
+      // begins:
+      //  - an interaction pseudo-class (hover:/focus:/focus-within:/
+      //    active:) anywhere in the stack means the transition-property
+      //    only exists *during* that momentary state, not before it -- CSS
+      //    has nothing to transition *from* right as the interaction
+      //    starts, so `hover:transition-transform hover:scale-110` still
+      //    snaps instantly, same as before this fix (this is the one case
+      //    the original `segments.length === 0` check happened to get
+      //    right, so it's preserved here under its real reason instead).
+      //  - motion-safe: anywhere in the stack means the transition simply
+      //    doesn't exist unless motion is already safe -- a complete,
+      //    persistent exemption, unrelated to interaction timing.
+      // Any *other* scoping (dark:, sm:, lg:, ...) is a persistent
+      // precondition, not a momentary one -- the transition genuinely is
+      // present in the resting state whenever that condition holds, with
+      // zero relationship to prefers-reduced-motion. Caught in independent
+      // adversarial testing: the previous version required
+      // `segments.length === 0` (no variant at all), so
+      // `dark:transition hover:scale-110` was silently treated as
+      // compliant even though it animates on hover in dark mode
+      // regardless of the user's motion preference.
+      const isInteractionGated = segments.some((v) => INTERACTION_VARIANTS.has(v));
+      const isMotionSafeGated = segments.includes("motion-safe");
+      if (TRANSITION_BASES.has(base) && !isInteractionGated && !isMotionSafeGated) realTransition = raw;
 
-      if (segments.includes("motion-reduce") && (base === "transition-none" || base === "transform-none")) {
+      // Only a *bare* motion-reduce:transition-none/transform-none (no
+      // other variant stacked with it) is trusted as a full guard --
+      // caught in independent adversarial testing: `sm:motion-reduce:
+      // transition-none` was being accepted as fully protective even
+      // though it only suppresses the transition at/above the `sm`
+      // breakpoint, leaving it completely unguarded below that width.
+      // Correctly modeling arbitrary variant-subset relationships (does
+      // this guard's other conditions always hold whenever the real
+      // trigger's conditions hold?) is out of scope -- requiring the
+      // guard to be unconditional is the same "skip/flag rather than
+      // guess" posture used everywhere else in this project, erring
+      // toward a false positive over the worse failure mode, a false
+      // negative.
+      if (segments.length === 1 && segments[0] === "motion-reduce" && (base === "transition-none" || base === "transform-none")) {
         hasMotionReduceGuard = true;
       }
     }
 
-    // A transition scoped only under motion-safe: (never unscoped) means it
-    // simply doesn't exist unless motion is already safe -- a complete
+    // No real (non-motion-safe-guarded) transition at all means it simply
+    // doesn't exist unless motion is already safe -- a complete
     // alternative way of satisfying 2.3.3, not a partial one -- so this
     // correctly falls through as a pass, not a skip-because-unresolvable.
-    if (!unscopedTransition) continue;
+    if (!realTransition) continue;
     if (hasMotionReduceGuard) continue;
 
     const motionClass = check.classes.find((raw) => {
@@ -114,7 +152,7 @@ export function checkReducedMotion(checks: ReducedMotionCheck[], strict = false)
       file: check.file,
       line: check.line,
       tagName: check.tagName,
-      transitionClass: unscopedTransition,
+      transitionClass: realTransition,
       motionClass,
       level: "AAA",
     });

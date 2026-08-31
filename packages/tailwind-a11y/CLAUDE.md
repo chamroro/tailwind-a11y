@@ -345,13 +345,41 @@ Tailwind-class-level sizing or focus-style analysis).
     `-opacity`/`-shadow` don't, so a `scale-*` change under `hover:` on an
     element with only one of those never actually animates (nothing tells
     the browser to transition that property), and correctly isn't flagged.
-    The transition must be **unscoped** (not itself behind `hover:`/etc.) —
-    a variant-scoped transition isn't present in the resting state, so the
-    browser has nothing to transition from when the interaction begins.
-  - `motion-safe:`-scoping the transition instead of leaving it unscoped is
-    treated as a complete, alternative way of satisfying 2.3.3 (one of the
-    three approaches the Understanding doc names), not a partial one — the
-    transition simply doesn't exist unless motion is already safe.
+    A transition only needs checking when it actually persists into the
+    resting state and has no relationship to `prefers-reduced-motion` —
+    **not** the same thing as literally unscoped, corrected after
+    independent adversarial testing found a real false negative in an
+    earlier version that required zero variants at all
+    (`segments.length === 0`), silently treating `dark:transition
+    hover:scale-110` as compliant even though it genuinely animates on
+    hover whenever dark mode is active, with zero connection to the user's
+    motion preference. The actual rule has two exclusions, for two
+    different reasons:
+    - An interaction pseudo-class (`hover:`/`focus:`/`focus-within:`/
+      `active:`) anywhere in the transition's own variant stack excludes
+      it — a transition scoped to `hover:` isn't present a moment *before*
+      hover begins, so CSS has nothing to transition *from* right as the
+      interaction starts (an instant snap, not an animation). This is the
+      one case the old "must be literally unscoped" check happened to get
+      right, for the wrong stated reason.
+    - `motion-safe:` anywhere in the stack excludes it for an unrelated
+      reason: a complete, persistent exemption — the transition simply
+      doesn't exist unless motion is already safe, one of the three
+      approaches the Understanding doc names, not a partial fix.
+    Anything else (`dark:`, `sm:`, `lg:`, ...) is a persistent precondition
+    with no bearing on either of those two exclusions, so it's treated as
+    real and checked.
+  - A `motion-reduce:transition-none`/`transform-none` guard is only
+    trusted when it's **bare** — no other variant stacked with it.
+    Independent adversarial testing found a real false negative here too:
+    `sm:motion-reduce:transition-none` was accepted as a full guard, but it
+    only suppresses the transition at or above the `sm` breakpoint, leaving
+    it completely unguarded below that width. Correctly modeling whether an
+    arbitrary guard's extra conditions are a subset of the real trigger's
+    conditions is out of scope — requiring the guard to be fully
+    unconditional is the same "skip/flag rather than guess" posture used
+    everywhere else in this project, erring toward the less-bad failure
+    mode (false positive) over the worse one (false negative).
   - Each transform utility's identity value is excluded (`scale-100`,
     `rotate-0`, `translate-x-0`/`-y-0`, `skew-x-0`/`-y-0`, either sign) —
     real utilities that move nothing, the same "shape looks real but isn't"

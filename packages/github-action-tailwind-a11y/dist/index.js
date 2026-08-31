@@ -50094,18 +50094,20 @@ function checkReducedMotion(checks, strict = false) {
     return [];
   const violations = [];
   for (const check of checks) {
-    let unscopedTransition = null;
+    let realTransition = null;
     let hasMotionReduceGuard = false;
     for (const raw of check.classes) {
       const base = baseUtility3(raw);
       const segments = variantSegments2(raw);
-      if (segments.length === 0 && TRANSITION_BASES2.has(base))
-        unscopedTransition = raw;
-      if (segments.includes("motion-reduce") && (base === "transition-none" || base === "transform-none")) {
+      const isInteractionGated = segments.some((v) => INTERACTION_VARIANTS2.has(v));
+      const isMotionSafeGated = segments.includes("motion-safe");
+      if (TRANSITION_BASES2.has(base) && !isInteractionGated && !isMotionSafeGated)
+        realTransition = raw;
+      if (segments.length === 1 && segments[0] === "motion-reduce" && (base === "transition-none" || base === "transform-none")) {
         hasMotionReduceGuard = true;
       }
     }
-    if (!unscopedTransition)
+    if (!realTransition)
       continue;
     if (hasMotionReduceGuard)
       continue;
@@ -50124,7 +50126,7 @@ function checkReducedMotion(checks, strict = false) {
       file: check.file,
       line: check.line,
       tagName: check.tagName,
-      transitionClass: unscopedTransition,
+      transitionClass: realTransition,
       motionClass,
       level: "AAA"
     });
