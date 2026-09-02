@@ -54,7 +54,9 @@ export function formatViolation(v: AnyViolation): string {
         : base;
     }
     case "reduced-motion":
-      return `<${v.tagName}> animates ${v.motionClass} via ${v.transitionClass} with no motion-reduce:transition-none/transform-none guard — WCAG 2.3.3 requires motion animation triggered by interaction to be disableable`;
+      return v.mechanism === "animate"
+        ? `<${v.tagName}> animates ${v.motionClass} via a CSS animation with no motion-reduce:animate-none guard — WCAG 2.3.3 requires motion animation triggered by interaction to be disableable`
+        : `<${v.tagName}> animates ${v.motionClass} via ${v.transitionClass} with no motion-reduce:transition-none/transform-none guard — WCAG 2.3.3 requires motion animation triggered by interaction to be disableable`;
   }
 }
 

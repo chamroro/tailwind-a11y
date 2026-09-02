@@ -111,9 +111,10 @@ describe("formatViolation", () => {
     );
   });
 
-  it("formats a reduced-motion violation", () => {
+  it("formats a reduced-motion violation (transition mechanism)", () => {
     const message = formatViolation({
       type: "reduced-motion",
+      mechanism: "transition",
       file: "f.tsx",
       line: 1,
       tagName: "div",
@@ -123,6 +124,21 @@ describe("formatViolation", () => {
     });
     expect(message).toBe(
       "<div> animates hover:scale-110 via transition-transform with no motion-reduce:transition-none/transform-none guard — WCAG 2.3.3 requires motion animation triggered by interaction to be disableable"
+    );
+  });
+
+  it("formats a reduced-motion violation (animate mechanism)", () => {
+    const message = formatViolation({
+      type: "reduced-motion",
+      mechanism: "animate",
+      file: "f.tsx",
+      line: 1,
+      tagName: "div",
+      motionClass: "hover:animate-bounce",
+      level: "AAA",
+    });
+    expect(message).toBe(
+      "<div> animates hover:animate-bounce via a CSS animation with no motion-reduce:animate-none guard — WCAG 2.3.3 requires motion animation triggered by interaction to be disableable"
     );
   });
 });

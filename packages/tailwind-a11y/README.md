@@ -57,7 +57,7 @@ Exits `1` on violations — safe to use as a CI gate.
 | Touch target | 2.5.8 (AA) | Interactive elements under 24×24px — or 44×44px with `--strict` (2.5.5, AAA) |
 | Focus indicator | 2.4.7 (AA) | `focus:outline-none` with no visible replacement |
 | Focus indicator contrast | 1.4.11 (AA) | A present `outline-*`/`ring-*` focus indicator below 3:1 contrast — or also below the 2px minimum thickness with `--strict` (2.4.13, AAA) |
-| Reduced motion | 2.3.3 (AAA, `--strict` only) | A `hover:`/`focus:`/`focus-visible:`/`active:`-scoped `scale-*`/`rotate-*`/`translate-*`/`skew-*` change with an unscoped `transition`/`transition-all`/`transition-transform` and no `motion-reduce:`/`motion-safe:` handling |
+| Reduced motion | 2.3.3 (AAA, `--strict` only) | A `hover:`/`focus:`/`focus-visible:`/`active:`-scoped `scale-*`/`rotate-*`/`translate-*`/`skew-*` change with an unscoped `transition`/`transition-all`/`transition-transform`, or an `animate-spin`/`-ping`/`-bounce` under the same variants, with no `motion-reduce:`/`motion-safe:` handling |
 
 ## Scope
 

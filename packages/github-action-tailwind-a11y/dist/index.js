@@ -50034,6 +50034,9 @@ function baseUtility2(raw) {
 function variantSegments(raw) {
   return raw.split(":").slice(0, -1);
 }
+function isAnimateBase(base) {
+  return base.startsWith("animate-");
+}
 function extractReducedMotionChecks(code, filePath) {
   const ast = parseJSX(code, filePath);
   if (!ast)
@@ -50048,7 +50051,11 @@ function extractReducedMotionChecks(code, filePath) {
       const classes = className.split(/\s+/).filter(Boolean);
       const hasTransitionBase = classes.some((raw) => TRANSITION_BASES.has(baseUtility2(raw)));
       const hasInteractionClass = classes.some((raw) => variantSegments(raw).some((v) => INTERACTION_VARIANTS.has(v)));
-      if (!hasTransitionBase || !hasInteractionClass)
+      const hasInteractionScopedAnimate = classes.some((raw) => {
+        const base = baseUtility2(raw);
+        return isAnimateBase(base) && variantSegments(raw).some((v) => INTERACTION_VARIANTS.has(v));
+      });
+      if ((!hasTransitionBase || !hasInteractionClass) && !hasInteractionScopedAnimate)
         return;
       checks.push({
         file: filePath,
@@ -50089,6 +50096,7 @@ function isNonIdentityMotionUtility(base) {
     return Number(skew[2]) !== 0;
   return false;
 }
+var ANIMATE_MOTION_BASES = /* @__PURE__ */ new Set(["animate-spin", "animate-ping", "animate-bounce"]);
 function checkReducedMotion(checks, strict = false) {
   if (!strict)
     return [];
@@ -50107,6 +50115,29 @@ function checkReducedMotion(checks, strict = false) {
         hasMotionReduceGuard = true;
       }
     }
+    const hasMotionReduceAnimateGuard = check.classes.some((raw) => {
+      const segments = variantSegments2(raw);
+      return segments.length === 1 && segments[0] === "motion-reduce" && baseUtility3(raw) === "animate-none";
+    });
+    const animateMotionClass = check.classes.find((raw) => {
+      const segments = variantSegments2(raw);
+      if (segments.includes("motion-safe"))
+        return false;
+      if (!segments.some((v) => INTERACTION_VARIANTS2.has(v)))
+        return false;
+      return ANIMATE_MOTION_BASES.has(baseUtility3(raw));
+    });
+    if (animateMotionClass && !hasMotionReduceAnimateGuard) {
+      violations.push({
+        type: "reduced-motion",
+        mechanism: "animate",
+        file: check.file,
+        line: check.line,
+        tagName: check.tagName,
+        motionClass: animateMotionClass,
+        level: "AAA"
+      });
+    }
     if (!realTransition)
       continue;
     if (hasMotionReduceGuard)
@@ -50123,6 +50154,7 @@ function checkReducedMotion(checks, strict = false) {
       continue;
     violations.push({
       type: "reduced-motion",
+      mechanism: "transition",
       file: check.file,
       line: check.line,
       tagName: check.tagName,
@@ -50445,7 +50477,7 @@ function formatViolation(v) {
       return v.thicknessPx !== void 0 ? `${base}; also only ${v.thicknessPx}px thick, needs >= ${v.requiredThicknessPx}px` : base;
     }
     case "reduced-motion":
-      return `<${v.tagName}> animates ${v.motionClass} via ${v.transitionClass} with no motion-reduce:transition-none/transform-none guard \u2014 WCAG 2.3.3 requires motion animation triggered by interaction to be disableable`;
+      return v.mechanism === "animate" ? `<${v.tagName}> animates ${v.motionClass} via a CSS animation with no motion-reduce:animate-none guard \u2014 WCAG 2.3.3 requires motion animation triggered by interaction to be disableable` : `<${v.tagName}> animates ${v.motionClass} via ${v.transitionClass} with no motion-reduce:transition-none/transform-none guard \u2014 WCAG 2.3.3 requires motion animation triggered by interaction to be disableable`;
   }
 }
 function toAnnotationCommand(v) {
