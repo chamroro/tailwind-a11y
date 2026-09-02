@@ -290,26 +290,45 @@ Tailwind-class-level sizing or focus-style analysis).
   all.** Verified against the W3C Understanding doc that "motion animation"
   specifically means a change to an element's perceived size, shape, or
   position — color/opacity/blur changes don't qualify, even though they're
-  visually "animated" in the everyday sense. This is why `animate-spin`/
-  `-ping`/`-pulse`/`-bounce` are deliberately **not** covered here: they're
-  continuous, not interaction-triggered, so they belong under 2.2.2 (Pause,
-  Stop, Hide) instead, which has a materially different, harder-to-
-  statically-verify requirement (a 5-second-or-longer duration threshold
-  this tool has no way to know) — folding them in here would misattribute
-  the wrong SC. **Known gap, not yet closed**: that reasoning only holds for
-  an *unscoped* `animate-*` (always running). An interaction-scoped one
-  (`hover:animate-bounce` — a translateY-based, genuinely position-changing
-  animation per the Understanding doc's own definition, triggered only by
-  hover) is squarely 2.3.3's territory per the doc's own "not in response to
-  an intentional user activation" distinction for 2.2.2 — caught in
-  independent review, not yet implemented. The extractor's candidacy gate
-  requires a `transition`/`transition-all`/`transition-transform` base,
-  which `animate-*` isn't, so `hover:animate-bounce` alone currently
-  produces zero checks in any mode, not by deliberate design for this
-  specific case. Would need its own detection path (`animate-*` utilities
-  don't need a `transition-*` base to animate — they carry their own
-  `animation` property), not an extension of the transition-based logic
-  here.
+  visually "animated" in the everyday sense. This is why an **unscoped**
+  `animate-spin`/`-ping`/`-pulse`/`-bounce` is still not covered: continuous,
+  not interaction-triggered, so it belongs under 2.2.2 (Pause, Stop, Hide)
+  instead, which has a materially different, harder-to-statically-verify
+  requirement (a 5-second-or-longer duration threshold this tool has no way
+  to know) — folding it in here would misattribute the wrong SC.
+  **Interaction-scoped `animate-*` (`hover:animate-bounce`) is a second,
+  independent detection path under this same check, closing what was
+  previously a documented gap.** `animate-*` utilities carry their own
+  `animation` property and need no `transition-*` base at all, so
+  `checkReducedMotion` runs a fully separate block per check — computed
+  *before* the transition path's `continue` statements, not appended after
+  them, since an element with only `hover:animate-bounce` never sets
+  `realTransition` and would otherwise be skipped past entirely — that can
+  independently push its own violation, meaning one element can produce up
+  to two violations (one per mechanism) if both are genuinely present.
+  `ANIMATE_MOTION_BASES = new Set(["animate-spin", "animate-ping",
+  "animate-bounce"])`, verified against real Tailwind v4 compiled keyframes:
+  spin → `rotate(360deg)` (shape/orientation), ping → `scale(2)` +
+  `opacity:0` (includes a size change, so it qualifies same as any other
+  scale change regardless of the accompanying opacity fade), bounce →
+  `translateY(-25%)` (position) — `animate-pulse` (opacity-only) and
+  `animate-none` (the off/identity value) are excluded, same treatment as
+  `scale-100`/`rotate-0` on the transition side. The guard is a separate
+  `hasMotionReduceAnimateGuard` (bare, single-segment
+  `motion-reduce:animate-none` only) — kept independent from the transition
+  side's `hasMotionReduceGuard` so one mechanism's guard can't wrongly
+  suppress the other's violation. The extractor's candidacy gate
+  (`extractReducedMotion.ts`) adds this as a **single-class** OR condition —
+  one class must be both an `animate-` base and interaction-scoped in its own
+  variant stack — not two independent whole-element flags the way
+  `hasTransitionBase`/`hasInteractionClass` work for the transition path.
+  That distinction matters: `transition-transform` is never itself
+  interaction-scoped (paired with a separate `hover:scale-110`), but an
+  `animate-*` class is simultaneously its own trigger and its own animator,
+  so two independent flags would wrongly treat `animate-spin
+  hover:text-red-500` (an unscoped, continuously-running animation next to
+  an unrelated hover class) as a candidate — exactly the 2.2.2-not-2.3.3 case
+  above.
   - Because there's no AA tier, this is gated behind `strict` in every
     scan-everything-by-default adapter (CLI, VS Code, GitHub Action) — an
     AAA-only check running unconditionally would silently start failing

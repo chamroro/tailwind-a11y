@@ -36,6 +36,21 @@ ruleTester.run("reduced-motion", rule, {
       filename: "Identity.jsx",
       code: `export const D = () => <div className="transition-transform hover:scale-100">x</div>;`,
     },
+    {
+      name: "a bare motion-reduce:animate-none guard passes for the animate mechanism",
+      filename: "OkAnimate.jsx",
+      code: `export const Ok = () => <div className="hover:animate-bounce motion-reduce:animate-none">x</div>;`,
+    },
+    {
+      name: "hover:animate-pulse is opacity-only, not real motion",
+      filename: "Pulse.jsx",
+      code: `export const D = () => <div className="hover:animate-pulse">x</div>;`,
+    },
+    {
+      name: "an unscoped animate-bounce with no interaction variant is 2.2.2 territory, out of scope here",
+      filename: "Unscoped.jsx",
+      code: `export const D = () => <div className="animate-bounce">x</div>;`,
+    },
   ],
   invalid: [
     {
@@ -46,6 +61,19 @@ ruleTester.run("reduced-motion", rule, {
         {
           message:
             "<div> animates hover:scale-110 via transition-transform with no motion-reduce:transition-none/transform-none guard — WCAG 2.3.3 requires motion animation triggered by interaction to be disableable",
+          line: 1,
+          column: 1,
+        },
+      ],
+    },
+    {
+      name: "an interaction-scoped animate-bounce with no transition base at all fires under the animate mechanism",
+      filename: "Bounce.jsx",
+      code: `export const Bounce = () => <div className="hover:animate-bounce">x</div>;`,
+      errors: [
+        {
+          message:
+            "<div> animates hover:animate-bounce via a CSS animation with no motion-reduce:animate-none guard — WCAG 2.3.3 requires motion animation triggered by interaction to be disableable",
           line: 1,
           column: 1,
         },

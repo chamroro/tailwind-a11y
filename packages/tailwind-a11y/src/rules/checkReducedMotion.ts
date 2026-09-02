@@ -1,14 +1,33 @@
 import type { ReducedMotionCheck } from "../parser/extractReducedMotion.js";
 
-export interface ReducedMotionViolation {
-  type: "reduced-motion";
-  file: string;
-  line: number;
-  tagName: string;
-  transitionClass: string;
-  motionClass: string;
-  level: "AAA"; // no AA tier exists for this SC to fall back to
-}
+// Two independently-detected mechanisms under one WCAG 2.3.3 citation, not
+// one enriched shape: a transition-mechanism violation always has a real
+// transitionClass; an animate-mechanism violation has none at all (animate-*
+// utilities carry their own `animation` property and are simultaneously
+// their own trigger and their own animator -- there is no separate
+// transition utility to name, so reusing `transitionClass` with the animate
+// class itself would read as "animates X via X"). Both can fire on the same
+// element independently.
+export type ReducedMotionViolation =
+  | {
+      type: "reduced-motion";
+      mechanism: "transition";
+      file: string;
+      line: number;
+      tagName: string;
+      transitionClass: string;
+      motionClass: string;
+      level: "AAA"; // no AA tier exists for this SC to fall back to
+    }
+  | {
+      type: "reduced-motion";
+      mechanism: "animate";
+      file: string;
+      line: number;
+      tagName: string;
+      motionClass: string;
+      level: "AAA";
+    };
 
 // Verified against a real Tailwind v4 build: only these three include
 // transform/translate/scale/rotate in their transition-property list.
@@ -56,6 +75,18 @@ function isNonIdentityMotionUtility(base: string): boolean {
   if (skew) return Number(skew[2]) !== 0;
   return false;
 }
+
+// Verified against a real Tailwind v4 build's compiled keyframes:
+// animate-spin -> rotate(360deg) (orientation/shape change), animate-ping ->
+// scale(2)+opacity:0 (includes a size change), animate-bounce ->
+// translateY(-25%) (position change) -- all three qualify as "motion
+// animation" per this project's own WCAG 2.3.3 boundary (size/shape/
+// position, not color/opacity/blur). animate-pulse is opacity-only (excluded,
+// same reason color/opacity transitions don't count above) and animate-none
+// is the off/identity value (excluded, same treatment as scale-100/rotate-0).
+// A fully enumerated set, not a regex -- unlike scale/rotate/translate/skew,
+// none of these utilities take an arbitrary numeric value to range-check.
+const ANIMATE_MOTION_BASES = new Set(["animate-spin", "animate-ping", "animate-bounce"]);
 
 // `strict` gates the whole check for the scan-everything-by-default
 // adapters (CLI/VS Code/GitHub Action) -- WCAG 2.3.3 is AAA-only, and
@@ -126,6 +157,38 @@ export function checkReducedMotion(checks: ReducedMotionCheck[], strict = false)
       }
     }
 
+    // Independent detection path for the animate-* mechanism -- deliberately
+    // NOT nested after the transition path's `continue`s below, since
+    // `hover:animate-bounce` alone has no transition base at all
+    // (realTransition stays null), which would skip past this block entirely
+    // if it were placed after the `if (!realTransition) continue;` line. A
+    // single element can have a real violation on both mechanisms at once
+    // (independently pushed), or on just one -- they don't race for one slot.
+    const hasMotionReduceAnimateGuard = check.classes.some((raw) => {
+      const segments = variantSegments(raw);
+      return segments.length === 1 && segments[0] === "motion-reduce" && baseUtility(raw) === "animate-none";
+    });
+    const animateMotionClass = check.classes.find((raw) => {
+      const segments = variantSegments(raw);
+      // Same self-guard and interaction-scoping reasoning as the transition
+      // side's motionClass find below -- see its comment for the full
+      // explanation of why both checks are per-candidate, not per-element.
+      if (segments.includes("motion-safe")) return false;
+      if (!segments.some((v) => INTERACTION_VARIANTS.has(v))) return false;
+      return ANIMATE_MOTION_BASES.has(baseUtility(raw));
+    });
+    if (animateMotionClass && !hasMotionReduceAnimateGuard) {
+      violations.push({
+        type: "reduced-motion",
+        mechanism: "animate",
+        file: check.file,
+        line: check.line,
+        tagName: check.tagName,
+        motionClass: animateMotionClass,
+        level: "AAA",
+      });
+    }
+
     // No real (non-motion-safe-guarded) transition at all means it simply
     // doesn't exist unless motion is already safe -- a complete
     // alternative way of satisfying 2.3.3, not a partial one -- so this
@@ -149,6 +212,7 @@ export function checkReducedMotion(checks: ReducedMotionCheck[], strict = false)
 
     violations.push({
       type: "reduced-motion",
+      mechanism: "transition",
       file: check.file,
       line: check.line,
       tagName: check.tagName,

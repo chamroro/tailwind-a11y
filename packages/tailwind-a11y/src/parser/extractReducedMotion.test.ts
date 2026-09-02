@@ -58,4 +58,42 @@ describe("extractReducedMotionChecks", () => {
     expect(() => extractReducedMotionChecks(code, "fake.tsx")).not.toThrow();
     expect(extractReducedMotionChecks(code, "fake.tsx")).toEqual([]);
   });
+
+  it.each(["hover:animate-bounce", "hover:animate-spin", "hover:animate-ping"])(
+    "collects an element with an interaction-scoped animate-* class alone, no transition base at all: %s",
+    (animateClass) => {
+      const code = `const C = () => <div className="${animateClass}">x</div>;`;
+      expect(extractReducedMotionChecks(code, "fake.tsx")).toEqual([
+        { file: "fake.tsx", line: 1, tagName: "div", classes: [animateClass] },
+      ]);
+    }
+  );
+
+  it("skips an unscoped animate-* class with no interaction variant anywhere on the element", () => {
+    const code = `const C = () => <div className="animate-bounce">x</div>;`;
+    expect(extractReducedMotionChecks(code, "fake.tsx")).toEqual([]);
+  });
+
+  // The extractor-level pitfall this design deliberately avoids: an unscoped,
+  // continuously-running animate-* sitting next to an unrelated hover class
+  // on the same element must NOT become a candidate just because both
+  // conditions are present somewhere on the element -- the animate-* class
+  // itself must be the one that's interaction-scoped.
+  it("skips an unscoped animate-* alongside an unrelated interaction-scoped class on the same element", () => {
+    const code = `const C = () => <div className="animate-bounce hover:text-red-500">x</div>;`;
+    expect(extractReducedMotionChecks(code, "fake.tsx")).toEqual([]);
+  });
+
+  it.each(["motion-safe:hover:animate-bounce", "hover:motion-safe:animate-bounce"])(
+    "still collects when the interaction-scoped animate-* is itself motion-safe:-guarded, in either variant order: %s (rule decides pass/fail)",
+    (stackedClass) => {
+      const code = `const C = () => <div className="${stackedClass}">x</div>;`;
+      expect(extractReducedMotionChecks(code, "fake.tsx")).toHaveLength(1);
+    }
+  );
+
+  it("still collects an interaction-scoped animate-pulse -- extractor doesn't pre-filter which animate-* names are real motion, the rule does", () => {
+    const code = `const C = () => <div className="hover:animate-pulse">x</div>;`;
+    expect(extractReducedMotionChecks(code, "fake.tsx")).toHaveLength(1);
+  });
 });

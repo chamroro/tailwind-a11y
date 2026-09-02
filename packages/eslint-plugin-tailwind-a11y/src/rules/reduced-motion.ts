@@ -6,7 +6,7 @@ const rule: Rule.RuleModule = {
     type: "problem",
     docs: {
       description:
-        "Enforce WCAG 2.3.3 AAA -- interaction-triggered transform animation (scale/rotate/translate/skew under hover:/focus:/active:) must be disableable via prefers-reduced-motion",
+        "Enforce WCAG 2.3.3 AAA -- interaction-triggered transform animation (scale/rotate/translate/skew under hover:/focus:/active:) or animate-spin/-ping/-bounce under the same variants must be disableable via prefers-reduced-motion",
       recommended: true,
       url: "https://github.com/chamroro/tailwind-a11y/tree/main/packages/eslint-plugin-tailwind-a11y#reduced-motion",
     },
@@ -20,9 +20,15 @@ const rule: Rule.RuleModule = {
     // here, enabling this rule at all is already that opt-in gesture, so
     // this is the one caller that always passes `true`.
     schema: [],
+    // Two messageIds, not one with a conditional {{placeholder}} -- ESLint's
+    // mustache-style templates can't branch on data, and the animate
+    // mechanism has no transitionClass to interpolate at all (see
+    // ReducedMotionViolation's discriminated union in the engine).
     messages: {
-      reducedMotion:
+      reducedMotionTransition:
         "<{{tagName}}> animates {{motionClass}} via {{transitionClass}} with no motion-reduce:transition-none/transform-none guard — WCAG 2.3.3 requires motion animation triggered by interaction to be disableable",
+      reducedMotionAnimate:
+        "<{{tagName}}> animates {{motionClass}} via a CSS animation with no motion-reduce:animate-none guard — WCAG 2.3.3 requires motion animation triggered by interaction to be disableable",
     },
   },
 
@@ -35,11 +41,19 @@ const rule: Rule.RuleModule = {
         );
 
         for (const v of violations) {
-          context.report({
-            loc: { line: v.line, column: 0 },
-            messageId: "reducedMotion",
-            data: { tagName: v.tagName, motionClass: v.motionClass, transitionClass: v.transitionClass },
-          });
+          if (v.mechanism === "animate") {
+            context.report({
+              loc: { line: v.line, column: 0 },
+              messageId: "reducedMotionAnimate",
+              data: { tagName: v.tagName, motionClass: v.motionClass },
+            });
+          } else {
+            context.report({
+              loc: { line: v.line, column: 0 },
+              messageId: "reducedMotionTransition",
+              data: { tagName: v.tagName, motionClass: v.motionClass, transitionClass: v.transitionClass },
+            });
+          }
         }
       },
     };

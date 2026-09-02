@@ -22,6 +22,7 @@ describe("checkReducedMotion", () => {
     expect(violations).toEqual([
       {
         type: "reduced-motion",
+        mechanism: "transition",
         file: "f.tsx",
         line: 1,
         tagName: "div",
@@ -64,7 +65,7 @@ describe("checkReducedMotion", () => {
     (transitionClass) => {
       const violations = checkReducedMotion([check([transitionClass, "hover:scale-110"])], true);
       expect(violations).toHaveLength(1);
-      expect(violations[0].transitionClass).toBe(transitionClass);
+      expect(violations[0]).toMatchObject({ mechanism: "transition", transitionClass });
     }
   );
 
@@ -162,5 +163,90 @@ describe("checkReducedMotion", () => {
     const violations = checkReducedMotion(extractReducedMotionChecks(code, "fake.tsx"), true);
     expect(violations).toHaveLength(1);
     expect(violations[0].type).toBe("reduced-motion");
+  });
+
+  describe("animate-* mechanism", () => {
+    it.each(["hover:animate-bounce", "hover:animate-spin", "hover:animate-ping"])(
+      "flags an interaction-scoped animate-* class alone, with no transition base at all: %s",
+      (animateClass) => {
+        const violations = checkReducedMotion([check([animateClass])], true);
+        expect(violations).toEqual([
+          {
+            type: "reduced-motion",
+            mechanism: "animate",
+            file: "f.tsx",
+            line: 1,
+            tagName: "div",
+            motionClass: animateClass,
+            level: "AAA",
+          },
+        ]);
+      }
+    );
+
+    it("does not flag hover:animate-pulse -- opacity-only, not a size/shape/position change", () => {
+      const violations = checkReducedMotion([check(["hover:animate-pulse"])], true);
+      expect(violations).toEqual([]);
+    });
+
+    it("does not flag hover:animate-none -- the off/identity value", () => {
+      const violations = checkReducedMotion([check(["hover:animate-none"])], true);
+      expect(violations).toEqual([]);
+    });
+
+    it("does not flag an unscoped animate-bounce with no interaction variant (2.2.2 territory, out of scope here)", () => {
+      const violations = checkReducedMotion([check(["animate-bounce"])], true);
+      expect(violations).toEqual([]);
+    });
+
+    it("does not flag an unscoped animate-bounce alongside an unrelated interaction-scoped class on the same element", () => {
+      const violations = checkReducedMotion([check(["animate-bounce", "hover:text-red-500"])], true);
+      expect(violations).toEqual([]);
+    });
+
+    it("passes when a bare motion-reduce:animate-none guard is present", () => {
+      const violations = checkReducedMotion([check(["hover:animate-bounce", "motion-reduce:animate-none"])], true);
+      expect(violations).toEqual([]);
+    });
+
+    it("does not accept a motion-reduce:animate-none guard nested under an unrelated variant (regression, mirrors the transition-side guard)", () => {
+      const violations = checkReducedMotion([check(["hover:animate-bounce", "sm:motion-reduce:animate-none"])], true);
+      expect(violations).toHaveLength(1);
+    });
+
+    it("a bare motion-reduce:transition-none guard does not suppress an animate-mechanism violation (independent guards)", () => {
+      const violations = checkReducedMotion([check(["hover:animate-bounce", "motion-reduce:transition-none"])], true);
+      expect(violations).toHaveLength(1);
+    });
+
+    it.each(["motion-safe:hover:animate-bounce", "hover:motion-safe:animate-bounce"])(
+      "passes when the interaction-scoped animate-* is itself motion-safe:-guarded, in either variant order: %s",
+      (animateClass) => {
+        const violations = checkReducedMotion([check([animateClass])], true);
+        expect(violations).toEqual([]);
+      }
+    );
+
+    it("still flags animate-bounce scoped by an unrelated persistent variant stacked with the interaction variant", () => {
+      const violations = checkReducedMotion([check(["dark:hover:animate-bounce"])], true);
+      expect(violations).toHaveLength(1);
+      expect(violations[0].motionClass).toBe("dark:hover:animate-bounce");
+    });
+
+    it("produces two independent violations when an element has both a real transition violation and a real animate violation", () => {
+      const violations = checkReducedMotion(
+        [check(["transition-transform", "hover:scale-110", "focus:animate-bounce"])],
+        true
+      );
+      expect(violations).toHaveLength(2);
+      expect(violations.map((v) => v.mechanism).sort()).toEqual(["animate", "transition"]);
+    });
+
+    it("composes end-to-end with extractReducedMotionChecks for an animate-only element", () => {
+      const code = `const C = () => <div className="hover:animate-bounce">x</div>;`;
+      const violations = checkReducedMotion(extractReducedMotionChecks(code, "fake.tsx"), true);
+      expect(violations).toHaveLength(1);
+      expect(violations[0].mechanism).toBe("animate");
+    });
   });
 });
