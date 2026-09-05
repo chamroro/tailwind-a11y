@@ -50027,7 +50027,29 @@ function checkFocusContrast(checks, strict = false, palette = defaultPalette) {
 // ../tailwind-a11y/dist/parser/extractReducedMotion.js
 var t6 = __toESM(require_lib3(), 1);
 var TRANSITION_BASES = /* @__PURE__ */ new Set(["transition", "transition-all", "transition-transform"]);
-var INTERACTION_VARIANTS = /* @__PURE__ */ new Set(["hover", "focus", "focus-visible", "focus-within", "active"]);
+var INTERACTION_VARIANTS = /* @__PURE__ */ new Set([
+  "hover",
+  "focus",
+  "focus-visible",
+  "focus-within",
+  "active",
+  "group-hover",
+  "group-focus",
+  "group-focus-visible",
+  "group-focus-within",
+  "group-active",
+  "peer-hover",
+  "peer-focus",
+  "peer-focus-visible",
+  "peer-focus-within",
+  "peer-active"
+]);
+function isInteractionVariant(v) {
+  if (INTERACTION_VARIANTS.has(v))
+    return true;
+  const slash = v.indexOf("/");
+  return slash !== -1 && INTERACTION_VARIANTS.has(v.slice(0, slash));
+}
 function baseUtility2(raw) {
   return raw.slice(raw.lastIndexOf(":") + 1);
 }
@@ -50050,10 +50072,10 @@ function extractReducedMotionChecks(code, filePath) {
         return;
       const classes = className.split(/\s+/).filter(Boolean);
       const hasTransitionBase = classes.some((raw) => TRANSITION_BASES.has(baseUtility2(raw)));
-      const hasInteractionClass = classes.some((raw) => variantSegments(raw).some((v) => INTERACTION_VARIANTS.has(v)));
+      const hasInteractionClass = classes.some((raw) => variantSegments(raw).some(isInteractionVariant));
       const hasInteractionScopedAnimate = classes.some((raw) => {
         const base = baseUtility2(raw);
-        return isAnimateBase(base) && variantSegments(raw).some((v) => INTERACTION_VARIANTS.has(v));
+        return isAnimateBase(base) && variantSegments(raw).some(isInteractionVariant);
       });
       if ((!hasTransitionBase || !hasInteractionClass) && !hasInteractionScopedAnimate)
         return;
@@ -50070,7 +50092,29 @@ function extractReducedMotionChecks(code, filePath) {
 
 // ../tailwind-a11y/dist/rules/checkReducedMotion.js
 var TRANSITION_BASES2 = /* @__PURE__ */ new Set(["transition", "transition-all", "transition-transform"]);
-var INTERACTION_VARIANTS2 = /* @__PURE__ */ new Set(["hover", "focus", "focus-visible", "focus-within", "active"]);
+var INTERACTION_VARIANTS2 = /* @__PURE__ */ new Set([
+  "hover",
+  "focus",
+  "focus-visible",
+  "focus-within",
+  "active",
+  "group-hover",
+  "group-focus",
+  "group-focus-visible",
+  "group-focus-within",
+  "group-active",
+  "peer-hover",
+  "peer-focus",
+  "peer-focus-visible",
+  "peer-focus-within",
+  "peer-active"
+]);
+function isInteractionVariant2(v) {
+  if (INTERACTION_VARIANTS2.has(v))
+    return true;
+  const slash = v.indexOf("/");
+  return slash !== -1 && INTERACTION_VARIANTS2.has(v.slice(0, slash));
+}
 function baseUtility3(raw) {
   return raw.slice(raw.lastIndexOf(":") + 1);
 }
@@ -50107,7 +50151,7 @@ function checkReducedMotion(checks, strict = false) {
     for (const raw of check.classes) {
       const base = baseUtility3(raw);
       const segments = variantSegments2(raw);
-      const isInteractionGated = segments.some((v) => INTERACTION_VARIANTS2.has(v));
+      const isInteractionGated = segments.some(isInteractionVariant2);
       const isMotionSafeGated = segments.includes("motion-safe");
       if (TRANSITION_BASES2.has(base) && !isInteractionGated && !isMotionSafeGated)
         realTransition = raw;
@@ -50123,7 +50167,7 @@ function checkReducedMotion(checks, strict = false) {
       const segments = variantSegments2(raw);
       if (segments.includes("motion-safe"))
         return false;
-      if (!segments.some((v) => INTERACTION_VARIANTS2.has(v)))
+      if (!segments.some(isInteractionVariant2))
         return false;
       return ANIMATE_MOTION_BASES.has(baseUtility3(raw));
     });
@@ -50146,7 +50190,7 @@ function checkReducedMotion(checks, strict = false) {
       const segments = variantSegments2(raw);
       if (segments.includes("motion-safe"))
         return false;
-      if (!segments.some((v) => INTERACTION_VARIANTS2.has(v)))
+      if (!segments.some(isInteractionVariant2))
         return false;
       return isNonIdentityMotionUtility(baseUtility3(raw));
     });

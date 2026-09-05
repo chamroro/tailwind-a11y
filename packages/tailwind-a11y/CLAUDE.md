@@ -345,7 +345,20 @@ Tailwind-class-level sizing or focus-style analysis).
     card is exactly the target case), so it walks every JSX element with a
     static `className`, same as `extractClasses.ts`'s contrast check.
     Interaction variants recognized: `hover`/`focus`/`focus-visible`/
-    `focus-within`/`active`.
+    `focus-within`/`active`, plus their `group-*`/`peer-*` equivalents
+    (`group-hover`/`group-focus`/`group-focus-visible`/`group-focus-within`/
+    `group-active` and the `peer-*` set) — verified against a real v4 build
+    that these compile to the identical momentary-pseudo-class shape as bare
+    `hover:`, just evaluated against an ancestor/sibling `.group`/`.peer`
+    marker instead of the element itself, so all the same reasoning applies
+    unchanged. Named groups/peers (`group-hover/sidebar:scale-110`) are also
+    recognized — Tailwind compiles the name into the variant token itself via
+    a slash, so matching checks the segment verbatim first, then the prefix
+    before its first `/`. Deliberately **not** extended to `has-*:`/arbitrary
+    variants (`[&:hover]:`, already out of scope elsewhere in this file —
+    unbounded selector text, not a closed enumerable set) or `in-*:` (a real
+    v4.1+ ancestor-state variant with the identical shape — a legitimate
+    separate follow-up, not folded into this set).
   - Variant detection scans **every** segment of a stacked variant class
     (`variantSegments()`), not just the one immediately before the base
     utility — caught in independent review: `motion-safe:hover:scale-110`
