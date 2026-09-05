@@ -249,4 +249,83 @@ describe("checkReducedMotion", () => {
       expect(violations[0].mechanism).toBe("animate");
     });
   });
+
+  describe("group-*/peer-* interaction variants", () => {
+    it.each(["group-hover:scale-110", "peer-hover:scale-110"])(
+      "flags %s under an unscoped transition, same as bare hover:",
+      (motionClass) => {
+        const violations = checkReducedMotion([check(["transition-transform", motionClass])], true);
+        expect(violations).toHaveLength(1);
+        expect(violations[0]).toMatchObject({ mechanism: "transition", motionClass });
+      }
+    );
+
+    it("passes when the transition itself is group-scoped (not present in the resting state)", () => {
+      const violations = checkReducedMotion(
+        [check(["group-hover:transition-transform", "group-hover:scale-110"])],
+        true
+      );
+      expect(violations).toEqual([]);
+    });
+
+    it("passes when a bare motion-reduce:transition-none guard is present alongside a group-hover: motion class", () => {
+      const violations = checkReducedMotion(
+        [check(["transition-transform", "group-hover:scale-110", "motion-reduce:transition-none"])],
+        true
+      );
+      expect(violations).toEqual([]);
+    });
+
+    it.each(["group-hover:animate-bounce", "peer-hover:animate-bounce"])(
+      "flags %s on the animate mechanism, no transition base at all",
+      (motionClass) => {
+        const violations = checkReducedMotion([check([motionClass])], true);
+        expect(violations).toHaveLength(1);
+        expect(violations[0]).toMatchObject({ mechanism: "animate", motionClass });
+      }
+    );
+
+    it("passes with a bare motion-reduce:animate-none guard alongside a group-hover: animate class", () => {
+      const violations = checkReducedMotion([check(["group-hover:animate-bounce", "motion-reduce:animate-none"])], true);
+      expect(violations).toEqual([]);
+    });
+
+    it.each(["group-hover:motion-safe:scale-110", "motion-safe:group-hover:scale-110"])(
+      "passes when the group-hover: motion utility is itself motion-safe:-guarded, in either variant order: %s",
+      (motionClass) => {
+        const violations = checkReducedMotion([check(["transition-transform", motionClass])], true);
+        expect(violations).toEqual([]);
+      }
+    );
+
+    it("passes when a named-group motion utility is itself motion-safe:-guarded", () => {
+      const violations = checkReducedMotion(
+        [check(["transition-transform", "group-hover/sidebar:motion-safe:scale-110"])],
+        true
+      );
+      expect(violations).toEqual([]);
+    });
+
+    it("still flags group-hover:scale-110 scoped by an unrelated persistent variant stacked with it", () => {
+      const violations = checkReducedMotion([check(["transition-transform", "sm:group-hover:scale-110"])], true);
+      expect(violations).toHaveLength(1);
+      expect(violations[0].motionClass).toBe("sm:group-hover:scale-110");
+    });
+
+    it("flags a named-group motion utility, echoing the raw class (including the /sidebar suffix) verbatim", () => {
+      const violations = checkReducedMotion(
+        [check(["transition-transform", "group-hover/sidebar:scale-110"])],
+        true
+      );
+      expect(violations).toHaveLength(1);
+      expect(violations[0].motionClass).toBe("group-hover/sidebar:scale-110");
+    });
+
+    it("composes end-to-end with extractReducedMotionChecks for a group-hover-only element", () => {
+      const code = `const C = () => <div className="group-hover:animate-bounce">x</div>;`;
+      const violations = checkReducedMotion(extractReducedMotionChecks(code, "fake.tsx"), true);
+      expect(violations).toHaveLength(1);
+      expect(violations[0].mechanism).toBe("animate");
+    });
+  });
 });

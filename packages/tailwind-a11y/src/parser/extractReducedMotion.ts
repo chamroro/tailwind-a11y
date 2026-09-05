@@ -15,7 +15,35 @@ export interface ReducedMotionCheck {
 }
 
 const TRANSITION_BASES = new Set(["transition", "transition-all", "transition-transform"]);
-const INTERACTION_VARIANTS = new Set(["hover", "focus", "focus-visible", "focus-within", "active"]);
+
+// group-hover:/peer-hover:/etc. compile to the identical momentary-pseudo-
+// class shape as bare hover:, just evaluated against an ancestor/sibling
+// (.group/.peer marker) instead of the element itself -- verified against a
+// real Tailwind v4 build (`.group-hover\:scale-110:is(:where(.group):hover *)`).
+// Deliberately NOT extended to has-*:/arbitrary variants ([&:hover]:, already
+// an established out-of-scope precedent for this file -- unbounded selector
+// text, not a closed enumerable set) or in-*: (a real v4.1+ ancestor-state
+// variant with the identical shape, but a legitimate separate follow-up, not
+// folded into this set).
+const INTERACTION_VARIANTS = new Set([
+  "hover", "focus", "focus-visible", "focus-within", "active",
+  "group-hover", "group-focus", "group-focus-visible", "group-focus-within", "group-active",
+  "peer-hover", "peer-focus", "peer-focus-visible", "peer-focus-within", "peer-active",
+]);
+
+// Named groups/peers (`group-hover/sidebar:scale-110`) compile the group
+// name into the variant token itself via a slash
+// (`.group-hover\/sidebar\:scale-110:is(:where(.group\/sidebar):hover *)`),
+// so variantSegments() returns "group-hover/sidebar" verbatim -- a plain
+// Set.has() would miss it. Safe to slice on the first "/" and re-check:
+// Tailwind's opacity-modifier slash (`text-black/50`) lives inside the base
+// utility segment (after the last ":"), never inside a variant segment, so
+// there's no collision to worry about here.
+function isInteractionVariant(v: string): boolean {
+  if (INTERACTION_VARIANTS.has(v)) return true;
+  const slash = v.indexOf("/");
+  return slash !== -1 && INTERACTION_VARIANTS.has(v.slice(0, slash));
+}
 
 function baseUtility(raw: string): string {
   return raw.slice(raw.lastIndexOf(":") + 1);
@@ -53,9 +81,7 @@ export function extractReducedMotionChecks(code: string, filePath: string): Redu
       const classes = className.split(/\s+/).filter(Boolean);
 
       const hasTransitionBase = classes.some((raw) => TRANSITION_BASES.has(baseUtility(raw)));
-      const hasInteractionClass = classes.some((raw) =>
-        variantSegments(raw).some((v) => INTERACTION_VARIANTS.has(v))
-      );
+      const hasInteractionClass = classes.some((raw) => variantSegments(raw).some(isInteractionVariant));
       // A second, independent candidacy path for animate-* utilities, which
       // carry their own `animation` property and need no transition-*  base
       // at all -- `hover:animate-bounce` alone must be a candidate even
@@ -73,7 +99,7 @@ export function extractReducedMotionChecks(code: string, filePath: string): Redu
       // documents for why unscoped animate-* is out of scope here.
       const hasInteractionScopedAnimate = classes.some((raw) => {
         const base = baseUtility(raw);
-        return isAnimateBase(base) && variantSegments(raw).some((v) => INTERACTION_VARIANTS.has(v));
+        return isAnimateBase(base) && variantSegments(raw).some(isInteractionVariant);
       });
       // Not a candidate at all unless there's some transition utility
       // (scoped or not) *and* some interaction-scoped class, OR an
