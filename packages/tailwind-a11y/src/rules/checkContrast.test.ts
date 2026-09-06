@@ -89,6 +89,46 @@ describe("checkContrast", () => {
   });
 });
 
+describe("checkContrast on a placeholder:text-* candidate", () => {
+  it("flags a failing placeholder color, keeping the placeholder: prefix in textClass", () => {
+    const violations = checkContrast([
+      { file: "f.tsx", line: 1, textColorClass: "placeholder:text-gray-300", bgColorClass: "bg-white", bgSource: "self" },
+    ]);
+    expect(violations).toHaveLength(1);
+    expect(violations[0]).toMatchObject({ textClass: "placeholder:text-gray-300", bgClass: "bg-white" });
+  });
+
+  it("carries a suggestion that preserves the placeholder: prefix (copy-pasteable)", () => {
+    const [v] = checkContrast([
+      { file: "f.tsx", line: 1, textColorClass: "placeholder:text-gray-300", bgColorClass: "bg-white", bgSource: "self" },
+    ]);
+    expect(v.suggestion).toMatch(/^placeholder:text-gray-\d+$/);
+    expect(v.suggestedRatio).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("resolves a placeholder color combined with a text-side opacity modifier", () => {
+    const violations = checkContrast([
+      { file: "f.tsx", line: 1, textColorClass: "placeholder:text-gray-900/30", bgColorClass: "bg-white", bgSource: "self" },
+    ]);
+    expect(violations).toHaveLength(1);
+  });
+
+  it("produces two independent violations when both a resting text and placeholder candidate fail", () => {
+    const violations = checkContrast([
+      { file: "f.tsx", line: 1, textColorClass: "text-gray-300", bgColorClass: "bg-white", bgSource: "self" },
+      { file: "f.tsx", line: 1, textColorClass: "placeholder:text-gray-200", bgColorClass: "bg-white", bgSource: "self" },
+    ]);
+    expect(violations).toHaveLength(2);
+    expect(violations.map((v) => v.textClass).sort()).toEqual(["placeholder:text-gray-200", "text-gray-300"]);
+  });
+
+  it("composes end-to-end with extractChecks for an <input> with both candidates", () => {
+    const code = `const C = () => <input className="bg-white text-gray-300 placeholder:text-gray-200" />;`;
+    const violations = checkContrast(extractChecks(code, "fake.tsx"));
+    expect(violations).toHaveLength(2);
+  });
+});
+
 describe("checkContrast with a text-side opacity modifier", () => {
   it("flags a previously-invisible violation: dark text at low opacity reads as light", () => {
     // text-gray-900 alone passes easily against white; at 30% opacity it
@@ -274,6 +314,14 @@ describe("checkContrastValueSkips", () => {
     expect(skips).toHaveLength(1);
     expect(skips[0].reason).toContain("bg-brand-50");
   });
+
+  it("names the full placeholder:-prefixed class in an unresolved-color skip reason", () => {
+    const skips = checkContrastValueSkips([
+      { file: "f.tsx", line: 1, textColorClass: "placeholder:text-brand-500", bgColorClass: "bg-white", bgSource: "self" },
+    ]);
+    expect(skips).toHaveLength(1);
+    expect(skips[0].reason).toContain("placeholder:text-brand-500");
+  });
 });
 
 describe("suggestContrastFix", () => {
@@ -346,6 +394,17 @@ describe("suggestContrastFix", () => {
     expect(fix).not.toBeNull();
     expect(fix?.textClass).not.toBe("text-gray-400");
     expect(fix?.ratio).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("re-prepends the placeholder: prefix onto the suggested class (copy-pasteable, not a bare text-* class)", () => {
+    const fix = suggestContrastFix("placeholder:text-gray-400", "bg-white", 4.5);
+    expect(fix?.textClass).toBe("placeholder:text-gray-500");
+    expect(fix?.ratio).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("preserves both the placeholder: prefix and the opacity modifier together", () => {
+    const fix = suggestContrastFix("placeholder:text-gray-400/80", "bg-white", 4.5);
+    expect(fix?.textClass).toBe("placeholder:text-gray-600/80");
   });
 
   it("finds a fix within a custom-theme scale that the default palette doesn't have", () => {

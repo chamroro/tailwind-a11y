@@ -41,6 +41,27 @@ Tailwind-class-level sizing or focus-style analysis).
   where `Card` sets `bg-white` internally). That's a whole-program,
   type-aware analysis problem — explicitly out of scope. Known limitation,
   not a bug to fix.
+- **Contrast also checks `placeholder:text-*` (WCAG 1.4.3) on `<input>`/
+  `<textarea>` — a genuinely independent candidate from the element's own
+  resting text color, not a variant of it.** `extractClasses.ts`'s
+  `lastPlaceholderColorToken()` recognizes only the exact two-segment shape
+  `placeholder:text-*` (`raw.split(":")` length exactly 2) — a nested shape
+  like `dark:placeholder:text-gray-500` is deliberately NOT recognized, the
+  only choice consistent with how `lastColorToken` already treats every
+  other variant-scoped color candidate in this file (skip outright rather
+  than guess which persistent condition is active). Tag-scoped to
+  `input`/`textarea` (a small local set, not `isInteractiveElement()`,
+  which also matches `button`/`a`/`select` — none of which can render
+  `::placeholder` in any browser); a `placeholder:text-*` class on any other
+  tag is not "maybe irrelevant," it is dead CSS guaranteed never to render,
+  so this is the one contrast candidate in this file that's tag-scoped at
+  all. Reuses `ContrastCheck`/`ContrastViolation` unchanged — no new field:
+  `lastPlaceholderColorToken` returns the full raw string *including* the
+  `placeholder:` prefix (e.g. `"placeholder:text-gray-300"`), and
+  `checkContrast.ts`'s `resolveColorValue`/`TEXT_SCALE_SHADE_RE` tolerate
+  that prefix directly, so every message/skip-reason/suggestion already
+  reads correctly with zero consumer changes across any of the four
+  adapters.
 - **Static `className` string literals only.** Ternaries, `clsx`/`cva`
   composition, and computed class names are not resolved. Skip them silently
   rather than guessing.

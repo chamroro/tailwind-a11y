@@ -1,3 +1,4 @@
+import type { NodePath } from "@babel/traverse";
 import * as t from "@babel/types";
 import { getStaticClassName, parseJSX, traverse } from "./babelInterop.js";
 
@@ -35,6 +36,16 @@ export const COLOR_TOKEN =
 // bg-red-500 and would otherwise mask it via last-token-wins.
 const NON_COLOR_SCALE_NAMES = new Set(["opacity", "linear", "conic"]);
 
+// One definition, not two hand-mirrored copies (lastColorToken and
+// lastPlaceholderColorToken both need this exact test) -- the same "one
+// definition, not a second copy that could drift" reasoning already applied
+// to COLOR_TOKEN itself.
+function isColorScaleToken(rest: string): boolean {
+  if (!COLOR_TOKEN.test(rest)) return false;
+  const scaleName = /^([a-z]+)-\d/.exec(rest)?.[1];
+  return !(scaleName && NON_COLOR_SCALE_NAMES.has(scaleName));
+}
+
 export function lastColorToken(className: string, prefix: "text" | "bg"): string | null {
   let found: string | null = null;
   for (const raw of className.split(/\s+/).filter(Boolean)) {
@@ -52,12 +63,72 @@ export function lastColorToken(className: string, prefix: "text" | "bg"): string
     if (raw.includes(":")) continue;
     if (!raw.startsWith(`${prefix}-`)) continue;
     const rest = raw.slice(prefix.length + 1);
-    if (!COLOR_TOKEN.test(rest)) continue;
-    const scaleName = /^([a-z]+)-\d/.exec(rest)?.[1];
-    if (scaleName && NON_COLOR_SCALE_NAMES.has(scaleName)) continue;
+    if (!isColorScaleToken(rest)) continue;
     found = raw;
   }
   return found;
+}
+
+// placeholder:text-* targets the ::placeholder pseudo-element -- a
+// genuinely different rendered text than the element's own resting text
+// color, so it's checked as an independent candidate, not folded into
+// lastColorToken. Deliberately the exact two-segment shape only
+// (raw.split(":") === ["placeholder", "text-..."]) -- a nested shape like
+// dark:placeholder:text-gray-500 is NOT recognized. This isn't a narrower-
+// for-now cut, it's the only choice consistent with how lastColorToken
+// already treats every other variant-scoped color candidate in this same
+// file: skip outright rather than guess which persistent condition is
+// active. Returns the full raw string including the "placeholder:" prefix
+// -- checkContrast.ts's resolveColorValue/suggestContrastFix tolerate the
+// prefix directly, so every downstream message/skip-reason/suggestion
+// already reads correctly with zero further changes.
+function lastPlaceholderColorToken(className: string): string | null {
+  let found: string | null = null;
+  for (const raw of className.split(/\s+/).filter(Boolean)) {
+    const segments = raw.split(":");
+    if (segments.length !== 2 || segments[0] !== "placeholder") continue;
+    const base = segments[1];
+    if (!base.startsWith("text-")) continue;
+    const rest = base.slice("text-".length);
+    if (!isColorScaleToken(rest)) continue;
+    found = raw;
+  }
+  return found;
+}
+
+// ::placeholder only exists on <input>/<textarea> in any browser -- a
+// placeholder:text-* class on any other tag is not "maybe irrelevant," it
+// is dead CSS, guaranteed never to render. Unlike reduced-motion's
+// deliberate "not scoped to isInteractiveElement()" choice (a hover-
+// animated <div> genuinely animates), tag-scoping here prevents a
+// guaranteed false positive rather than narrowing a genuine one. A small
+// local set, not a reuse of isInteractiveElement() -- that helper also
+// matches button/a/select and any onClick-bearing element, none of which
+// can render a placeholder.
+const PLACEHOLDER_CAPABLE_TAGS = new Set(["input", "textarea"]);
+
+function isPlaceholderCapable(openingElement: t.JSXOpeningElement): boolean {
+  return (
+    t.isJSXIdentifier(openingElement.name) && PLACEHOLDER_CAPABLE_TAGS.has(openingElement.name.name)
+  );
+}
+
+// Resolves an element's background exactly once (self, else immediate JSX
+// parent — see extractChecks' own scope note) so both the resting-text and
+// placeholder candidates share one bg/bgSource pair rather than each
+// re-walking the parent chain independently.
+function resolveBg(path: NodePath<t.JSXElement>): { bg: string; source: "self" | "parent" } | null {
+  const className = getStaticClassName(path.node.openingElement.attributes);
+  const ownBg = className ? lastColorToken(className, "bg") : null;
+  if (ownBg) return { bg: ownBg, source: "self" };
+
+  const parentNode = path.parentPath?.node;
+  if (parentNode && t.isJSXElement(parentNode)) {
+    const parentClassName = getStaticClassName(parentNode.openingElement.attributes);
+    const parentBg = parentClassName ? lastColorToken(parentClassName, "bg") : null;
+    if (parentBg) return { bg: parentBg, source: "parent" };
+  }
+  return null;
 }
 
 export function extractChecks(code: string, filePath: string): ContrastCheck[] {
@@ -72,25 +143,23 @@ export function extractChecks(code: string, filePath: string): ContrastCheck[] {
       if (!className) return;
 
       const textClass = lastColorToken(className, "text");
-      if (!textClass) return;
+      const placeholderClass = isPlaceholderCapable(path.node.openingElement)
+        ? lastPlaceholderColorToken(className)
+        : null;
+      if (!textClass && !placeholderClass) return;
 
       const line = path.node.openingElement.loc?.start.line ?? 0;
 
-      const ownBg = lastColorToken(className, "bg");
-      if (ownBg) {
-        checks.push({ file: filePath, line, textColorClass: textClass, bgColorClass: ownBg, bgSource: "self" });
-        return;
-      }
-
       // Only the immediate JSX parent is considered — no deeper ancestor
       // walk and no cross-component resolution (see CLAUDE.md scope).
-      const parentNode = path.parentPath?.node;
-      if (parentNode && t.isJSXElement(parentNode)) {
-        const parentClassName = getStaticClassName(parentNode.openingElement.attributes);
-        const parentBg = parentClassName ? lastColorToken(parentClassName, "bg") : null;
-        if (parentBg) {
-          checks.push({ file: filePath, line, textColorClass: textClass, bgColorClass: parentBg, bgSource: "parent" });
-        }
+      const bg = resolveBg(path);
+      if (!bg) return;
+
+      if (textClass) {
+        checks.push({ file: filePath, line, textColorClass: textClass, bgColorClass: bg.bg, bgSource: bg.source });
+      }
+      if (placeholderClass) {
+        checks.push({ file: filePath, line, textColorClass: placeholderClass, bgColorClass: bg.bg, bgSource: bg.source });
       }
     },
   });
@@ -122,37 +191,38 @@ export function extractContrastSkips(code: string, filePath: string): ContrastSk
       if (!className) return;
 
       const textClass = lastColorToken(className, "text");
-      if (!textClass) return;
+      const placeholderClass = isPlaceholderCapable(path.node.openingElement)
+        ? lastPlaceholderColorToken(className)
+        : null;
+      if (!textClass && !placeholderClass) return;
 
-      const ownBg = lastColorToken(className, "bg");
-      if (ownBg) return; // extractChecks already covers this case
+      if (resolveBg(path)) return; // extractChecks already covers this case, for either candidate
 
       const line = path.node.openingElement.loc?.start.line ?? 0;
       const parentNode = path.parentPath?.node;
-
-      if (parentNode && t.isJSXElement(parentNode)) {
-        const parentClassName = getStaticClassName(parentNode.openingElement.attributes);
-        const parentBg = parentClassName ? lastColorToken(parentClassName, "bg") : null;
-        if (parentBg) return; // extractChecks already covers this case
-
-        const parentTag = t.isJSXIdentifier(parentNode.openingElement.name)
+      const parentTag =
+        parentNode && t.isJSXElement(parentNode) && t.isJSXIdentifier(parentNode.openingElement.name)
           ? parentNode.openingElement.name.name
           : null;
+
+      const reportSkip = (candidateClass: string) => {
         if (parentTag && /^[A-Z]/.test(parentTag)) {
           skips.push({
             file: filePath,
             line,
-            reason: `${textClass} — background may be set inside <${parentTag}>, which this tool doesn't inspect across component boundaries`,
+            reason: `${candidateClass} — background may be set inside <${parentTag}>, which this tool doesn't inspect across component boundaries`,
           });
           return;
         }
-      }
+        skips.push({
+          file: filePath,
+          line,
+          reason: `${candidateClass} — no background utility found on this element or its immediate parent`,
+        });
+      };
 
-      skips.push({
-        file: filePath,
-        line,
-        reason: `${textClass} — no background utility found on this element or its immediate parent`,
-      });
+      if (textClass) reportSkip(textClass);
+      if (placeholderClass) reportSkip(placeholderClass);
     },
   });
 

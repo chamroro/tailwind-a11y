@@ -42,7 +42,7 @@ export default [
 
 | Rule | WCAG | Detects |
 |---|---|---|
-| `contrast` | 1.4.3 (AA) | Low-contrast `text-*`/`bg-*` pairs — suggests the nearest passing shade |
+| `contrast` | 1.4.3 (AA) | Low-contrast `text-*`/`bg-*` pairs, plus `placeholder:text-*` on `<input>`/`<textarea>` — suggests the nearest passing shade |
 | `touch-target` | 2.5.8 (AA) | Interactive elements under 24×24px — or 44×44px with `{ strict: true }` (2.5.5, AAA) |
 | `focus-indicator` | 2.4.7 (AA) | `focus:outline-none` with no visible replacement |
 | `focus-contrast` | 1.4.11 (AA) | A present `outline-*`/`ring-*` focus indicator below 3:1 contrast — or also below the 2px minimum thickness with `{ strict: true }` (2.4.13, AAA) |

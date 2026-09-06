@@ -20,8 +20,14 @@ export interface ContrastViolation {
 export function resolveColorValue(utilityClass: string, palette: Palette = defaultPalette): string | null {
   // outline/ring are here for checkFocusIndicator.ts's non-text-contrast
   // check (WCAG 1.4.11/2.4.13) -- same palette/arbitrary-hex/semantic-color
-  // resolution as text/bg, just a different utility prefix.
-  const match = /^(?:text|bg|outline|ring)-(.+)$/.exec(utilityClass);
+  // resolution as text/bg, just a different utility prefix. The optional
+  // leading "placeholder:" tolerates extractClasses.ts's
+  // lastPlaceholderColorToken, which deliberately keeps that prefix on the
+  // class string it returns -- harmless to accept on all four prefixes
+  // here since extraction only ever produces "placeholder:text-*", never
+  // "placeholder:bg-*"/etc., and checkFocusIndicator.ts's own call sites
+  // can never pass a placeholder:-prefixed string into this function.
+  const match = /^(?:placeholder:)?(?:text|bg|outline|ring)-(.+)$/.exec(utilityClass);
   if (!match) return null;
   const token = match[1];
 
@@ -108,7 +114,10 @@ export interface ContrastFix {
   ratio: number;
 }
 
-const TEXT_SCALE_SHADE_RE = /^text-([a-z]+)-(\d+)$/;
+// Optional leading "placeholder:" tolerated for the same reason as
+// resolveColorValue's regex above -- suggestContrastFix re-prepends it to
+// the suggested class below so the suggestion stays copy-pasteable.
+const TEXT_SCALE_SHADE_RE = /^(?:placeholder:)?text-([a-z]+)-(\d+)$/;
 
 // Only the text shade moves — bg and any opacity modifier on the text class
 // stay fixed, since text color is the more commonly adjustable side in
@@ -132,6 +141,7 @@ export function suggestContrastFix(
   if (!match) return null; // text-white, text-[#eee] — no suggestion
 
   const [, scale, shade] = match;
+  const isPlaceholder = base.startsWith("placeholder:");
   const shades = palette[scale];
   if (!shades?.[shade]) return null; // custom scale, or a decoy like text-opacity-50
 
@@ -153,7 +163,8 @@ export function suggestContrastFix(
     const effectiveRgb = alpha < 1 ? applyAlpha(rgb, alpha, bgRgb) : rgb;
     const ratio = contrastRatio(effectiveRgb, bgRgb);
     if (ratio >= required) {
-      const suggestedClass = alpha < 1 ? `text-${scale}-${candidate}/${Math.round(alpha * 100)}` : `text-${scale}-${candidate}`;
+      const suggestedBase = alpha < 1 ? `text-${scale}-${candidate}/${Math.round(alpha * 100)}` : `text-${scale}-${candidate}`;
+      const suggestedClass = isPlaceholder ? `placeholder:${suggestedBase}` : suggestedBase;
       return { textClass: suggestedClass, ratio };
     }
   }
