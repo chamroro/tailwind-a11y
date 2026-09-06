@@ -36,7 +36,26 @@ export type ReducedMotionViolation =
 // animates (the browser has nothing telling it to transition that
 // property), and correctly isn't flagged.
 const TRANSITION_BASES = new Set(["transition", "transition-all", "transition-transform"]);
-const INTERACTION_VARIANTS = new Set(["hover", "focus", "focus-visible", "focus-within", "active"]);
+
+// group-hover:/peer-hover:/etc. compile to the identical momentary-pseudo-
+// class shape as bare hover:, just evaluated against an ancestor/sibling
+// (.group/.peer marker) instead of the element itself -- see the identical
+// set (and full explanation) in extractReducedMotion.ts. Deliberately NOT
+// extended to has-*:/arbitrary variants or in-*: -- see that file's comment.
+const INTERACTION_VARIANTS = new Set([
+  "hover", "focus", "focus-visible", "focus-within", "active",
+  "group-hover", "group-focus", "group-focus-visible", "group-focus-within", "group-active",
+  "peer-hover", "peer-focus", "peer-focus-visible", "peer-focus-within", "peer-active",
+]);
+
+// Named groups/peers (`group-hover/sidebar:...`) put the group name in the
+// variant token itself via a slash -- see extractReducedMotion.ts for the
+// full explanation of why slicing on the first "/" is safe here.
+function isInteractionVariant(v: string): boolean {
+  if (INTERACTION_VARIANTS.has(v)) return true;
+  const slash = v.indexOf("/");
+  return slash !== -1 && INTERACTION_VARIANTS.has(v.slice(0, slash));
+}
 
 function baseUtility(raw: string): string {
   return raw.slice(raw.lastIndexOf(":") + 1);
@@ -135,7 +154,7 @@ export function checkReducedMotion(checks: ReducedMotionCheck[], strict = false)
       // `dark:transition hover:scale-110` was silently treated as
       // compliant even though it animates on hover in dark mode
       // regardless of the user's motion preference.
-      const isInteractionGated = segments.some((v) => INTERACTION_VARIANTS.has(v));
+      const isInteractionGated = segments.some(isInteractionVariant);
       const isMotionSafeGated = segments.includes("motion-safe");
       if (TRANSITION_BASES.has(base) && !isInteractionGated && !isMotionSafeGated) realTransition = raw;
 
@@ -174,7 +193,7 @@ export function checkReducedMotion(checks: ReducedMotionCheck[], strict = false)
       // side's motionClass find below -- see its comment for the full
       // explanation of why both checks are per-candidate, not per-element.
       if (segments.includes("motion-safe")) return false;
-      if (!segments.some((v) => INTERACTION_VARIANTS.has(v))) return false;
+      if (!segments.some(isInteractionVariant)) return false;
       return ANIMATE_MOTION_BASES.has(baseUtility(raw));
     });
     if (animateMotionClass && !hasMotionReduceAnimateGuard) {
@@ -205,7 +224,7 @@ export function checkReducedMotion(checks: ReducedMotionCheck[], strict = false)
       // for the whole element (a class can be interaction-scoped *and*
       // self-guarded at the same time, e.g. `hover:motion-safe:scale-110`).
       if (segments.includes("motion-safe")) return false;
-      if (!segments.some((v) => INTERACTION_VARIANTS.has(v))) return false;
+      if (!segments.some(isInteractionVariant)) return false;
       return isNonIdentityMotionUtility(baseUtility(raw));
     });
     if (!motionClass) continue; // no real, un-self-guarded motion actually triggered by interaction

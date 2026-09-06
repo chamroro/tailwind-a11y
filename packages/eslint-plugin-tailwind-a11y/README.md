@@ -46,7 +46,7 @@ export default [
 | `touch-target` | 2.5.8 (AA) | Interactive elements under 24×24px — or 44×44px with `{ strict: true }` (2.5.5, AAA) |
 | `focus-indicator` | 2.4.7 (AA) | `focus:outline-none` with no visible replacement |
 | `focus-contrast` | 1.4.11 (AA) | A present `outline-*`/`ring-*` focus indicator below 3:1 contrast — or also below the 2px minimum thickness with `{ strict: true }` (2.4.13, AAA) |
-| `reduced-motion` | 2.3.3 (AAA-only) | A `hover:`/`focus:`/`focus-visible:`/`active:`-scoped `scale-*`/`rotate-*`/`translate-*`/`skew-*` change with an unscoped `transition`/`transition-all`/`transition-transform`, or an `animate-spin`/`-ping`/`-bounce` under the same variants, with no `motion-reduce:`/`motion-safe:` handling — **not** included in `configs.recommended`, see below |
+| `reduced-motion` | 2.3.3 (AAA-only) | A `hover:`/`focus:`/`focus-visible:`/`active:`-scoped (or their `group-*`/`peer-*` equivalents) `scale-*`/`rotate-*`/`translate-*`/`skew-*` change with an unscoped `transition`/`transition-all`/`transition-transform`, or an `animate-spin`/`-ping`/`-bounce` under the same variants, with no `motion-reduce:`/`motion-safe:` handling — **not** included in `configs.recommended`, see below |
 
 Exact scope and known limitations: [engine README](https://github.com/chamroro/tailwind-a11y/tree/main/packages/tailwind-a11y#scope).
 

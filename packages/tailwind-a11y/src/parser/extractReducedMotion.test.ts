@@ -96,4 +96,51 @@ describe("extractReducedMotionChecks", () => {
     const code = `const C = () => <div className="hover:animate-pulse">x</div>;`;
     expect(extractReducedMotionChecks(code, "fake.tsx")).toHaveLength(1);
   });
+
+  it.each([
+    "group-hover:scale-110",
+    "group-focus:scale-110",
+    "group-focus-visible:scale-110",
+    "group-focus-within:scale-110",
+    "group-active:scale-110",
+    "peer-hover:scale-110",
+    "peer-focus:scale-110",
+    "peer-focus-visible:scale-110",
+    "peer-focus-within:scale-110",
+    "peer-active:scale-110",
+  ])("recognizes %s as an interaction variant on the transition path", (groupClass) => {
+    const code = `const C = () => <div className="transition-transform ${groupClass}">x</div>;`;
+    expect(extractReducedMotionChecks(code, "fake.tsx")).toHaveLength(1);
+  });
+
+  it.each(["group-hover:animate-bounce", "peer-hover:animate-bounce"])(
+    "recognizes %s as an interaction variant on the animate path, no transition base at all",
+    (animateClass) => {
+      const code = `const C = () => <div className="${animateClass}">x</div>;`;
+      expect(extractReducedMotionChecks(code, "fake.tsx")).toHaveLength(1);
+    }
+  );
+
+  it("recognizes a named group variant (group-hover/sidebar:) as an interaction variant", () => {
+    const code = `const C = () => <div className="transition-transform group-hover/sidebar:scale-110">x</div>;`;
+    expect(extractReducedMotionChecks(code, "fake.tsx")).toHaveLength(1);
+  });
+
+  it.each(["motion-safe:group-hover:scale-110", "group-hover:motion-safe:scale-110"])(
+    "recognizes group-hover: regardless of its position relative to motion-safe:, e.g. %s (rule decides pass/fail)",
+    (stackedClass) => {
+      const code = `const C = () => <div className="transition-transform ${stackedClass}">x</div>;`;
+      expect(extractReducedMotionChecks(code, "fake.tsx")).toHaveLength(1);
+    }
+  );
+
+  it("does not treat a near-miss variant as interaction-scoped -- exact-or-prefix-before-slash only, not a substring match", () => {
+    const code = `const C = () => <div className="transition-transform group-hoverish:scale-110">x</div>;`;
+    expect(extractReducedMotionChecks(code, "fake.tsx")).toEqual([]);
+  });
+
+  it("skips a plain group marker class with no group-hover: variant anywhere", () => {
+    const code = `const C = () => <div className="group transition-transform">x</div>;`;
+    expect(extractReducedMotionChecks(code, "fake.tsx")).toEqual([]);
+  });
 });
