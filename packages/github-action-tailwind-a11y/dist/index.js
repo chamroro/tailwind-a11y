@@ -49172,6 +49172,12 @@ function getStaticClassName(attributes) {
 // ../tailwind-a11y/dist/parser/extractClasses.js
 var COLOR_TOKEN = /^\[(#[0-9a-fA-F]{3,8})\](\/\d{1,3})?$|^[a-z]+-\d{2,3}(\/\d{1,3})?$|^(white|black|transparent|current|inherit)(\/\d{1,3})?$/;
 var NON_COLOR_SCALE_NAMES = /* @__PURE__ */ new Set(["opacity", "linear", "conic"]);
+function isColorScaleToken(rest) {
+  if (!COLOR_TOKEN.test(rest))
+    return false;
+  const scaleName = /^([a-z]+)-\d/.exec(rest)?.[1];
+  return !(scaleName && NON_COLOR_SCALE_NAMES.has(scaleName));
+}
 function lastColorToken(className, prefix) {
   let found = null;
   for (const raw of className.split(/\s+/).filter(Boolean)) {
@@ -49180,14 +49186,45 @@ function lastColorToken(className, prefix) {
     if (!raw.startsWith(`${prefix}-`))
       continue;
     const rest = raw.slice(prefix.length + 1);
-    if (!COLOR_TOKEN.test(rest))
-      continue;
-    const scaleName = /^([a-z]+)-\d/.exec(rest)?.[1];
-    if (scaleName && NON_COLOR_SCALE_NAMES.has(scaleName))
+    if (!isColorScaleToken(rest))
       continue;
     found = raw;
   }
   return found;
+}
+function lastPlaceholderColorToken(className) {
+  let found = null;
+  for (const raw of className.split(/\s+/).filter(Boolean)) {
+    const segments = raw.split(":");
+    if (segments.length !== 2 || segments[0] !== "placeholder")
+      continue;
+    const base = segments[1];
+    if (!base.startsWith("text-"))
+      continue;
+    const rest = base.slice("text-".length);
+    if (!isColorScaleToken(rest))
+      continue;
+    found = raw;
+  }
+  return found;
+}
+var PLACEHOLDER_CAPABLE_TAGS = /* @__PURE__ */ new Set(["input", "textarea"]);
+function isPlaceholderCapable(openingElement) {
+  return t2.isJSXIdentifier(openingElement.name) && PLACEHOLDER_CAPABLE_TAGS.has(openingElement.name.name);
+}
+function resolveBg(path) {
+  const className = getStaticClassName(path.node.openingElement.attributes);
+  const ownBg = className ? lastColorToken(className, "bg") : null;
+  if (ownBg)
+    return { bg: ownBg, source: "self" };
+  const parentNode = path.parentPath?.node;
+  if (parentNode && t2.isJSXElement(parentNode)) {
+    const parentClassName = getStaticClassName(parentNode.openingElement.attributes);
+    const parentBg = parentClassName ? lastColorToken(parentClassName, "bg") : null;
+    if (parentBg)
+      return { bg: parentBg, source: "parent" };
+  }
+  return null;
 }
 function extractChecks(code, filePath) {
   const ast = parseJSX(code, filePath);
@@ -49200,21 +49237,18 @@ function extractChecks(code, filePath) {
       if (!className)
         return;
       const textClass = lastColorToken(className, "text");
-      if (!textClass)
+      const placeholderClass = isPlaceholderCapable(path.node.openingElement) ? lastPlaceholderColorToken(className) : null;
+      if (!textClass && !placeholderClass)
         return;
       const line = path.node.openingElement.loc?.start.line ?? 0;
-      const ownBg = lastColorToken(className, "bg");
-      if (ownBg) {
-        checks.push({ file: filePath, line, textColorClass: textClass, bgColorClass: ownBg, bgSource: "self" });
+      const bg = resolveBg(path);
+      if (!bg)
         return;
+      if (textClass) {
+        checks.push({ file: filePath, line, textColorClass: textClass, bgColorClass: bg.bg, bgSource: bg.source });
       }
-      const parentNode = path.parentPath?.node;
-      if (parentNode && t2.isJSXElement(parentNode)) {
-        const parentClassName = getStaticClassName(parentNode.openingElement.attributes);
-        const parentBg = parentClassName ? lastColorToken(parentClassName, "bg") : null;
-        if (parentBg) {
-          checks.push({ file: filePath, line, textColorClass: textClass, bgColorClass: parentBg, bgSource: "parent" });
-        }
+      if (placeholderClass) {
+        checks.push({ file: filePath, line, textColorClass: placeholderClass, bgColorClass: bg.bg, bgSource: bg.source });
       }
     }
   });
@@ -49570,7 +49604,7 @@ var semanticColors = {
 
 // ../tailwind-a11y/dist/rules/checkContrast.js
 function resolveColorValue(utilityClass, palette = defaultPalette) {
-  const match = /^(?:text|bg|outline|ring)-(.+)$/.exec(utilityClass);
+  const match = /^(?:placeholder:)?(?:text|bg|outline|ring)-(.+)$/.exec(utilityClass);
   if (!match)
     return null;
   const token = match[1];
@@ -49636,7 +49670,7 @@ function checkContrast(checks, palette = defaultPalette) {
   }
   return violations;
 }
-var TEXT_SCALE_SHADE_RE = /^text-([a-z]+)-(\d+)$/;
+var TEXT_SCALE_SHADE_RE = /^(?:placeholder:)?text-([a-z]+)-(\d+)$/;
 function suggestContrastFix(textClass, bgClass, required, palette = defaultPalette) {
   const { base, alpha } = splitOpacityModifier(textClass);
   if (alpha === 0)
@@ -49645,6 +49679,7 @@ function suggestContrastFix(textClass, bgClass, required, palette = defaultPalet
   if (!match)
     return null;
   const [, scale, shade] = match;
+  const isPlaceholder = base.startsWith("placeholder:");
   const shades = palette[scale];
   if (!shades?.[shade])
     return null;
@@ -49661,7 +49696,8 @@ function suggestContrastFix(textClass, bgClass, required, palette = defaultPalet
     const effectiveRgb = alpha < 1 ? applyAlpha(rgb, alpha, bgRgb) : rgb;
     const ratio = contrastRatio(effectiveRgb, bgRgb);
     if (ratio >= required) {
-      const suggestedClass = alpha < 1 ? `text-${scale}-${candidate}/${Math.round(alpha * 100)}` : `text-${scale}-${candidate}`;
+      const suggestedBase = alpha < 1 ? `text-${scale}-${candidate}/${Math.round(alpha * 100)}` : `text-${scale}-${candidate}`;
+      const suggestedClass = isPlaceholder ? `placeholder:${suggestedBase}` : suggestedBase;
       return { textClass: suggestedClass, ratio };
     }
   }

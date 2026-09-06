@@ -55,4 +55,64 @@ describe("extractContrastSkips", () => {
     expect(() => extractContrastSkips(code, "fake.tsx")).not.toThrow();
     expect(extractContrastSkips(code, "fake.tsx")).toEqual([]);
   });
+
+  describe("placeholder:text-*", () => {
+    it("flags the component-boundary case for a placeholder candidate", () => {
+      const code = `
+        const C = () => (
+          <Card>
+            <input className="placeholder:text-gray-300" />
+          </Card>
+        );
+      `;
+      const skips = extractContrastSkips(code, "fake.tsx");
+      expect(skips).toHaveLength(1);
+      expect(skips[0].reason).toContain("<Card>");
+      expect(skips[0].reason).toContain("placeholder:text-gray-300");
+    });
+
+    it("flags when there is no background anywhere for a placeholder candidate", () => {
+      const code = `
+        const C = () => (
+          <section>
+            <input className="placeholder:text-gray-300" />
+          </section>
+        );
+      `;
+      const skips = extractContrastSkips(code, "fake.tsx");
+      expect(skips).toHaveLength(1);
+      expect(skips[0].reason).toContain("no background utility found");
+      expect(skips[0].reason).toContain("placeholder:text-gray-300");
+    });
+
+    it("reports two independent skips when both resting text and placeholder candidates lack a background", () => {
+      const code = `
+        const C = () => (
+          <section>
+            <input className="text-gray-300 placeholder:text-gray-200" />
+          </section>
+        );
+      `;
+      const skips = extractContrastSkips(code, "fake.tsx");
+      expect(skips).toHaveLength(2);
+      expect(skips.map((s) => s.reason).join("\n")).toContain("text-gray-300");
+      expect(skips.map((s) => s.reason).join("\n")).toContain("placeholder:text-gray-200");
+    });
+
+    it("does not flag a placeholder candidate extractChecks already resolves", () => {
+      const code = `const C = () => <input className="bg-white placeholder:text-gray-300" />;`;
+      expect(extractContrastSkips(code, "fake.tsx")).toEqual([]);
+    });
+
+    it("does not flag a placeholder-shaped class on a tag that can never render ::placeholder", () => {
+      const code = `
+        const C = () => (
+          <section>
+            <div className="placeholder:text-gray-300" />
+          </section>
+        );
+      `;
+      expect(extractContrastSkips(code, "fake.tsx")).toEqual([]);
+    });
+  });
 });

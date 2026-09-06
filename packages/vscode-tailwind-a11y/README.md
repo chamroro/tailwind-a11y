@@ -11,7 +11,7 @@ reimplemented here.
 
 | Check | WCAG | Detects |
 |---|---|---|
-| Contrast | 1.4.3 (AA) | Low-contrast `text-*`/`bg-*` pairs — with a suggested nearby shade |
+| Contrast | 1.4.3 (AA) | Low-contrast `text-*`/`bg-*` pairs, plus `placeholder:text-*` on `<input>`/`<textarea>` — with a suggested nearby shade |
 | Touch target | 2.5.8 (AA) | Interactive elements under 24×24px — or 44×44px with `tailwind-a11y.strict` (2.5.5, AAA) |
 | Focus indicator | 2.4.7 (AA) | `focus:outline-none` with no visible replacement |
 | Focus indicator contrast | 1.4.11 (AA) | A present `outline-*`/`ring-*` focus indicator below 3:1 contrast — or also below the 2px minimum thickness with `tailwind-a11y.strict` (2.4.13, AAA) |

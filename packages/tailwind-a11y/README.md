@@ -53,7 +53,7 @@ Exits `1` on violations — safe to use as a CI gate.
 
 | Check | WCAG | Detects |
 |---|---|---|
-| Contrast | 1.4.3 (AA) | `text-*`/`bg-*` pairs below 4.5:1, same-element or direct-parent, including a text-side opacity modifier (`text-gray-400/50`) composited against the background; suggests the nearest passing shade |
+| Contrast | 1.4.3 (AA) | `text-*`/`bg-*` pairs below 4.5:1, same-element or direct-parent, including a text-side opacity modifier (`text-gray-400/50`) composited against the background; also checks `placeholder:text-*` on `<input>`/`<textarea>`; suggests the nearest passing shade |
 | Touch target | 2.5.8 (AA) | Interactive elements under 24×24px — or 44×44px with `--strict` (2.5.5, AAA) |
 | Focus indicator | 2.4.7 (AA) | `focus:outline-none` with no visible replacement |
 | Focus indicator contrast | 1.4.11 (AA) | A present `outline-*`/`ring-*` focus indicator below 3:1 contrast — or also below the 2px minimum thickness with `--strict` (2.4.13, AAA) |
