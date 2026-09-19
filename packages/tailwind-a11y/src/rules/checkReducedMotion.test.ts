@@ -328,4 +328,60 @@ describe("checkReducedMotion", () => {
       expect(violations[0].mechanism).toBe("animate");
     });
   });
+
+  describe("in-*: interaction variants", () => {
+    it("flags in-hover:scale-110 under an unscoped transition, same as bare hover: -- and needs no .group marker at all", () => {
+      const violations = checkReducedMotion([check(["transition-transform", "in-hover:scale-110"])], true);
+      expect(violations).toHaveLength(1);
+      expect(violations[0]).toMatchObject({ mechanism: "transition", motionClass: "in-hover:scale-110" });
+    });
+
+    it("passes when the transition itself is in-hover:-scoped (not present in the resting state)", () => {
+      const violations = checkReducedMotion(
+        [check(["in-hover:transition-transform", "in-hover:scale-110"])],
+        true
+      );
+      expect(violations).toEqual([]);
+    });
+
+    it("passes when a bare motion-reduce:transition-none guard is present alongside an in-hover: motion class", () => {
+      const violations = checkReducedMotion(
+        [check(["transition-transform", "in-hover:scale-110", "motion-reduce:transition-none"])],
+        true
+      );
+      expect(violations).toEqual([]);
+    });
+
+    it("flags in-hover:animate-bounce on the animate mechanism, no transition base at all", () => {
+      const violations = checkReducedMotion([check(["in-hover:animate-bounce"])], true);
+      expect(violations).toHaveLength(1);
+      expect(violations[0]).toMatchObject({ mechanism: "animate", motionClass: "in-hover:animate-bounce" });
+    });
+
+    it("passes with a bare motion-reduce:animate-none guard alongside an in-hover: animate class", () => {
+      const violations = checkReducedMotion([check(["in-hover:animate-bounce", "motion-reduce:animate-none"])], true);
+      expect(violations).toEqual([]);
+    });
+
+    it.each(["in-hover:motion-safe:scale-110", "motion-safe:in-hover:scale-110"])(
+      "passes when the in-hover: motion utility is itself motion-safe:-guarded, in either variant order: %s",
+      (motionClass) => {
+        const violations = checkReducedMotion([check(["transition-transform", motionClass])], true);
+        expect(violations).toEqual([]);
+      }
+    );
+
+    it("still flags in-hover:scale-110 scoped by an unrelated persistent variant stacked with it", () => {
+      const violations = checkReducedMotion([check(["transition-transform", "sm:in-hover:scale-110"])], true);
+      expect(violations).toHaveLength(1);
+      expect(violations[0].motionClass).toBe("sm:in-hover:scale-110");
+    });
+
+    it("composes end-to-end with extractReducedMotionChecks for an in-hover-only element", () => {
+      const code = `const C = () => <div className="in-hover:animate-bounce">x</div>;`;
+      const violations = checkReducedMotion(extractReducedMotionChecks(code, "fake.tsx"), true);
+      expect(violations).toHaveLength(1);
+      expect(violations[0].mechanism).toBe("animate");
+    });
+  });
 });

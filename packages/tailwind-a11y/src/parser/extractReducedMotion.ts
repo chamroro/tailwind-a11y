@@ -20,15 +20,20 @@ const TRANSITION_BASES = new Set(["transition", "transition-all", "transition-tr
 // class shape as bare hover:, just evaluated against an ancestor/sibling
 // (.group/.peer marker) instead of the element itself -- verified against a
 // real Tailwind v4 build (`.group-hover\:scale-110:is(:where(.group):hover *)`).
-// Deliberately NOT extended to has-*:/arbitrary variants ([&:hover]:, already
-// an established out-of-scope precedent for this file -- unbounded selector
-// text, not a closed enumerable set) or in-*: (a real v4.1+ ancestor-state
-// variant with the identical shape, but a legitimate separate follow-up, not
-// folded into this set).
+// in-*: (Tailwind v4.1+) is the same idea with no marker class required --
+// verified against a real build that `.in-hover\:scale-110` compiles to
+// `:where(:hover) .in-hover\:scale-110`, matching *any* ancestor in that
+// state. This tool already doesn't verify a `.group`/`.peer` marker actually
+// exists on an ancestor (an accepted limitation), so in-*: is no harder to
+// recognize correctly -- if anything simpler, since it has no named-variant
+// slash syntax to handle. Deliberately NOT extended to has-*:/arbitrary
+// variants ([&:hover]:, already an established out-of-scope precedent for
+// this file -- unbounded selector text, not a closed enumerable set).
 const INTERACTION_VARIANTS = new Set([
   "hover", "focus", "focus-visible", "focus-within", "active",
   "group-hover", "group-focus", "group-focus-visible", "group-focus-within", "group-active",
   "peer-hover", "peer-focus", "peer-focus-visible", "peer-focus-within", "peer-active",
+  "in-hover", "in-focus", "in-focus-visible", "in-focus-within", "in-active",
 ]);
 
 // Named groups/peers (`group-hover/sidebar:scale-110`) compile the group

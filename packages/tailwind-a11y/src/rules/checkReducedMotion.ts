@@ -37,15 +37,16 @@ export type ReducedMotionViolation =
 // property), and correctly isn't flagged.
 const TRANSITION_BASES = new Set(["transition", "transition-all", "transition-transform"]);
 
-// group-hover:/peer-hover:/etc. compile to the identical momentary-pseudo-
-// class shape as bare hover:, just evaluated against an ancestor/sibling
-// (.group/.peer marker) instead of the element itself -- see the identical
-// set (and full explanation) in extractReducedMotion.ts. Deliberately NOT
-// extended to has-*:/arbitrary variants or in-*: -- see that file's comment.
+// group-hover:/peer-hover:/in-hover:/etc. compile to the identical
+// momentary-pseudo-class shape as bare hover: -- see the identical set (and
+// full explanation, including why in-*: needs no marker-class verification
+// and no named-variant handling) in extractReducedMotion.ts. Deliberately
+// NOT extended to has-*:/arbitrary variants -- see that file's comment.
 const INTERACTION_VARIANTS = new Set([
   "hover", "focus", "focus-visible", "focus-within", "active",
   "group-hover", "group-focus", "group-focus-visible", "group-focus-within", "group-active",
   "peer-hover", "peer-focus", "peer-focus-visible", "peer-focus-within", "peer-active",
+  "in-hover", "in-focus", "in-focus-visible", "in-focus-within", "in-active",
 ]);
 
 // Named groups/peers (`group-hover/sidebar:...`) put the group name in the
