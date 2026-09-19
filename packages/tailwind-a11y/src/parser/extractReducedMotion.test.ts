@@ -143,4 +143,33 @@ describe("extractReducedMotionChecks", () => {
     const code = `const C = () => <div className="group transition-transform">x</div>;`;
     expect(extractReducedMotionChecks(code, "fake.tsx")).toEqual([]);
   });
+
+  it.each([
+    "in-hover:scale-110",
+    "in-focus:scale-110",
+    "in-focus-visible:scale-110",
+    "in-focus-within:scale-110",
+    "in-active:scale-110",
+  ])("recognizes %s as an interaction variant on the transition path, no marker class needed", (inClass) => {
+    const code = `const C = () => <div className="transition-transform ${inClass}">x</div>;`;
+    expect(extractReducedMotionChecks(code, "fake.tsx")).toHaveLength(1);
+  });
+
+  it("recognizes in-hover:animate-bounce as an interaction variant on the animate path, no transition base at all", () => {
+    const code = `const C = () => <div className="in-hover:animate-bounce">x</div>;`;
+    expect(extractReducedMotionChecks(code, "fake.tsx")).toHaveLength(1);
+  });
+
+  it.each(["motion-safe:in-hover:scale-110", "in-hover:motion-safe:scale-110"])(
+    "recognizes in-hover: regardless of its position relative to motion-safe:, e.g. %s (rule decides pass/fail)",
+    (stackedClass) => {
+      const code = `const C = () => <div className="transition-transform ${stackedClass}">x</div>;`;
+      expect(extractReducedMotionChecks(code, "fake.tsx")).toHaveLength(1);
+    }
+  );
+
+  it("does not treat a near-miss variant as interaction-scoped -- in-*: has no named-variant slash syntax to confuse this with", () => {
+    const code = `const C = () => <div className="transition-transform in-hoverish:scale-110">x</div>;`;
+    expect(extractReducedMotionChecks(code, "fake.tsx")).toEqual([]);
+  });
 });

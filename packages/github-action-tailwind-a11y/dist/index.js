@@ -50078,7 +50078,12 @@ var INTERACTION_VARIANTS = /* @__PURE__ */ new Set([
   "peer-focus",
   "peer-focus-visible",
   "peer-focus-within",
-  "peer-active"
+  "peer-active",
+  "in-hover",
+  "in-focus",
+  "in-focus-visible",
+  "in-focus-within",
+  "in-active"
 ]);
 function isInteractionVariant(v) {
   if (INTERACTION_VARIANTS.has(v))
@@ -50143,7 +50148,12 @@ var INTERACTION_VARIANTS2 = /* @__PURE__ */ new Set([
   "peer-focus",
   "peer-focus-visible",
   "peer-focus-within",
-  "peer-active"
+  "peer-active",
+  "in-hover",
+  "in-focus",
+  "in-focus-visible",
+  "in-focus-within",
+  "in-active"
 ]);
 function isInteractionVariant2(v) {
   if (INTERACTION_VARIANTS2.has(v))
