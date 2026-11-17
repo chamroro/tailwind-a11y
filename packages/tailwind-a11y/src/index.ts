@@ -26,3 +26,12 @@ export {
 } from "./theme/loadCustomTheme.js";
 export { parseThemeCss } from "./theme/parseThemeCss.js";
 export type { Palette, ColorScale } from "./theme/defaultPalette.js";
+export {
+  analyzeSource,
+  formatViolation,
+  wcagCriterion,
+  type AnalysisResult,
+  type AnalysisSkip,
+  type AnalyzeOptions,
+  type AnyViolation,
+} from "./analyze.js";

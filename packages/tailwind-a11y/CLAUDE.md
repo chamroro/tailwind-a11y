@@ -515,6 +515,22 @@ src/
                                      defaults (resolveTheme() is the one function
                                      each adapter calls)
   contrast/luminance.ts           — WCAG relative luminance + contrast ratio math
+  analyze.ts                      — analyzeSource(): runs all five checks over one
+                                     source string in the order every adapter used
+                                     to inline, optionally with every kind of skip
+                                     (includeSkips); returns parsed:false instead
+                                     of an empty result for unparsable source, so
+                                     "couldn't read it" never looks like "no
+                                     issues" (an empty or JSX-free file is
+                                     parsed:true, nothing to report). It does not
+                                     catch extractor exceptions -- long-lived
+                                     callers wrap it, as cli.ts does per file.
+                                     Also formatViolation() (message text,
+                                     no line prefix) and wcagCriterion(). The CLI,
+                                     VS Code adapter and GitHub Action still carry
+                                     their own copies of this orchestration and
+                                     wording; moving them onto this is a follow-up
+                                     (first consumer: the MCP adapter).
   parser/babelInterop.ts          — shared @babel/traverse CJS/ESM interop shim,
                                      parseJSX(), getStaticClassName()
   parser/isInteractiveElement.ts  — shared "is this element interactive" predicate
