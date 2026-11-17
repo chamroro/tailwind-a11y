@@ -50552,7 +50552,7 @@ function escapeData(value) {
 function escapeProperty(value) {
   return escapeData(value).replaceAll(":", "%3A").replaceAll(",", "%2C");
 }
-function formatViolation(v) {
+function formatViolation2(v) {
   switch (v.type) {
     case "contrast": {
       const base = `${v.textClass} on ${v.bgClass} \u2014 ratio ${v.ratio.toFixed(2)}, needs ${v.required} (${v.level})`;
@@ -50574,7 +50574,7 @@ function formatViolation(v) {
   }
 }
 function toAnnotationCommand(v) {
-  return `::error file=${escapeProperty(v.file)},line=${v.line},title=${escapeProperty("tailwind-a11y")}::${escapeData(formatViolation(v))}`;
+  return `::error file=${escapeProperty(v.file)},line=${v.line},title=${escapeProperty("tailwind-a11y")}::${escapeData(formatViolation2(v))}`;
 }
 
 // src/main.ts
@@ -50638,14 +50638,14 @@ async function main() {
   for (const [file, fileViolations] of byFile) {
     console.log(file);
     for (const v of fileViolations) {
-      console.log(`  ${v.line}: ${formatViolation(v)}`);
+      console.log(`  ${v.line}: ${formatViolation2(v)}`);
     }
   }
   console.log(`
 ${violations.length} issue(s) in ${byFile.size} file(s)`);
   const summaryPath = process.env["GITHUB_STEP_SUMMARY"];
   if (summaryPath) {
-    const rows = violations.map((v) => `| ${v.file} | ${v.line} | ${formatViolation(v)} |`).join("\n");
+    const rows = violations.map((v) => `| ${v.file} | ${v.line} | ${formatViolation2(v)} |`).join("\n");
     (0, import_node_fs2.appendFileSync)(
       summaryPath,
       `## tailwind-a11y: ${violations.length} issue(s) in ${byFile.size} file(s)

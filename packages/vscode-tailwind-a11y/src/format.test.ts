@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { formatViolation } from "./format.js";
+import { formatViolation as engineFormatViolation } from "tailwind-a11y";
+import { formatViolation, type AnyViolation } from "./format.js";
 
 describe("formatViolation", () => {
   it("formats a contrast violation without a suggestion", () => {
@@ -140,5 +141,27 @@ describe("formatViolation", () => {
     expect(message).toBe(
       "<div> animates hover:animate-bounce via a CSS animation with no motion-reduce:animate-none guard — WCAG 2.3.3 requires motion animation triggered by interaction to be disableable"
     );
+  });
+});
+
+// The engine now exports its own formatViolation (first consumer: the MCP
+// adapter) while this adapter still carries a copy. They must stay
+// word-for-word identical until this adapter is moved onto the engine's;
+// asserting it here means editing only one of them fails a test.
+describe("formatViolation matches the engine's", () => {
+  const samples: AnyViolation[] = [
+    { type: "contrast", file: "f.tsx", line: 1, textClass: "text-white", bgClass: "bg-gray-300", ratio: 1.47, required: 4.5, level: "AA" },
+    { type: "contrast", file: "f.tsx", line: 1, textClass: "text-gray-400", bgClass: "bg-white", ratio: 2.54, required: 4.5, level: "AA", suggestion: "text-gray-500", suggestedRatio: 4.83 },
+    { type: "touch-target", file: "f.tsx", line: 1, tagName: "button", widthClass: "w-4", heightClass: "h-4", widthPx: 16, heightPx: 16, required: 24, level: "AA" },
+    { type: "touch-target", file: "f.tsx", line: 1, tagName: "button", widthClass: "w-10", heightClass: "h-10", widthPx: 40, heightPx: 40, required: 44, level: "AAA" },
+    { type: "focus-indicator", file: "f.tsx", line: 1, tagName: "button", removalClass: "focus:outline-none" },
+    { type: "focus-contrast", file: "f.tsx", line: 1, tagName: "button", indicatorClass: "focus:ring-blue-400", bgClass: "bg-blue-500", ratio: 1.45, required: 3, level: "AA" },
+    { type: "focus-contrast", file: "f.tsx", line: 1, tagName: "button", indicatorClass: "focus:ring-white", bgClass: "bg-blue-500", ratio: 3.68, required: 3, level: "AAA", thicknessPx: 1, requiredThicknessPx: 2 },
+    { type: "reduced-motion", mechanism: "transition", file: "f.tsx", line: 1, tagName: "div", transitionClass: "transition-transform", motionClass: "hover:scale-110", level: "AAA" },
+    { type: "reduced-motion", mechanism: "animate", file: "f.tsx", line: 1, tagName: "div", motionClass: "hover:animate-bounce", level: "AAA" },
+  ];
+
+  it.each(samples.map((v) => [v.type + ("level" in v ? ` (${v.level})` : ""), v] as const))("%s", (_label, v) => {
+    expect(formatViolation(v)).toBe(engineFormatViolation(v));
   });
 });
