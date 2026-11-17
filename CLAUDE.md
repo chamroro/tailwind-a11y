@@ -1,6 +1,6 @@
 # tailwind-a11y (monorepo root)
 
-npm workspaces monorepo with four packages. Per-package conventions, scope boundaries,
+npm workspaces monorepo with five packages. Per-package conventions, scope boundaries,
 and architecture live in each package's own `CLAUDE.md` — this file covers only
 monorepo-level rules.
 
@@ -12,6 +12,9 @@ packages/
   github-action-tailwind-a11y/    thin GitHub Action adapter (inline PR annotations);
                                    its manifest is the root-level action.yml so consumers
                                    can write `uses: chamroro/tailwind-a11y@v0`
+  mcp-tailwind-a11y/              thin MCP adapter (stdio server for coding agents);
+                                   resolves the engine from the registry like the ESLint
+                                   plugin, so it needs no bundle
 ```
 
 All adapters call the engine's `extract*`/`check*` functions directly —

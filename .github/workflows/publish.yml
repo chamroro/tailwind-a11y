@@ -12,6 +12,7 @@ on:
       - "packages/eslint-plugin-tailwind-a11y/package.json"
       - "packages/vscode-tailwind-a11y/package.json"
       - "packages/github-action-tailwind-a11y/package.json"
+      - "packages/mcp-tailwind-a11y/package.json"
 
 concurrency:
   group: publish-${{ github.ref }}
@@ -25,6 +26,7 @@ jobs:
       eslint: ${{ steps.diff.outputs.eslint }}
       vscode: ${{ steps.diff.outputs.vscode }}
       action: ${{ steps.diff.outputs.action }}
+      mcp: ${{ steps.diff.outputs.mcp }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -38,6 +40,7 @@ jobs:
           version_changed packages/eslint-plugin-tailwind-a11y/package.json && echo "eslint=true" >> "$GITHUB_OUTPUT" || echo "eslint=false" >> "$GITHUB_OUTPUT"
           version_changed packages/vscode-tailwind-a11y/package.json && echo "vscode=true" >> "$GITHUB_OUTPUT" || echo "vscode=false" >> "$GITHUB_OUTPUT"
           version_changed packages/github-action-tailwind-a11y/package.json && echo "action=true" >> "$GITHUB_OUTPUT" || echo "action=false" >> "$GITHUB_OUTPUT"
+          version_changed packages/mcp-tailwind-a11y/package.json && echo "mcp=true" >> "$GITHUB_OUTPUT" || echo "mcp=false" >> "$GITHUB_OUTPUT"
 
   publish-engine:
     needs: detect
@@ -80,6 +83,30 @@ jobs:
       - run: npm run build -w eslint-plugin-tailwind-a11y
       - run: npm test -w eslint-plugin-tailwind-a11y
       - run: npm publish -w eslint-plugin-tailwind-a11y
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # Like the ESLint plugin, this resolves the engine from the registry at the
+  # consumer's install, so it waits on publish-engine and needs no bundle.
+  publish-mcp:
+    needs: [detect, publish-engine]
+    if: |
+      always() &&
+      needs.detect.outputs.mcp == 'true' &&
+      (needs.publish-engine.result == 'success' || needs.publish-engine.result == 'skipped')
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - run: npm install
+      - run: npm run build -w tailwind-a11y
+      - run: npm run build -w mcp-tailwind-a11y
+      - run: npm test -w mcp-tailwind-a11y
+      - run: npm publish -w mcp-tailwind-a11y
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 

@@ -12,8 +12,9 @@ they ship, instead of at a Lighthouse audit or QA pass.
 | [`eslint-plugin-tailwind-a11y`](./packages/eslint-plugin-tailwind-a11y) | ESLint rules |
 | [`vscode-tailwind-a11y`](./packages/vscode-tailwind-a11y) | Live editor diagnostics |
 | [`github-action-tailwind-a11y`](./packages/github-action-tailwind-a11y) | Inline PR annotations (`uses: chamroro/tailwind-a11y@v0`) |
+| [`mcp-tailwind-a11y`](./packages/mcp-tailwind-a11y) | MCP server for coding agents (`claude mcp add tailwind-a11y -- npx -y mcp-tailwind-a11y`) |
 
-All four run the same five checks — color contrast (WCAG 1.4.3), touch target size
+All five run the same five checks — color contrast (WCAG 1.4.3), touch target size
 (WCAG 2.5.8, or 2.5.5 in strict mode), focus indicator removal (WCAG 2.4.7), focus
 indicator contrast (WCAG 1.4.11, or also 2.4.13 in strict mode), and reduced motion for
 interaction-triggered animation (WCAG 2.3.3, strict-mode only — no AA tier exists) —
