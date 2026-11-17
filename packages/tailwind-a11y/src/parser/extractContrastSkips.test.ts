@@ -56,6 +56,61 @@ describe("extractContrastSkips", () => {
     expect(extractContrastSkips(code, "fake.tsx")).toEqual([]);
   });
 
+  describe("parent with a dynamic className", () => {
+    it("says the parent's dynamic className may set the background, not that no background exists", () => {
+      const code = `
+        const C = () => (
+          <div className={cn("bg-white", x && "p-4")}>
+            <p className="text-gray-400">x</p>
+          </div>
+        );
+      `;
+      const skips = extractContrastSkips(code, "fake.tsx");
+      expect(skips).toHaveLength(1);
+      expect(skips[0].reason).toBe(
+        "text-gray-400 — background may be set by the parent's className (cn(...) call), which isn't a plain string literal and isn't resolved"
+      );
+    });
+
+    it("does not call a brace-wrapped string literal 'dynamic' -- it reports it as an expression", () => {
+      const code = `
+        const C = () => (
+          <div className={"bg-white"}>
+            <p className="text-gray-400">x</p>
+          </div>
+        );
+      `;
+      const [skip] = extractContrastSkips(code, "fake.tsx");
+      expect(skip.reason).toContain("(expression)");
+      expect(skip.reason).not.toContain("dynamic");
+    });
+
+    it("prefers the dynamic-className explanation over the component-boundary one when both apply", () => {
+      const code = `
+        const C = () => (
+          <Card className={cn("bg-white")}>
+            <p className="text-gray-400">x</p>
+          </Card>
+        );
+      `;
+      const [skip] = extractContrastSkips(code, "fake.tsx");
+      expect(skip.reason).toContain("parent's className");
+      expect(skip.reason).not.toContain("across component boundaries");
+    });
+
+    it("keeps the original wording when the parent's className is static and simply has no background", () => {
+      const code = `
+        const C = () => (
+          <section className="p-4">
+            <p className="text-gray-400">x</p>
+          </section>
+        );
+      `;
+      const [skip] = extractContrastSkips(code, "fake.tsx");
+      expect(skip.reason).toContain("no background utility found");
+    });
+  });
+
   describe("placeholder:text-*", () => {
     it("flags the component-boundary case for a placeholder candidate", () => {
       const code = `

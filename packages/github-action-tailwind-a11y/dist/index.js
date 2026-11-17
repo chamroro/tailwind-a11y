@@ -2647,8 +2647,8 @@ var require_parse2 = __commonJS({
             brace.value = brace.output = "\\{";
             value = output = "\\}";
             state.output = out;
-            for (const t7 of toks) {
-              state.output += t7.output || t7.value;
+            for (const t8 of toks) {
+              state.output += t8.output || t8.value;
             }
           }
           push({ type: "brace", value, output });
@@ -5870,7 +5870,7 @@ var require_generated = __commonJS({
     exports2.isBooleanLiteralTypeAnnotation = isBooleanLiteralTypeAnnotation;
     exports2.isBooleanTypeAnnotation = isBooleanTypeAnnotation;
     exports2.isBreakStatement = isBreakStatement;
-    exports2.isCallExpression = isCallExpression;
+    exports2.isCallExpression = isCallExpression2;
     exports2.isCatchClause = isCatchClause;
     exports2.isClass = isClass;
     exports2.isClassAccessorProperty = isClassAccessorProperty;
@@ -5884,7 +5884,7 @@ var require_generated = __commonJS({
     exports2.isClassProperty = isClassProperty;
     exports2.isCompletionStatement = isCompletionStatement;
     exports2.isConditional = isConditional;
-    exports2.isConditionalExpression = isConditionalExpression;
+    exports2.isConditionalExpression = isConditionalExpression2;
     exports2.isContinueStatement = isContinueStatement;
     exports2.isDebuggerStatement = isDebuggerStatement;
     exports2.isDecimalLiteral = isDecimalLiteral;
@@ -5948,7 +5948,7 @@ var require_generated = __commonJS({
     exports2.isFunctionTypeAnnotation = isFunctionTypeAnnotation;
     exports2.isFunctionTypeParam = isFunctionTypeParam;
     exports2.isGenericTypeAnnotation = isGenericTypeAnnotation;
-    exports2.isIdentifier = isIdentifier;
+    exports2.isIdentifier = isIdentifier2;
     exports2.isIfStatement = isIfStatement;
     exports2.isImmutable = isImmutable;
     exports2.isImport = isImport;
@@ -5972,11 +5972,11 @@ var require_generated = __commonJS({
     exports2.isJSXClosingFragment = isJSXClosingFragment;
     exports2.isJSXElement = isJSXElement4;
     exports2.isJSXEmptyExpression = isJSXEmptyExpression;
-    exports2.isJSXExpressionContainer = isJSXExpressionContainer;
+    exports2.isJSXExpressionContainer = isJSXExpressionContainer2;
     exports2.isJSXFragment = isJSXFragment2;
-    exports2.isJSXIdentifier = isJSXIdentifier6;
+    exports2.isJSXIdentifier = isJSXIdentifier7;
     exports2.isJSXMemberExpression = isJSXMemberExpression;
-    exports2.isJSXNamespacedName = isJSXNamespacedName;
+    exports2.isJSXNamespacedName = isJSXNamespacedName2;
     exports2.isJSXOpeningElement = isJSXOpeningElement;
     exports2.isJSXOpeningFragment = isJSXOpeningFragment;
     exports2.isJSXSpreadAttribute = isJSXSpreadAttribute;
@@ -5985,9 +5985,9 @@ var require_generated = __commonJS({
     exports2.isLVal = isLVal;
     exports2.isLabeledStatement = isLabeledStatement;
     exports2.isLiteral = isLiteral;
-    exports2.isLogicalExpression = isLogicalExpression;
+    exports2.isLogicalExpression = isLogicalExpression2;
     exports2.isLoop = isLoop;
-    exports2.isMemberExpression = isMemberExpression;
+    exports2.isMemberExpression = isMemberExpression2;
     exports2.isMetaProperty = isMetaProperty;
     exports2.isMethod = isMethod;
     exports2.isMiscellaneous = isMiscellaneous;
@@ -5997,7 +5997,7 @@ var require_generated = __commonJS({
     exports2.isModuleSpecifier = isModuleSpecifier;
     exports2.isNewExpression = isNewExpression;
     exports2.isNoop = isNoop;
-    exports2.isNullLiteral = isNullLiteral;
+    exports2.isNullLiteral = isNullLiteral2;
     exports2.isNullLiteralTypeAnnotation = isNullLiteralTypeAnnotation;
     exports2.isNullableTypeAnnotation = isNullableTypeAnnotation;
     exports2.isNumberLiteral = isNumberLiteral;
@@ -6125,7 +6125,7 @@ var require_generated = __commonJS({
     exports2.isTSVoidKeyword = isTSVoidKeyword;
     exports2.isTaggedTemplateExpression = isTaggedTemplateExpression;
     exports2.isTemplateElement = isTemplateElement;
-    exports2.isTemplateLiteral = isTemplateLiteral;
+    exports2.isTemplateLiteral = isTemplateLiteral2;
     exports2.isTerminatorless = isTerminatorless;
     exports2.isThisExpression = isThisExpression;
     exports2.isThisTypeAnnotation = isThisTypeAnnotation;
@@ -6199,7 +6199,7 @@ var require_generated = __commonJS({
       if (node.type !== "BreakStatement") return false;
       return opts == null || (0, _shallowEqual.default)(node, opts);
     }
-    function isCallExpression(node, opts) {
+    function isCallExpression2(node, opts) {
       if (!node) return false;
       if (node.type !== "CallExpression") return false;
       return opts == null || (0, _shallowEqual.default)(node, opts);
@@ -6209,7 +6209,7 @@ var require_generated = __commonJS({
       if (node.type !== "CatchClause") return false;
       return opts == null || (0, _shallowEqual.default)(node, opts);
     }
-    function isConditionalExpression(node, opts) {
+    function isConditionalExpression2(node, opts) {
       if (!node) return false;
       if (node.type !== "ConditionalExpression") return false;
       return opts == null || (0, _shallowEqual.default)(node, opts);
@@ -6264,7 +6264,7 @@ var require_generated = __commonJS({
       if (node.type !== "FunctionExpression") return false;
       return opts == null || (0, _shallowEqual.default)(node, opts);
     }
-    function isIdentifier(node, opts) {
+    function isIdentifier2(node, opts) {
       if (!node) return false;
       if (node.type !== "Identifier") return false;
       return opts == null || (0, _shallowEqual.default)(node, opts);
@@ -6289,7 +6289,7 @@ var require_generated = __commonJS({
       if (node.type !== "NumericLiteral") return false;
       return opts == null || (0, _shallowEqual.default)(node, opts);
     }
-    function isNullLiteral(node, opts) {
+    function isNullLiteral2(node, opts) {
       if (!node) return false;
       if (node.type !== "NullLiteral") return false;
       return opts == null || (0, _shallowEqual.default)(node, opts);
@@ -6304,12 +6304,12 @@ var require_generated = __commonJS({
       if (node.type !== "RegExpLiteral") return false;
       return opts == null || (0, _shallowEqual.default)(node, opts);
     }
-    function isLogicalExpression(node, opts) {
+    function isLogicalExpression2(node, opts) {
       if (!node) return false;
       if (node.type !== "LogicalExpression") return false;
       return opts == null || (0, _shallowEqual.default)(node, opts);
     }
-    function isMemberExpression(node, opts) {
+    function isMemberExpression2(node, opts) {
       if (!node) return false;
       if (node.type !== "MemberExpression") return false;
       return opts == null || (0, _shallowEqual.default)(node, opts);
@@ -6529,7 +6529,7 @@ var require_generated = __commonJS({
       if (node.type !== "TemplateElement") return false;
       return opts == null || (0, _shallowEqual.default)(node, opts);
     }
-    function isTemplateLiteral(node, opts) {
+    function isTemplateLiteral2(node, opts) {
       if (!node) return false;
       if (node.type !== "TemplateLiteral") return false;
       return opts == null || (0, _shallowEqual.default)(node, opts);
@@ -6949,7 +6949,7 @@ var require_generated = __commonJS({
       if (node.type !== "JSXEmptyExpression") return false;
       return opts == null || (0, _shallowEqual.default)(node, opts);
     }
-    function isJSXExpressionContainer(node, opts) {
+    function isJSXExpressionContainer2(node, opts) {
       if (!node) return false;
       if (node.type !== "JSXExpressionContainer") return false;
       return opts == null || (0, _shallowEqual.default)(node, opts);
@@ -6959,7 +6959,7 @@ var require_generated = __commonJS({
       if (node.type !== "JSXSpreadChild") return false;
       return opts == null || (0, _shallowEqual.default)(node, opts);
     }
-    function isJSXIdentifier6(node, opts) {
+    function isJSXIdentifier7(node, opts) {
       if (!node) return false;
       if (node.type !== "JSXIdentifier") return false;
       return opts == null || (0, _shallowEqual.default)(node, opts);
@@ -6969,7 +6969,7 @@ var require_generated = __commonJS({
       if (node.type !== "JSXMemberExpression") return false;
       return opts == null || (0, _shallowEqual.default)(node, opts);
     }
-    function isJSXNamespacedName(node, opts) {
+    function isJSXNamespacedName2(node, opts) {
       if (!node) return false;
       if (node.type !== "JSXNamespacedName") return false;
       return opts == null || (0, _shallowEqual.default)(node, opts);
@@ -19848,12 +19848,12 @@ var require_lib4 = __commonJS({
     });
     function _objectWithoutPropertiesLoose(r, e) {
       if (null == r) return {};
-      var t7 = {};
+      var t8 = {};
       for (var n in r) if ({}.hasOwnProperty.call(r, n)) {
         if (-1 !== e.indexOf(n)) continue;
-        t7[n] = r[n];
+        t8[n] = r[n];
       }
-      return t7;
+      return t8;
     }
     var Position = class {
       constructor(line, col, index) {
@@ -28456,7 +28456,7 @@ var require_lib4 = __commonJS({
       }
       tsParseTypeOrTypePredicateAnnotation(returnToken) {
         return this.tsInType(() => {
-          const t7 = this.startNode();
+          const t8 = this.startNode();
           this.expect(returnToken);
           const node = this.startNode();
           const asserts = !!this.tsTryParse(this.tsParseTypePredicateAsserts.bind(this));
@@ -28471,26 +28471,26 @@ var require_lib4 = __commonJS({
               this.resetStartLocationFromNode(thisTypePredicate, node);
               thisTypePredicate.asserts = true;
             }
-            t7.typeAnnotation = thisTypePredicate;
-            return this.finishNode(t7, "TSTypeAnnotation");
+            t8.typeAnnotation = thisTypePredicate;
+            return this.finishNode(t8, "TSTypeAnnotation");
           }
           const typePredicateVariable = this.tsIsIdentifier() && this.tsTryParse(this.tsParseTypePredicatePrefix.bind(this));
           if (!typePredicateVariable) {
             if (!asserts) {
-              return this.tsParseTypeAnnotation(false, t7);
+              return this.tsParseTypeAnnotation(false, t8);
             }
             node.parameterName = this.parseIdentifier();
             node.asserts = asserts;
             node.typeAnnotation = null;
-            t7.typeAnnotation = this.finishNode(node, "TSTypePredicate");
-            return this.finishNode(t7, "TSTypeAnnotation");
+            t8.typeAnnotation = this.finishNode(node, "TSTypePredicate");
+            return this.finishNode(t8, "TSTypeAnnotation");
           }
           const type = this.tsParseTypeAnnotation(false);
           node.parameterName = typePredicateVariable;
           node.typeAnnotation = type;
           node.asserts = asserts;
-          t7.typeAnnotation = this.finishNode(node, "TSTypePredicate");
-          return this.finishNode(t7, "TSTypeAnnotation");
+          t8.typeAnnotation = this.finishNode(node, "TSTypePredicate");
+          return this.finishNode(t8, "TSTypeAnnotation");
         });
       }
       tsTryParseTypeOrTypePredicateAnnotation() {
@@ -28529,12 +28529,12 @@ var require_lib4 = __commonJS({
         }
         return true;
       }
-      tsParseTypeAnnotation(eatColon = true, t7 = this.startNode()) {
+      tsParseTypeAnnotation(eatColon = true, t8 = this.startNode()) {
         this.tsInType(() => {
           if (eatColon) this.expect(14);
-          t7.typeAnnotation = this.tsParseType();
+          t8.typeAnnotation = this.tsParseType();
         });
-        return this.finishNode(t7, "TSTypeAnnotation");
+        return this.finishNode(t8, "TSTypeAnnotation");
       }
       tsParseType() {
         assert(this.state.inType);
@@ -29472,8 +29472,8 @@ var require_lib4 = __commonJS({
         if (isDeclare && (this.isContextual(125) || !this.shouldParseExportDeclaration())) {
           throw this.raise(TSErrors.ExpectedAmbientAfterExportDeclare, this.state.startLoc);
         }
-        const isIdentifier = tokenIsIdentifier(this.state.type);
-        const declaration = isIdentifier && this.tsTryParseExportDeclaration() || super.parseExportDeclaration(node);
+        const isIdentifier2 = tokenIsIdentifier(this.state.type);
+        const declaration = isIdentifier2 && this.tsTryParseExportDeclaration() || super.parseExportDeclaration(node);
         if (!declaration) return null;
         if (declaration.type === "TSInterfaceDeclaration" || declaration.type === "TSTypeAliasDeclaration" || isDeclare) {
           node.exportKind = "type";
@@ -30515,7 +30515,7 @@ var require_lib4 = __commonJS({
           }
           const topicToken = pluginsMap.get("pipelineOperator").topicToken;
           if (!TOPIC_TOKENS.includes(topicToken)) {
-            const tokenList = TOPIC_TOKENS.map((t7) => `"${t7}"`).join(", ");
+            const tokenList = TOPIC_TOKENS.map((t8) => `"${t8}"`).join(", ");
             throw new Error(`"pipelineOperator" in "proposal": "hack" mode also requires a "topicToken" option whose value must be one of: ${tokenList}.`);
           }
           if (topicToken === "#" && ((_pluginsMap$get = pluginsMap.get("recordAndTuple")) == null ? void 0 : _pluginsMap$get.syntaxType) === "hash") {
@@ -35238,12 +35238,12 @@ var require_virtual_types_validator = __commonJS({
       isFlow: nodeIsFlow,
       isForStatement,
       isForXStatement,
-      isIdentifier,
+      isIdentifier: isIdentifier2,
       isImportDeclaration,
       isImportSpecifier,
-      isJSXIdentifier: isJSXIdentifier6,
+      isJSXIdentifier: isJSXIdentifier7,
       isJSXMemberExpression,
-      isMemberExpression,
+      isMemberExpression: isMemberExpression2,
       isRestElement: nodeIsRestElement,
       isReferenced: nodeIsReferenced,
       isScope: nodeIsScope,
@@ -35261,9 +35261,9 @@ var require_virtual_types_validator = __commonJS({
         node,
         parent
       } = this;
-      if (isIdentifier(node, opts)) {
+      if (isIdentifier2(node, opts)) {
         return nodeIsReferenced(node, parent, this.parentPath.parent);
-      } else if (isJSXIdentifier6(node, opts)) {
+      } else if (isJSXIdentifier7(node, opts)) {
         if (!isJSXMemberExpression(parent) && isCompatTag(node.name)) return false;
         return nodeIsReferenced(node, parent, this.parentPath.parent);
       } else {
@@ -35275,7 +35275,7 @@ var require_virtual_types_validator = __commonJS({
         node,
         parent
       } = this;
-      return isMemberExpression(node) && nodeIsReferenced(node, parent);
+      return isMemberExpression2(node) && nodeIsReferenced(node, parent);
     }
     function isBindingIdentifier() {
       const {
@@ -35283,7 +35283,7 @@ var require_virtual_types_validator = __commonJS({
         parent
       } = this;
       const grandparent = this.parentPath.parent;
-      return isIdentifier(node) && isBinding(node, parent, grandparent);
+      return isIdentifier2(node) && isBinding(node, parent, grandparent);
     }
     function isStatement() {
       const {
@@ -35634,8 +35634,8 @@ var require_renamer = __commonJS({
       value: true
     });
     exports2.default = void 0;
-    var t7 = require_lib3();
-    var _t = t7;
+    var t8 = require_lib3();
+    var _t = t8;
     var _traverseNode = require_traverse_node();
     var _visitors = require_visitors();
     var _context = require_context2();
@@ -35701,7 +35701,7 @@ var require_renamer = __commonJS({
           const {
             declaration
           } = maybeExportDeclar.node;
-          if (t7.isDeclaration(declaration) && !declaration.id) {
+          if (t8.isDeclaration(declaration) && !declaration.id) {
             return;
           }
         }
@@ -35737,11 +35737,11 @@ var require_renamer = __commonJS({
         const skipKeys = {
           discriminant: true
         };
-        if (t7.isMethod(blockToTraverse)) {
+        if (t8.isMethod(blockToTraverse)) {
           if (blockToTraverse.computed) {
             skipKeys.key = true;
           }
-          if (!t7.isObjectMethod(blockToTraverse)) {
+          if (!t8.isObjectMethod(blockToTraverse)) {
             skipKeys.decorators = true;
           }
         }
@@ -36048,7 +36048,7 @@ var require_scope = __commonJS({
     var _traverseForScope = require_traverseForScope();
     var _binding = require_binding();
     var _t = require_lib3();
-    var t7 = _t;
+    var t8 = _t;
     var _cache = require_cache();
     var globalsBuiltinLower = require_builtin_lower();
     var globalsBuiltinUpper = require_builtin_upper();
@@ -36060,7 +36060,7 @@ var require_scope = __commonJS({
       identifier,
       isArrayExpression,
       isBinary,
-      isCallExpression,
+      isCallExpression: isCallExpression2,
       isClass,
       isClassBody,
       isClassDeclaration,
@@ -36068,20 +36068,20 @@ var require_scope = __commonJS({
       isExportDefaultDeclaration,
       isExportNamedDeclaration,
       isFunctionDeclaration,
-      isIdentifier,
+      isIdentifier: isIdentifier2,
       isImportDeclaration,
       isLiteral,
-      isMemberExpression,
+      isMemberExpression: isMemberExpression2,
       isMethod,
       isModuleSpecifier,
-      isNullLiteral,
+      isNullLiteral: isNullLiteral2,
       isObjectExpression,
       isProperty,
       isPureish,
       isRegExpLiteral,
       isSuper,
       isTaggedTemplateExpression,
-      isTemplateLiteral,
+      isTemplateLiteral: isTemplateLiteral2,
       isThisExpression,
       isUnaryExpression,
       isVariableDeclaration,
@@ -36114,7 +36114,7 @@ var require_scope = __commonJS({
             }
           } else if (isModuleSpecifier(node)) {
             gatherNodeParts(node.local, parts);
-          } else if (isLiteral(node) && !isNullLiteral(node) && !isRegExpLiteral(node) && !isTemplateLiteral(node)) {
+          } else if (isLiteral(node) && !isNullLiteral2(node) && !isRegExpLiteral(node) && !isTemplateLiteral2(node)) {
             parts.push(node.value);
           }
           break;
@@ -36253,7 +36253,7 @@ var require_scope = __commonJS({
         parent.registerDeclaration(path);
       },
       ReferencedIdentifier(path, state) {
-        if (t7.isTSQualifiedName(path.parent) && path.parent.right === path.node) {
+        if (t8.isTSQualifiedName(path.parent) && path.parent.right === path.node) {
           return;
         }
         if (path.parentPath.isTSImportEqualsDeclaration()) return;
@@ -36441,7 +36441,7 @@ var require_scope = __commonJS({
         if (isThisExpression(node) || isSuper(node) || isTopicReference(node)) {
           return true;
         }
-        if (isIdentifier(node)) {
+        if (isIdentifier2(node)) {
           const binding = this.getBinding(node.name);
           if (binding) {
             return binding.constant;
@@ -36603,7 +36603,7 @@ var require_scope = __commonJS({
         return !!this.getProgramParent().references[name];
       }
       isPure(node, constantsOnly) {
-        if (isIdentifier(node)) {
+        if (isIdentifier2(node)) {
           const binding = this.getBinding(node.name);
           if (!binding) return false;
           if (constantsOnly) return binding.constant;
@@ -36657,7 +36657,7 @@ var require_scope = __commonJS({
           return true;
         } else if (isUnaryExpression(node)) {
           return this.isPure(node.argument, constantsOnly);
-        } else if (isTemplateLiteral(node)) {
+        } else if (isTemplateLiteral2(node)) {
           for (const expression of node.expressions) {
             if (!this.isPure(expression, constantsOnly)) return false;
           }
@@ -36666,14 +36666,14 @@ var require_scope = __commonJS({
           return matchesPattern(node.tag, "String.raw") && !this.hasBinding("String", {
             noGlobals: true
           }) && this.isPure(node.quasi, constantsOnly);
-        } else if (isMemberExpression(node)) {
-          return !node.computed && isIdentifier(node.object) && node.object.name === "Symbol" && isIdentifier(node.property) && node.property.name !== "for" && !this.hasBinding("Symbol", {
+        } else if (isMemberExpression2(node)) {
+          return !node.computed && isIdentifier2(node.object) && node.object.name === "Symbol" && isIdentifier2(node.property) && node.property.name !== "for" && !this.hasBinding("Symbol", {
             noGlobals: true
           });
-        } else if (isCallExpression(node)) {
+        } else if (isCallExpression2(node)) {
           return matchesPattern(node.callee, "Symbol.for") && !this.hasBinding("Symbol", {
             noGlobals: true
-          }) && node.arguments.length === 1 && t7.isStringLiteral(node.arguments[0]);
+          }) && node.arguments.length === 1 && t8.isStringLiteral(node.arguments[0]);
         } else {
           return isPureish(node);
         }
@@ -36770,9 +36770,9 @@ var require_scope = __commonJS({
           kind = "var",
           id
         } = opts;
-        if (!init && !unique && (kind === "var" || kind === "let") && isAnonymousFunctionExpression(path) && isCallExpression(path.parent, {
+        if (!init && !unique && (kind === "var" || kind === "let") && isAnonymousFunctionExpression(path) && isCallExpression2(path.parent, {
           callee: path.node
-        }) && path.parent.arguments.length <= path.node.params.length && isIdentifier(id)) {
+        }) && path.parent.arguments.length <= path.node.params.length && isIdentifier2(id)) {
           path.pushContainer("params", id);
           path.scope.registerBinding("param", path.get("params")[path.node.params.length - 1]);
           return;
@@ -36995,7 +36995,7 @@ var require_scope = __commonJS({
       return `_${id}`;
     };
     Scope.prototype.toArray = function toArray(node, i, arrayLikeIsIterable) {
-      if (isIdentifier(node)) {
+      if (isIdentifier2(node)) {
         const binding = this.getBinding(node.name);
         if (binding != null && binding.constant && binding.path.isGenericType("Array")) {
           return node;
@@ -37004,7 +37004,7 @@ var require_scope = __commonJS({
       if (isArrayExpression(node)) {
         return node;
       }
-      if (isIdentifier(node, {
+      if (isIdentifier2(node, {
         name: "arguments"
       })) {
         return callExpression(memberExpression(memberExpression(memberExpression(identifier("Array"), identifier("prototype")), identifier("slice")), identifier("call")), [node]);
@@ -38966,7 +38966,7 @@ var require_parentheses = __commonJS({
     var _t = require_lib3();
     var _index = require_node2();
     var {
-      isMemberExpression,
+      isMemberExpression: isMemberExpression2,
       isOptionalMemberExpression,
       isYieldExpression,
       isStatement
@@ -39210,7 +39210,7 @@ var require_parentheses = __commonJS({
       }
       if (tokenContext & _index.TokenContext.forOfHead || (parentId === 108 || parentId === 132) && tokenContext & (_index.TokenContext.expressionStatement | _index.TokenContext.forInitHead | _index.TokenContext.forInHead)) {
         if (node.name === "let") {
-          const isFollowedByBracket = isMemberExpression(parent, {
+          const isFollowedByBracket = isMemberExpression2(parent, {
             object: node,
             computed: true
           }) || isOptionalMemberExpression(parent, {
@@ -39308,9 +39308,9 @@ var require_expressions = __commonJS({
     var _t = require_lib3();
     var _index = require_node2();
     var {
-      isCallExpression,
+      isCallExpression: isCallExpression2,
       isLiteral,
-      isMemberExpression,
+      isMemberExpression: isMemberExpression2,
       isNewExpression,
       isPattern
     } = _t;
@@ -39367,9 +39367,9 @@ var require_expressions = __commonJS({
       this.word("new");
       this.space();
       this.print(node.callee);
-      if (this.format.minified && node.arguments.length === 0 && !node.optional && !isCallExpression(parent, {
+      if (this.format.minified && node.arguments.length === 0 && !node.optional && !isCallExpression2(parent, {
         callee: node
-      }) && !isMemberExpression(parent) && !isNewExpression(parent)) {
+      }) && !isMemberExpression2(parent) && !isNewExpression(parent)) {
         return;
       }
       this.print(node.typeArguments);
@@ -39418,7 +39418,7 @@ var require_expressions = __commonJS({
         property
       } = node;
       this.print(node.object);
-      if (!computed && isMemberExpression(property)) {
+      if (!computed && isMemberExpression2(property)) {
         throw new TypeError("Got a MemberExpression for MemberExpression property");
       }
       if (isLiteral(property) && typeof property.value === "number") {
@@ -39533,7 +39533,7 @@ var require_expressions = __commonJS({
     }
     function MemberExpression(node) {
       this.print(node.object);
-      if (!node.computed && isMemberExpression(node.property)) {
+      if (!node.computed && isMemberExpression2(node.property)) {
         throw new TypeError("Got a MemberExpression for MemberExpression property");
       }
       let computed = node.computed;
@@ -39901,7 +39901,7 @@ var require_methods = __commonJS({
     var _t = require_lib3();
     var _index = require_node2();
     var {
-      isIdentifier
+      isIdentifier: isIdentifier2
     } = _t;
     function _params(node, noLineTerminator, idNode, parentNode) {
       this.print(node.typeParameters);
@@ -40037,7 +40037,7 @@ var require_methods = __commonJS({
         return true;
       }
       const firstParam = node.params[0];
-      if (!isIdentifier(firstParam) || firstParam.typeAnnotation || firstParam.optional || (_firstParam$leadingCo = firstParam.leadingComments) != null && _firstParam$leadingCo.length || (_firstParam$trailingC = firstParam.trailingComments) != null && _firstParam$trailingC.length) {
+      if (!isIdentifier2(firstParam) || firstParam.typeAnnotation || firstParam.optional || (_firstParam$leadingCo = firstParam.leadingComments) != null && _firstParam$leadingCo.length || (_firstParam$trailingC = firstParam.trailingComments) != null && _firstParam$trailingC.length) {
         return true;
       }
       if (this.tokenMap) {
@@ -40179,7 +40179,7 @@ var require_typescript2 = __commonJS({
       this.tokenChar(60);
       let printTrailingSeparator = parent.type === "ArrowFunctionExpression" && node.params.length === 1;
       if (this.tokenMap && node.start != null && node.end != null) {
-        printTrailingSeparator && (printTrailingSeparator = !!this.tokenMap.find(node, (t7) => this.tokenMap.matchesOriginal(t7, ",")));
+        printTrailingSeparator && (printTrailingSeparator = !!this.tokenMap.find(node, (t8) => this.tokenMap.matchesOriginal(t8, ",")));
         printTrailingSeparator || (printTrailingSeparator = this.shouldPrintTrailingComma(">"));
       }
       this.printList(node.params, printTrailingSeparator);
@@ -41420,7 +41420,7 @@ var require_types = __commonJS({
     var _methods = require_methods();
     var {
       isAssignmentPattern,
-      isIdentifier
+      isIdentifier: isIdentifier2
     } = _t;
     var lastRawIdentResult = "";
     function _getRawIdentifier(node) {
@@ -41473,12 +41473,12 @@ var require_types = __commonJS({
         this.print(node.key);
         this.tokenChar(93);
       } else {
-        if (isAssignmentPattern(node.value) && isIdentifier(node.key) && node.key.name === node.value.left.name) {
+        if (isAssignmentPattern(node.value) && isIdentifier2(node.key) && node.key.name === node.value.left.name) {
           this.print(node.value);
           return;
         }
         this.print(node.key);
-        if (node.shorthand && isIdentifier(node.key) && isIdentifier(node.value) && node.key.name === node.value.name) {
+        if (node.shorthand && isIdentifier2(node.key) && isIdentifier2(node.value) && node.key.name === node.value.name) {
           return;
         }
       }
@@ -44469,7 +44469,7 @@ var require_inferers = __commonJS({
       tupleTypeAnnotation,
       unionTypeAnnotation,
       voidTypeAnnotation,
-      isIdentifier
+      isIdentifier: isIdentifier2
     } = _t;
     function VariableDeclarator() {
       if (!this.get("id").isIdentifier()) return;
@@ -44584,7 +44584,7 @@ var require_inferers = __commonJS({
       } = this.node;
       if (isObjectKeys(callee)) {
         return arrayTypeAnnotation(stringTypeAnnotation());
-      } else if (isArrayFrom(callee) || isObjectValues(callee) || isIdentifier(callee, {
+      } else if (isArrayFrom(callee) || isObjectValues(callee) || isIdentifier2(callee, {
         name: "Array"
       })) {
         return arrayTypeAnnotation(anyTypeAnnotation());
@@ -44644,7 +44644,7 @@ var require_inference = __commonJS({
       isEmptyTypeAnnotation,
       isFlowBaseAnnotation,
       isGenericTypeAnnotation,
-      isIdentifier,
+      isIdentifier: isIdentifier2,
       isMixedTypeAnnotation,
       isNumberTypeAnnotation,
       isStringTypeAnnotation,
@@ -44764,9 +44764,9 @@ var require_inference = __commonJS({
           return true;
         }
       }
-      return isGenericTypeAnnotation(type) && isIdentifier(type.id, {
+      return isGenericTypeAnnotation(type) && isIdentifier2(type.id, {
         name: genericName
-      }) || isTSTypeReference(type) && isIdentifier(type.typeName, {
+      }) || isTSTypeReference(type) && isIdentifier2(type.typeName, {
         name: genericName
       });
     }
@@ -45141,7 +45141,7 @@ var require_removal = __commonJS({
     var _cache = require_cache();
     var _replacement = require_replacement();
     var _index = require_path2();
-    var t7 = require_lib3();
+    var t8 = require_lib3();
     var _modification = require_modification();
     var _context = require_context2();
     function remove() {
@@ -45160,7 +45160,7 @@ var require_removal = __commonJS({
       _markRemoved.call(this);
     }
     function _removeFromScope() {
-      const bindings = t7.getBindingIdentifiers(this.node, false, false, true);
+      const bindings = t8.getBindingIdentifiers(this.node, false, false, true);
       Object.keys(bindings).forEach((name) => this.scope.removeBinding(name));
     }
     function _callRemovalHooks() {
@@ -45400,10 +45400,10 @@ var require_modification = __commonJS({
       cloneNode,
       expressionStatement,
       isAssignmentExpression,
-      isCallExpression,
+      isCallExpression: isCallExpression2,
       isExportNamedDeclaration,
       isExpression,
-      isIdentifier,
+      isIdentifier: isIdentifier2,
       isSequenceExpression,
       isSuper,
       thisExpression
@@ -45465,7 +45465,7 @@ var require_modification = __commonJS({
       return isSequenceExpression(path.parent) && (last(path.parent.expressions) !== path.node || isHiddenInSequenceExpression(path.parentPath));
     }
     function isAlmostConstantAssignment(node, scope) {
-      if (!isAssignmentExpression(node) || !isIdentifier(node.left)) {
+      if (!isAssignmentExpression(node) || !isIdentifier2(node.left)) {
         return false;
       }
       const blockScope = scope.getBlockParent();
@@ -45500,7 +45500,7 @@ var require_modification = __commonJS({
           }
           if (isHiddenInSequenceExpression(self2)) {
             nodes.unshift(node);
-          } else if (isCallExpression(node) && isSuper(node.callee)) {
+          } else if (isCallExpression2(node) && isSuper(node.callee)) {
             nodes.unshift(node);
             nodes.push(thisExpression());
           } else if (isAlmostConstantAssignment(node, scope)) {
@@ -46326,12 +46326,12 @@ var require_options = __commonJS({
     var _excluded = ["placeholderWhitelist", "placeholderPattern", "preserveComments", "syntacticPlaceholders"];
     function _objectWithoutPropertiesLoose(r, e) {
       if (null == r) return {};
-      var t7 = {};
+      var t8 = {};
       for (var n in r) if ({}.hasOwnProperty.call(r, n)) {
         if (-1 !== e.indexOf(n)) continue;
-        t7[n] = r[n];
+        t8[n] = r[n];
       }
-      return t7;
+      return t8;
     }
     function merge(a, b) {
       const {
@@ -46407,11 +46407,11 @@ var require_parse3 = __commonJS({
     var _parser = require_lib4();
     var _codeFrame = require_lib6();
     var {
-      isCallExpression,
+      isCallExpression: isCallExpression2,
       isExpressionStatement,
       isFunction,
-      isIdentifier,
-      isJSXIdentifier: isJSXIdentifier6,
+      isIdentifier: isIdentifier2,
+      isJSXIdentifier: isJSXIdentifier7,
       isNewExpression,
       isPlaceholder,
       isStatement,
@@ -46462,7 +46462,7 @@ var require_parse3 = __commonJS({
         hasSyntacticPlaceholders = true;
       } else if (hasSyntacticPlaceholders || state.syntacticPlaceholders) {
         return;
-      } else if (isIdentifier(node) || isJSXIdentifier6(node)) {
+      } else if (isIdentifier2(node) || isJSXIdentifier7(node)) {
         name = node.name;
       } else if (isStringLiteral2(node)) {
         name = node.value;
@@ -46485,7 +46485,7 @@ var require_parse3 = __commonJS({
         expectedNode: "StringLiteral"
       })) {
         type = "string";
-      } else if (isNewExpression(parent) && key === "arguments" || isCallExpression(parent) && key === "arguments" || isFunction(parent) && key === "params") {
+      } else if (isNewExpression(parent) && key === "arguments" || isCallExpression2(parent) && key === "arguments" || isFunction(parent) && key === "params") {
         type = "param";
       } else if (isExpressionStatement(parent) && !isPlaceholder(node)) {
         type = "statement";
@@ -46923,7 +46923,7 @@ var require_conversion = __commonJS({
       conditionalExpression,
       expressionStatement,
       identifier,
-      isIdentifier,
+      isIdentifier: isIdentifier2,
       jsxIdentifier,
       logicalExpression,
       LOGICAL_OPERATORS,
@@ -46962,7 +46962,7 @@ var require_conversion = __commonJS({
         throw new ReferenceError("todo");
       }
       if (!this.node.computed) {
-        if (isIdentifier(key)) key = stringLiteral(key.name);
+        if (isIdentifier2(key)) key = stringLiteral(key.name);
       }
       return key;
     }
@@ -47537,7 +47537,7 @@ var require_introspection = __commonJS({
       VISITOR_KEYS,
       isBlockStatement,
       isExpression,
-      isIdentifier,
+      isIdentifier: isIdentifier2,
       isLiteral,
       isStringLiteral: isStringLiteral2,
       isType,
@@ -47633,7 +47633,7 @@ var require_introspection = __commonJS({
       if (path.isImportNamespaceSpecifier() && importName === "*") {
         return true;
       }
-      if (path.isImportSpecifier() && isIdentifier(path.node.imported, {
+      if (path.isImportSpecifier() && isIdentifier2(path.node.imported, {
         name: importName
       })) {
         return true;
@@ -48325,7 +48325,7 @@ var require_path2 = __commonJS({
     var _index = require_lib8();
     var _index2 = require_scope();
     var _t = require_lib3();
-    var t7 = _t;
+    var t8 = _t;
     var cache = require_cache();
     var _generator = require_lib5();
     var NodePath_ancestry = require_ancestry();
@@ -48586,9 +48586,9 @@ var require_path2 = __commonJS({
       _getKey: NodePath_family._getKey,
       _getPattern: NodePath_family._getPattern
     });
-    for (const type of t7.TYPES) {
+    for (const type of t8.TYPES) {
       const typeKey = `is${type}`;
-      const fn = t7[typeKey];
+      const fn = t8[typeKey];
       NodePath_Final.prototype[typeKey] = function(opts) {
         return fn(this.node, opts);
       };
@@ -48601,7 +48601,7 @@ var require_path2 = __commonJS({
     Object.assign(NodePath_Final.prototype, NodePath_virtual_types_validator);
     for (const type of Object.keys(virtualTypes)) {
       if (type.startsWith("_")) continue;
-      if (!t7.TYPES.includes(type)) t7.TYPES.push(type);
+      if (!t8.TYPES.includes(type)) t8.TYPES.push(type);
     }
   }
 });
@@ -48824,7 +48824,7 @@ var require_context2 = __commonJS({
     var _traverseNode = require_traverse_node();
     var _index = require_path2();
     var _removal = require_removal();
-    var t7 = require_lib3();
+    var t8 = require_lib3();
     function call(key) {
       const opts = this.opts;
       this.debug(key);
@@ -49027,7 +49027,7 @@ var require_context2 = __commonJS({
         context,
         node
       } = this;
-      if (!t7.isPrivate(node) && node.computed) {
+      if (!t8.isPrivate(node) && node.computed) {
         context.maybeQueue(this.get("key"));
       }
       if (node.decorators) {
@@ -49254,6 +49254,9 @@ function extractChecks(code, filePath) {
   });
   return checks;
 }
+
+// ../tailwind-a11y/dist/parser/extractDynamicClassNameSkips.js
+var t3 = __toESM(require_lib3(), 1);
 
 // ../tailwind-a11y/dist/contrast/luminance.js
 var HEX_RE = /^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
@@ -49705,16 +49708,16 @@ function suggestContrastFix(textClass, bgClass, required, palette = defaultPalet
 }
 
 // ../tailwind-a11y/dist/parser/extractTouchTargets.js
-var t4 = __toESM(require_lib3(), 1);
+var t5 = __toESM(require_lib3(), 1);
 
 // ../tailwind-a11y/dist/parser/isInteractiveElement.js
-var t3 = __toESM(require_lib3(), 1);
+var t4 = __toESM(require_lib3(), 1);
 var INTERACTIVE_TAGS = /* @__PURE__ */ new Set(["button", "a", "input", "select", "textarea"]);
 function isInteractiveElement(opening) {
-  const tagName = t3.isJSXIdentifier(opening.name) ? opening.name.name : null;
+  const tagName = t4.isJSXIdentifier(opening.name) ? opening.name.name : null;
   if (tagName !== null && INTERACTIVE_TAGS.has(tagName))
     return true;
-  return opening.attributes.some((a) => t3.isJSXAttribute(a) && a.name.name === "onClick");
+  return opening.attributes.some((a) => t4.isJSXAttribute(a) && a.name.name === "onClick");
 }
 
 // ../tailwind-a11y/dist/theme/spacingScale.js
@@ -49769,11 +49772,11 @@ function lastSizeToken(tokens, prefix) {
   return found;
 }
 function isMeaningfulText(node) {
-  return !!node && t4.isJSXText(node) && node.value.trim().length > 0;
+  return !!node && t5.isJSXText(node) && node.value.trim().length > 0;
 }
 function isInlineInText(path) {
   const parentNode = path.parentPath?.node;
-  if (!parentNode || !t4.isJSXElement(parentNode) && !t4.isJSXFragment(parentNode))
+  if (!parentNode || !t5.isJSXElement(parentNode) && !t5.isJSXFragment(parentNode))
     return false;
   const siblings = parentNode.children;
   const index = siblings.indexOf(path.node);
@@ -49808,7 +49811,7 @@ function extractTouchTargetChecks(code, filePath, spacing = spacingScale) {
       checks.push({
         file: filePath,
         line: opening.loc?.start.line ?? 0,
-        tagName: t4.isJSXIdentifier(opening.name) ? opening.name.name : "onClick-element",
+        tagName: t5.isJSXIdentifier(opening.name) ? opening.name.name : "onClick-element",
         widthClass: width.raw,
         heightClass: height.raw,
         widthPx,
@@ -49829,7 +49832,7 @@ function checkTouchTargets(checks, strict = false) {
 }
 
 // ../tailwind-a11y/dist/parser/extractFocusIndicators.js
-var t5 = __toESM(require_lib3(), 1);
+var t6 = __toESM(require_lib3(), 1);
 function focusScopedClasses(className) {
   return className.split(/\s+/).filter(Boolean).filter((raw) => {
     const segments = raw.split(":");
@@ -49858,7 +49861,7 @@ function extractFocusIndicatorChecks(code, filePath) {
       let bgSource = ownBg ? "self" : null;
       if (!bgClass) {
         const parentNode = path.parentPath?.node;
-        if (parentNode && t5.isJSXElement(parentNode)) {
+        if (parentNode && t6.isJSXElement(parentNode)) {
           const parentClassName = getStaticClassName(parentNode.openingElement.attributes);
           const parentBg = parentClassName ? lastColorToken(parentClassName, "bg") : null;
           if (parentBg) {
@@ -49870,7 +49873,7 @@ function extractFocusIndicatorChecks(code, filePath) {
       checks.push({
         file: filePath,
         line: opening.loc?.start.line ?? 0,
-        tagName: t5.isJSXIdentifier(opening.name) ? opening.name.name : "onClick-element",
+        tagName: t6.isJSXIdentifier(opening.name) ? opening.name.name : "onClick-element",
         focusClasses,
         bgClass,
         bgSource
@@ -50061,7 +50064,7 @@ function checkFocusContrast(checks, strict = false, palette = defaultPalette) {
 }
 
 // ../tailwind-a11y/dist/parser/extractReducedMotion.js
-var t6 = __toESM(require_lib3(), 1);
+var t7 = __toESM(require_lib3(), 1);
 var TRANSITION_BASES = /* @__PURE__ */ new Set(["transition", "transition-all", "transition-transform"]);
 var INTERACTION_VARIANTS = /* @__PURE__ */ new Set([
   "hover",
@@ -50123,7 +50126,7 @@ function extractReducedMotionChecks(code, filePath) {
       checks.push({
         file: filePath,
         line: opening.loc?.start.line ?? 0,
-        tagName: t6.isJSXIdentifier(opening.name) ? opening.name.name : "unknown-element",
+        tagName: t7.isJSXIdentifier(opening.name) ? opening.name.name : "unknown-element",
         classes
       });
     }

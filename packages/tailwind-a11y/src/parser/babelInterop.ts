@@ -29,5 +29,31 @@ export function getStaticClassName(attributes: t.JSXOpeningElement["attributes"]
   );
   if (!attr || !attr.value) return null;
   if (t.isStringLiteral(attr.value)) return attr.value.value;
-  return null; // JSXExpressionContainer (ternary, template literal, clsx()...) — skip silently
+  return null; // JSXExpressionContainer (ternary, template literal, clsx()...) — not resolved; see dynamicClassNameKind
+}
+
+// Describes *why* getStaticClassName returned null for an element that does
+// have a className, so the skip can be reported instead of silently dropped.
+// Returns null when there's nothing to report: no className at all, a plain
+// string literal (already resolved), or a value that can't carry any classes
+// (`{null}`, `{undefined}`). A string literal wrapped in braces
+// (`className={"..."}`) is deliberately reported as an expression -- it is not
+// resolved today, and claiming it's "dynamic" would be untrue. (An empty
+// `className={}` never reaches here: Babel rejects it as a parse error.)
+export function dynamicClassNameKind(attributes: t.JSXOpeningElement["attributes"]): string | null {
+  const attr = attributes.find(
+    (a): a is t.JSXAttribute => t.isJSXAttribute(a) && a.name.name === "className"
+  );
+  if (!attr || !t.isJSXExpressionContainer(attr.value)) return null;
+
+  const expr = attr.value.expression;
+  if (t.isNullLiteral(expr) || t.isIdentifier(expr, { name: "undefined" })) return null;
+  if (t.isCallExpression(expr)) {
+    return t.isIdentifier(expr.callee) ? `${expr.callee.name}(...) call` : "function call";
+  }
+  if (t.isTemplateLiteral(expr)) return "template literal";
+  if (t.isConditionalExpression(expr)) return "conditional expression";
+  if (t.isLogicalExpression(expr)) return "logical expression";
+  if (t.isIdentifier(expr) || t.isMemberExpression(expr)) return "variable reference";
+  return "expression";
 }
