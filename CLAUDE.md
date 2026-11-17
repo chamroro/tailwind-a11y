@@ -34,6 +34,14 @@ another check) should follow the same pattern.
   behavior).
 - **One lockfile, at the root.** Never commit a `package-lock.json` inside a package
   directory.
+- **The root `package.json` `overrides` pins `minimatch` to `^11.0.1`** (the first
+  version fixing GHSA-g3hv-75wg-m249, a glob-pattern DoS). It's a dev-only transitive
+  dependency of `eslint` and `@vscode/vsce` and never ships in a published package, but
+  `@vscode/vsce` (still on `^10`) can't be fixed by waiting for it to update — 10.x is
+  entirely in the vulnerable range. Remove the override once both tools declare
+  `minimatch >=11.0.1` themselves. Regenerating the lockfile with the bundled npm 10
+  strips the `libc` fields that main's lockfile has; use `npx npm@11` for lockfile-only
+  changes so the diff stays limited to what actually changed.
 - **Publish order: engine, then plugin, always** — the plugin's published manifest
   depends on the engine actually being on the registry.
 - **Root `package.json` name is `tailwind-a11y-monorepo`, not `tailwind-a11y`** —

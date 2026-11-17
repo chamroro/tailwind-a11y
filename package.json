@@ -20,5 +20,8 @@
     "test": "npm run test --workspaces --if-present",
     "clean": "rm -rf packages/*/dist",
     "check:link": "test -L node_modules/tailwind-a11y || { echo 'ERROR: node_modules/tailwind-a11y is not a workspace symlink -- the semver range in eslint-plugin-tailwind-a11y no longer matches the local version'; exit 1; }"
+  },
+  "overrides": {
+    "minimatch": "^11.0.1"
   }
 }
