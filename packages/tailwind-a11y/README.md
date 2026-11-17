@@ -74,8 +74,9 @@ When a case can't be resolved with confidence, it's skipped rather than guessed:
   (`text-gray-400/50`) *is* resolved, composited against the (opaque) background.
 - Frameworks other than React/JSX
 
-`--verbose` reports what was skipped and why — a skip is not a pass. Full rationale in
-[CLAUDE.md](./CLAUDE.md).
+`--verbose` reports what was skipped and why — a skip is not a pass. Elements with a
+dynamic `className` are counted in a one-line note on every run, and listed per element
+with `--verbose`. Full rationale in [CLAUDE.md](./CLAUDE.md).
 
 ## Related
 

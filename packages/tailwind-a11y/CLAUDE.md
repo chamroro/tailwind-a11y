@@ -63,8 +63,23 @@ Tailwind-class-level sizing or focus-style analysis).
   reads correctly with zero consumer changes across any of the four
   adapters.
 - **Static `className` string literals only.** Ternaries, `clsx`/`cva`
-  composition, and computed class names are not resolved. Skip them silently
-  rather than guessing.
+  composition, and computed class names are not resolved — not guessed at,
+  but, in the CLI, also **not skipped silently**:
+  `extractDynamicClassNameSkips()` (`parser/extractDynamicClassNameSkips.ts`)
+  reports every element whose `className` is an expression, with the
+  expression kind (`cn(...) call`, `template literal`, ...). `--verbose`
+  lists them per element alongside the other skips (the verbose list is now
+  ordered by line within each file); the default CLI run prints a one-line
+  count so "No accessibility issues found." can't silently mean "mostly
+  unchecked" in a `cn()`-heavy codebase. The ESLint plugin, VS Code
+  extension and GitHub Action do not use the skip passes at all, so they
+  still skip these elements without saying so. `className={"..."}` (a string
+  literal in braces) is reported as an expression, not as "dynamic" — it
+  isn't resolved today, but calling it dynamic would be untrue; actually
+  resolving it is a separate, detection-changing follow-up.
+  `extractContrastSkips` also says so when a *parent's* className is an
+  unresolved expression that may be what sets the background, instead of
+  claiming no background exists.
 - **CLI + CI first, editor integration lives in a separate adapter.**
   `packages/vscode-tailwind-a11y` now exists as a third adapter over this
   engine (alongside the ESLint plugin) — it does not change this package's

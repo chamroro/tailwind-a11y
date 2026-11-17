@@ -4,6 +4,7 @@ import { relative, resolve, sep } from "node:path";
 import { createRequire } from "node:module";
 import fg from "fast-glob";
 import { extractChecks, extractContrastSkips } from "./parser/extractClasses.js";
+import { extractDynamicClassNameSkips } from "./parser/extractDynamicClassNameSkips.js";
 import { checkContrast, checkContrastValueSkips, type ContrastViolation } from "./rules/checkContrast.js";
 import { extractTouchTargetChecks, extractTouchTargetSkips } from "./parser/extractTouchTargets.js";
 import { checkTouchTargets, type TouchTargetViolation } from "./rules/checkTouchTarget.js";
@@ -110,6 +111,10 @@ async function main(): Promise<void> {
 
   const violations: AnyViolation[] = [];
   const skips: Skip[] = [];
+  // Collected on every run (not just --verbose): the default run prints a
+  // one-line coverage note so "no issues" can't silently mean "mostly
+  // unchecked"; --verbose lists them per element alongside the other skips.
+  const dynamicSkips: Skip[] = [];
 
   for (const absPath of files) {
     // Display/report path is project-root-relative (e.g. "/src/App.tsx"),
@@ -130,12 +135,19 @@ async function main(): Promise<void> {
         ...checkReducedMotion(extractReducedMotionChecks(code, file), strict)
       );
 
+      const fileDynamicSkips = extractDynamicClassNameSkips(code, file);
+      dynamicSkips.push(...fileDynamicSkips);
+
       if (verbose) {
-        skips.push(
+        // Line-sorted within the file so the dynamic-className skips
+        // interleave naturally with the other skip reasons.
+        const fileSkips = [
           ...extractContrastSkips(code, file),
           ...checkContrastValueSkips(contrastChecks, palette),
-          ...extractTouchTargetSkips(code, file, spacing)
-        );
+          ...extractTouchTargetSkips(code, file, spacing),
+          ...fileDynamicSkips,
+        ].sort((a, b) => a.line - b.line);
+        skips.push(...fileSkips);
       }
     } catch (err) {
       // Consistent with the parser's own skip-on-unparsable-file behavior:
@@ -156,6 +168,13 @@ async function main(): Promise<void> {
       }
     }
     console.log(`\n${violations.length} issue(s) in ${byFile.size} file(s)`);
+  }
+
+  if (!verbose && dynamicSkips.length > 0) {
+    const fileCount = new Set(dynamicSkips.map((s) => s.file)).size;
+    console.log(
+      `\nNote: ${dynamicSkips.length} element(s) in ${fileCount} file(s) have a className that isn't a plain string literal (cn()/clsx()/template literal/...) and were not checked. Run with --verbose to list them.`
+    );
   }
 
   if (verbose && skips.length > 0) {

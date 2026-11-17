@@ -1,4 +1,5 @@
 export { extractChecks, extractContrastSkips, type ContrastCheck, type ContrastSkip } from "./parser/extractClasses.js";
+export { extractDynamicClassNameSkips, type DynamicClassNameSkip } from "./parser/extractDynamicClassNameSkips.js";
 export { checkContrast, checkContrastValueSkips, suggestContrastFix, type ContrastViolation, type ContrastValueSkip, type ContrastFix } from "./rules/checkContrast.js";
 export { extractTouchTargetChecks, extractTouchTargetSkips, type TouchTargetCheck, type TouchTargetSkip } from "./parser/extractTouchTargets.js";
 export { checkTouchTargets, type TouchTargetViolation } from "./rules/checkTouchTarget.js";

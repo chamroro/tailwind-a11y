@@ -1,6 +1,6 @@
 import type { NodePath } from "@babel/traverse";
 import * as t from "@babel/types";
-import { getStaticClassName, parseJSX, traverse } from "./babelInterop.js";
+import { dynamicClassNameKind, getStaticClassName, parseJSX, traverse } from "./babelInterop.js";
 
 export interface ContrastCheck {
   file: string;
@@ -204,8 +204,20 @@ export function extractContrastSkips(code: string, filePath: string): ContrastSk
         parentNode && t.isJSXElement(parentNode) && t.isJSXIdentifier(parentNode.openingElement.name)
           ? parentNode.openingElement.name.name
           : null;
+      // A parent whose className is an unresolved expression may well set the
+      // background -- saying "no background utility found" would be untrue.
+      const parentDynamicKind =
+        parentNode && t.isJSXElement(parentNode) ? dynamicClassNameKind(parentNode.openingElement.attributes) : null;
 
       const reportSkip = (candidateClass: string) => {
+        if (parentDynamicKind) {
+          skips.push({
+            file: filePath,
+            line,
+            reason: `${candidateClass} — background may be set by the parent's className (${parentDynamicKind}), which isn't a plain string literal and isn't resolved`,
+          });
+          return;
+        }
         if (parentTag && /^[A-Z]/.test(parentTag)) {
           skips.push({
             file: filePath,
