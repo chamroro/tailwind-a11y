@@ -1,0 +1,51 @@
+{
+  "name": "mcp-tailwind-a11y",
+  "version": "0.16.0",
+  "description": "MCP server that lets coding agents check Tailwind CSS class combinations for WCAG accessibility violations — contrast, touch target size, focus indicators and reduced motion — and get fix suggestions back.",
+  "type": "module",
+  "bin": {
+    "mcp-tailwind-a11y": "./dist/server.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "tailwindcss",
+    "accessibility",
+    "a11y",
+    "wcag",
+    "agent"
+  ],
+  "author": "chamroro",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chamroro/tailwind-a11y.git",
+    "directory": "packages/mcp-tailwind-a11y"
+  },
+  "bugs": {
+    "url": "https://github.com/chamroro/tailwind-a11y/issues"
+  },
+  "homepage": "https://github.com/chamroro/tailwind-a11y/tree/main/packages/mcp-tailwind-a11y#readme",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "tailwind-a11y": "^0.16.0",
+    "zod": "^4.6.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.5.0",
+    "vitest": "^4.1.12"
+  }
+}
