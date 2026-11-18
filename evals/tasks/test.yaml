@@ -1,0 +1,115 @@
+# Test split: this file is FROZEN before a reported run. Its sha256 is written into every result, so a
+# change after the fact is visible. Prompts never mention what the tool checks (tasks.py rejects any
+# that do). `requires` stops a run from "passing" by returning a stripped-down component.
+#
+# Strata: natural (ordinary requests), cn_allowed (project uses a cn() helper, so many classNames are
+# unreadable to the engine), engine_blind (structure that hides the background from the engine),
+# control (nothing worth flagging; the tool should change nothing).
+# `requires` counts JSX written in the source, not elements rendered (a .map() or a reusable component renders many
+# from one), so every minimum is 1: it asks only that each kind of element the task needs is written at least once.
+tasks:
+  # ---- natural ----
+  - id: pricing-tiers
+    stratum: natural
+    prompt: >-
+      Build a pricing section with three plan cards: Starter, Pro and Team. Each card shows the price per month,
+      a list of four features, and a call-to-action button. Highlight the Pro card as the recommended plan.
+    requires:
+      - { tag: button, min: 1 }
+      - { tag: li, min: 1 }
+
+  - id: signup-form
+    stratum: natural
+    prompt: >-
+      Build a sign-up form with fields for name, email and password, a checkbox to accept the terms,
+      and a "Create account" button. Show a short hint under the password field.
+    requires:
+      - { tag: input, min: 1 }
+      - { tag: button, min: 1 }
+
+  - id: toast-stack
+    stratum: natural
+    prompt: >-
+      Build a stack of three toast notifications: one for success, one for an error, and one informational.
+      Each has a title, a message, and a small close button.
+    requires:
+      - { tag: button, min: 1 }
+
+  - id: icon-toolbar
+    stratum: natural
+    prompt: >-
+      Build a text-editor toolbar with a row of icon-only buttons for bold, italic, underline, link and
+      bullet list. Use simple inline SVG icons.
+    requires:
+      - { tag: button, min: 1 }
+      - { tag: svg, min: 1 }
+
+  - id: dark-badges
+    stratum: natural
+    prompt: >-
+      Build a set of tag badges for a blog sidebar (design, engineering, product, release notes, careers) that
+      look good on a dark page background.
+    requires:
+      - { tag: span, min: 1 }
+
+  - id: settings-toggles
+    stratum: natural
+    prompt: >-
+      Build a notification settings panel with four on/off toggle switches (email, push, SMS, weekly digest),
+      each with a label and a one-line description.
+    requires:
+      - { tag: button, min: 1 }
+
+  - id: product-card
+    stratum: natural
+    prompt: >-
+      Build a product card for an online shop with an image placeholder, a title, a price with a struck-through
+      old price, a star rating, and an "Add to cart" button.
+    requires:
+      - { tag: button, min: 1 }
+
+  - id: nav-bar
+    stratum: natural
+    prompt: >-
+      Build a top navigation bar with a logo on the left, five links in the middle, and a "Sign in" button on
+      the right. Add a hover effect on the links.
+    requires:
+      - { tag: a, min: 1 }
+      - { tag: button, min: 1 }
+
+  # ---- cn_allowed ----
+  - id: cn-alert-variants
+    stratum: cn_allowed
+    prompt: >-
+      This project uses the cn() helper from "@/lib/utils" to join class names. Build an Alert component that
+      takes a variant prop (info, success, warning, danger) and shows an icon, a title and a message in a
+      colour that matches the variant. Render one of each variant in a stack.
+    requires:
+      - { tag: div, min: 1 }
+
+  - id: cn-button-variants
+    stratum: cn_allowed
+    prompt: >-
+      This project uses the cn() helper from "@/lib/utils" to join class names. Build a Button component with
+      primary, secondary, outline and ghost variants and sm/md/lg sizes, then show a row of examples.
+    requires:
+      - { tag: button, min: 1 }
+
+  # ---- engine_blind ----
+  - id: hero-on-gradient
+    stratum: engine_blind
+    prompt: >-
+      Build a landing-page hero section: a full-width coloured band with a large headline, a one-sentence
+      subheading, and two buttons side by side (a primary action and a secondary action).
+    requires:
+      - { tag: button, min: 1 }
+      - { tag: h1, min: 1 }
+
+  # ---- control ----
+  - id: skeleton-loader
+    stratum: control
+    prompt: >-
+      Build a loading skeleton for a list of five rows, each with a circular avatar placeholder and two
+      grey bars of different widths, using a gentle pulse effect.
+    requires:
+      - { tag: div, min: 1 }
