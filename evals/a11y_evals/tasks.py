@@ -51,10 +51,15 @@ def _parse(entry: dict, split: str, source: str) -> Task:
         raise TaskError(f"{source}: task {entry['id']!r} has no `requires`; without it an answer that drops the content to avoid findings would be scored as clean")
     reqs = []
     for r in entry.get("requires", []) or []:
-        tag, minimum = r.get("tag"), r.get("min", 1)
-        if not isinstance(tag, str) or not tag or not isinstance(minimum, int) or minimum < 1:
+        minimum = r.get("min", 1) if isinstance(r, dict) else None
+        if not isinstance(r, dict) or ("tag" in r) == ("any_of" in r):
+            raise TaskError(f"{source}: task {entry['id']!r} has an invalid requirement {r!r}: give exactly one of `tag` or `any_of`")
+        tags = [r["tag"]] if "tag" in r else r["any_of"]
+        if (not isinstance(tags, list) or not tags or len(set(tags)) != len(tags)
+                or not all(isinstance(t, str) and t for t in tags)
+                or isinstance(minimum, bool) or not isinstance(minimum, int) or minimum < 1):
             raise TaskError(f"{source}: task {entry['id']!r} has an invalid requirement {r!r}")
-        reqs.append(Requirement(tag=tag, min=minimum))
+        reqs.append(Requirement(tags=tuple(tags), min=minimum))
     return Task(id=entry["id"], split=split, stratum=entry["stratum"], prompt=entry["prompt"].strip(), requires=tuple(reqs))
 
 

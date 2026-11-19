@@ -51,9 +51,21 @@ class RunStatus(str, enum.Enum):
 
 @dataclass(frozen=True)
 class Requirement:
-    """The task needs at least `min` elements with this tag (e.g. a pricing card needs a button)."""
-    tag: str
+    """The task needs at least `min` elements among these tags (e.g. a pricing card needs a button).
+
+    More than one tag is for what the prompt does not name: a toggle may be a button or a checkbox, and a
+    requirement that only one of them can satisfy would discard a good answer for a markup choice."""
+    tags: tuple[str, ...]
     min: int = 1
+
+    @property
+    def tag(self) -> str:
+        """The first (most usual) alternative; what a scripted agent writes."""
+        return self.tags[0]
+
+    @property
+    def label(self) -> str:
+        return "|".join(self.tags)
 
 
 @dataclass(frozen=True)

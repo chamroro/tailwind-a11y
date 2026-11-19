@@ -7,7 +7,7 @@ tasks:
     stratum: natural
     prompt: >-
       Build a pricing card for a SaaS product. It shows a plan name, a monthly price,
-      a short list of what is included, and a button to choose the plan.
+      a short list of what is included (a ul with li items), and a button to choose the plan.
     requires:
       - { tag: button, min: 1 }
       - { tag: li, min: 1 }
@@ -25,8 +25,8 @@ tasks:
   - id: dev-status-badges
     stratum: natural
     prompt: >-
-      Build a list of status badges for a deployment dashboard: success, warning, error,
-      pending and cancelled. Each badge has a coloured dot and a label.
+      Build a list of status badges for a deployment dashboard (a ul with li items): success, warning,
+      error, pending and cancelled. Each badge has a coloured dot and a label.
     requires:
       - { tag: li, min: 1 }
 

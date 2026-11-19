@@ -51,7 +51,13 @@ def test_a_task_with_a_hint_does_not_load(tmp_path):
         load_tasks("dev", write(tmp_path, "dev", [entry(prompt="Build an accessible card")]))
 
 
-@pytest.mark.parametrize("bad", [entry(stratum="nope"), entry(requires=[]), entry(requires=[{"tag": "button", "min": 0}]), entry(id="")])
+@pytest.mark.parametrize("bad", [
+    entry(stratum="nope"), entry(requires=[]), entry(requires=[{"tag": "button", "min": 0}]), entry(id=""),
+    entry(requires=[{"tag": "button", "any_of": ["button", "input"]}]),   # both forms
+    entry(requires=[{"min": 1}]),                                          # neither form
+    entry(requires=[{"any_of": []}]), entry(requires=[{"any_of": ["a", "a"]}]), entry(requires=[{"any_of": ["a", 3]}]),
+    entry(requires=[{"any_of": "button"}]), entry(requires=[{"any_of": ["button"], "min": True}]), entry(requires=["button"]),
+])
 def test_malformed_tasks_do_not_load(tmp_path, bad):
     with pytest.raises(TaskError):
         load_tasks("dev", write(tmp_path, "dev", [bad]))
@@ -118,9 +124,9 @@ def test_the_meta_record_says_what_produced_the_run(tmp_path):
     assert set(meta["arm_digests"]) == {"A", "B"} and meta["agent"]["agent"] == "fake"
 
 
-def test_the_bedrock_agent_is_refused_until_it_exists(tmp_path, capsys):
+def test_the_live_agent_is_refused_without_a_model_and_writes_nothing(tmp_path, capsys):
     assert main(["run", "--agent", "strands", "--out", str(tmp_path / "x")]) == 2
-    assert "not implemented" in capsys.readouterr().err
+    assert "--model-id" in capsys.readouterr().err
     assert not (tmp_path / "x").exists()
 
 
@@ -131,3 +137,19 @@ def test_invalid_limits_and_k_are_refused(tmp_path, capsys):
 
 def test_report_on_a_missing_file(tmp_path, capsys):
     assert main(["report", str(tmp_path / "none")]) == 2
+
+
+def test_a_requirement_may_list_alternatives(tmp_path):
+    t = load_tasks("dev", write(tmp_path, "dev", [entry(requires=[{"any_of": ["button", "input"], "min": 2}, {"tag": "a"}])]))[0]
+    assert [(r.tags, r.min) for r in t.requires] == [(("button", "input"), 2), (("a",), 1)]
+    assert t.requires[0].tag == "button" and t.requires[0].label == "button|input"
+
+
+def test_a_tag_that_only_one_kind_of_markup_satisfies_is_named_in_the_prompt():
+    """A requirement for `li` that the prompt does not ask for discards good answers that use another element
+    (found in a pilot: a model wrote a list of badges as divs). Either the prompt says li, or the requirement has alternatives."""
+    for split, tasks in load_all().items():
+        for t in tasks:
+            for r in t.requires:
+                if r.tags == ("li",):
+                    assert "li" in t.prompt.split(), f"{split}/{t.id} requires li but its prompt does not name it"
