@@ -13,11 +13,12 @@ This directory is not an npm workspace, is not published, and is not part of CI.
 | Part | State |
 |---|---|
 | Task files, extraction, scoring, budget, runner, report, tests | done, tested with a scripted agent |
-| Bedrock agent (`--agent strands`) | **not written**. It needs an AWS account and is the next stage. The command refuses to run. |
-| Any number from a real model | **none yet** |
+| Bedrock agent (`--agent strands`) | written (`agents/strands_bedrock.py`), driven through the real Strands loop with a scripted model in tests, and run once live as a four-run pilot of arm A on the `dev` split |
+| Any number to report | **none yet**. The pilot is for finding defects in the tasks and the harness, not a result |
 
 Everything the tests pin about scoring, status handling, budget enforcement and the reading rules holds without a
-model. Nothing here says anything about a model's behaviour until a real run exists.
+model. Nothing here says anything about a model's behaviour until a reported run exists. The tool arms (B2, C) have
+not been run against a real model at all.
 
 ## What may be claimed
 
@@ -43,7 +44,9 @@ Tasks are ordinary component requests with no accessibility words in them (the l
 fixed list of such words; it cannot catch every phrasing, so prompts are also read by a person). Each lists the
 kinds of element a valid answer must contain, so that an answer which deletes the content to avoid findings is
 `unscorable` instead of clean. This counts JSX written in the source, not elements rendered (a `.map()` or a
-reusable component renders many from one), so every minimum is 1. Tasks are split into `dev` (prompts and arm wording may be tuned) and
+reusable component renders many from one), so every minimum is 1. A tag the prompt does not ask for is not required
+alone: either the prompt names it ("a ul with li items") or the requirement lists alternatives (`any_of`), because a
+pilot showed a good answer being discarded for writing a list of badges as divs. Tasks are split into `dev` (prompts and arm wording may be tuned) and
 `test` (frozen before the reported run; its sha256 is stored in the run file).
 
 Scoring calls the engine's `analyzeSource` directly through `node/inspect.mjs`, not through the MCP server. The
@@ -89,6 +92,25 @@ by a per-run limit still has its usage counted. There are no default prices: `--
 numbers filled in from the provider's current price page, or a billable run refuses to start.
 `--dry-run` prints the plan and the most the limits would allow.
 
+## The live agent
+
+`--agent strands` runs Strands Agents on Amazon Bedrock and, for the tool arms, starts the published
+`mcp-tailwind-a11y` with `npx` against a new empty directory per run. Choices that change what is measured:
+
+- The server's own `instructions` are put in the system prompt of the tool arms. Strands keeps them on the client and
+  does not give them to the model; a real host does, and arm C means "what a user who installed the tool gets".
+- Only `check_tailwind_a11y` is exposed. The server's file-reading tool has nothing to read in an empty root.
+- The answer is the text of the agent's last message, for every arm. A run that ends with a message holding no code
+  block is `no_code_block` even if an earlier message had the component; this can count against the tool arms.
+- Temperature is 1.0 (the API default), recorded in the run file; repetitions exist to sample it. Bedrock has no seed.
+- The tool server is the published version named by `--mcp-version`; the scorer uses the workspace engine. Their
+  versions are both recorded, and a run file is not resumable if the engine's changed.
+- A run first makes one 20-token model call and one tool-server handshake (`preflight`); if either fails nothing is
+  recorded. A dry run touches neither AWS nor npx.
+- Credentials are read by boto3 from the named profile and never by this code. Prefer an identity that can only
+  invoke models. `--model-id` has no default, and prices must come from a file (`pricing.example.yaml`); a price file
+  that overstates the price makes the cost limit stricter, one that understates it makes it weaker.
+
 ## Use
 
 ```bash
@@ -98,6 +120,10 @@ pytest
 python -m a11y_evals.cli run --agent fake --split dev --out runs/demo.jsonl --dry-run
 python -m a11y_evals.cli run --agent fake --split dev --out runs/demo.jsonl
 python -m a11y_evals.cli report runs/demo.jsonl
+
+# live, after `pip install -e ".[dev,strands]"`, an AWS profile, and a price file you filled in:
+python -m a11y_evals.cli run --agent strands --model-id <bedrock model or profile id> --aws-profile <profile> \
+  --pricing <prices.yaml> --split dev --arms A --k 1 --max-cost-usd 0.5 --out runs/pilot-A.jsonl
 ```
 
 `--agent fake` writes scripted answers with a made-up effect so that the whole pipeline can be exercised for free;

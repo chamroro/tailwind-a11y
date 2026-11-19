@@ -51,6 +51,11 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("--max-tokens-per-run", type=int, default=20_000)
     r.add_argument("--max-turns-per-run", type=int, default=8)
     r.add_argument("--dry-run", action="store_true", help="print the plan and the worst-case ceiling, call nothing")
+    r.add_argument("--model-id", help="Bedrock model or inference profile id (required for --agent strands; there is no default)")
+    r.add_argument("--aws-profile", help="AWS profile name; credentials are read by boto3, never by this program")
+    r.add_argument("--aws-region", default="us-west-2")
+    r.add_argument("--max-output-tokens", type=int, default=4096, help="per model call")
+    r.add_argument("--mcp-version", help="version of mcp-tailwind-a11y started with npx (default: the one this harness was written against)")
 
     rep = sub.add_parser("report", help="print the markdown report for a run file")
     rep.add_argument("file", type=Path)
@@ -62,9 +67,19 @@ def _cmd_run(a: argparse.Namespace) -> int:
         print("error: --k must be at least 1", file=sys.stderr)
         return 2
     if a.agent == "strands":
-        print("error: the Bedrock/Strands agent is not implemented yet (stage 2, after the AWS account is set up)", file=sys.stderr)
-        return 2
-    agent = FakeAgent(_demo_policy)
+        if not a.model_id:
+            print("error: --agent strands needs --model-id (no default: a run must say which model it uses)", file=sys.stderr)
+            return 2
+        try:
+            from .agents.strands_bedrock import DEFAULT_SERVER_VERSION, BedrockSettings, StrandsBedrockAgent
+        except ImportError as err:
+            print(f"error: the strands extra is not installed ({err}); run: pip install -e '.[strands]'", file=sys.stderr)
+            return 2
+        agent = StrandsBedrockAgent(BedrockSettings(
+            model_id=a.model_id, region=a.aws_region, profile=a.aws_profile, max_tokens=a.max_output_tokens,
+            server_version=a.mcp_version or DEFAULT_SERVER_VERSION))
+    else:
+        agent = FakeAgent(_demo_policy)
     try:
         tasks = load_tasks(a.split)
         pricing = load_pricing(a.pricing) if a.pricing else None
@@ -87,6 +102,15 @@ def _cmd_run(a: argparse.Namespace) -> int:
         print(f"note: the plan is larger than max_runs ({limits.max_runs}); the rest will be recorded as budget_abort")
     if a.dry_run:
         return 0
+
+    if a.agent == "strands":
+        try:
+            facts = agent.preflight()
+        except Exception as err:  # PreflightError, or anything else that means the setup does not work
+            print(f"error: preflight failed, nothing was recorded: {err}", file=sys.stderr)
+            return 2
+        print(f"preflight ok: {facts['preflight_tokens']['input'] + facts['preflight_tokens']['output']} tokens, "
+              f"server tools {facts['server_tool_names']}, instructions sha {facts['server_instructions_sha']}")
 
     meta = provenance.collect(
         agent_description=agent.describe(), arms=[x.value for x in a.arms], split=a.split, k=a.k, seed=a.seed,

@@ -13,7 +13,8 @@ tasks:
     stratum: natural
     prompt: >-
       Build a pricing section with three plan cards: Starter, Pro and Team. Each card shows the price per month,
-      a list of four features, and a call-to-action button. Highlight the Pro card as the recommended plan.
+      a list of four features (a ul with li items), and a call-to-action button. Highlight the Pro card as the
+      recommended plan.
     requires:
       - { tag: button, min: 1 }
       - { tag: li, min: 1 }
@@ -50,7 +51,7 @@ tasks:
       Build a set of tag badges for a blog sidebar (design, engineering, product, release notes, careers) that
       look good on a dark page background.
     requires:
-      - { tag: span, min: 1 }
+      - { any_of: [span, div, a, li, button], min: 1 }
 
   - id: settings-toggles
     stratum: natural
@@ -58,7 +59,7 @@ tasks:
       Build a notification settings panel with four on/off toggle switches (email, push, SMS, weekly digest),
       each with a label and a one-line description.
     requires:
-      - { tag: button, min: 1 }
+      - { any_of: [button, input], min: 1 }
 
   - id: product-card
     stratum: natural
@@ -103,7 +104,7 @@ tasks:
       subheading, and two buttons side by side (a primary action and a secondary action).
     requires:
       - { tag: button, min: 1 }
-      - { tag: h1, min: 1 }
+      - { any_of: [h1, h2, h3, p, div], min: 1 }
 
   # ---- control ----
   - id: skeleton-loader

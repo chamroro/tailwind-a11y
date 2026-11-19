@@ -117,3 +117,27 @@ def test_requirements_are_about_what_is_written_once_not_how_often(task):
             '<button className="text-gray-900 bg-white">go</button></div>);')
     s = score(task, code)  # pricing-tiers: one button and one li written once each render many
     assert s.status == RunStatus.SCORED, s.missing
+
+
+def _task_requiring(*reqs):
+    from a11y_evals.models import Requirement, Task
+    return Task(id="t", split="dev", stratum="natural", prompt="p", requires=tuple(Requirement(tags=tuple(t), min=m) for t, m in reqs))
+
+
+def test_an_alternative_satisfies_a_requirement():
+    t = _task_requiring((["button", "input"], 1))
+    assert score(t, 'export const A = () => <input className="border border-gray-900" />;').status == RunStatus.SCORED
+    assert score(t, 'export const A = () => <button className="text-gray-900 bg-white">x</button>;').status == RunStatus.SCORED
+
+
+def test_alternatives_are_counted_together_and_named_when_missing():
+    t = _task_requiring((["button", "input"], 2))
+    one = score(t, 'export const A = () => <button className="text-gray-900 bg-white">x</button>;')
+    assert one.status == RunStatus.UNSCORABLE and one.missing == ["button|input x2"]
+    both = score(t, 'export const A = () => <div><button className="text-gray-900 bg-white">x</button><input className="border border-gray-900" /></div>;')
+    assert both.status == RunStatus.SCORED
+
+
+def test_none_of_the_alternatives_is_unscorable():
+    t = _task_requiring((["button", "input"], 1))
+    assert score(t, 'export const A = () => <div className="text-gray-900">x</div>;').status == RunStatus.UNSCORABLE

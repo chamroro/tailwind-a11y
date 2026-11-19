@@ -119,7 +119,7 @@ def classify(task: Task, shim: ShimResult) -> Scored:
         return Scored(RunStatus.NO_JSX, shim)
 
     tag_counts: dict[str, int] = shim.bypass.get("tag_counts", {})
-    missing = [f"{r.tag} x{r.min}" for r in task.requires if tag_counts.get(r.tag, 0) < r.min]
+    missing = [f"{r.label} x{r.min}" for r in task.requires if sum(tag_counts.get(t, 0) for t in r.tags) < r.min]
     if missing:
         return Scored(RunStatus.UNSCORABLE, shim, missing=missing)
     return Scored(RunStatus.SCORED, shim)
