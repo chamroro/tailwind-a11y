@@ -112,16 +112,6 @@ another check) should follow the same pattern.
   `tailwind-a11y` CLI's `node_modules/.bin` symlink gets created — it's only linked for
   a `dist/cli.js` that already exists at install time).
 
-## `evals/` is not part of the workspace
-
-`evals/` is a Python harness (venv + pytest) for measuring what the MCP tool does to an agent's
-output. It is not in `workspaces`, is never published, and is not run in CI; its Node shim
-(`evals/node/inspect.mjs`) calls the built engine's `analyzeSource`, so its tests need
-`npm run build -w tailwind-a11y` first and fail loudly (not skip) when it is missing. Its results
-come from the same engine that does the scoring, so they must never be quoted as an accessibility
-improvement; `evals/README.md` lists what may and may not be claimed. Keep `evals/.venv` and
-`evals/runs/` out of git.
-
 ## Working conventions (inherited from the engine package, apply repo-wide)
 
 - Plan non-trivial multi-file changes before implementing (Plan Mode) — spec-first, not
